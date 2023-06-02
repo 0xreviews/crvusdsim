@@ -1,0 +1,2 @@
+# crvusdsim
+Simulates Curve Stablecoin
