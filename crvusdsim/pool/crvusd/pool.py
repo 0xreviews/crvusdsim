@@ -4,6 +4,7 @@ Mainly a module to house the `LLAMMAPool`, a LLAMMA implementation in Python.
 import time
 from math import isqrt, prod
 from typing import List
+from crvusdsim.pool.crvusd.clac import ln_int
 
 from curvesim.exceptions import CalculationError, CryptoPoolError
 from curvesim.logging import get_logger
@@ -375,7 +376,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         -------
         Price at 1e18 base
         """
-        return self._p_oracle_up(n)
+        return self._p_oracle_up(n+1)
 
 
 
@@ -390,29 +391,3 @@ def _get_unix_timestamp():
     """Get the timestamp in Unix time."""
     return int(time.time())
 
-def ln_int(_x: int) -> int:
-    """
-    @notice Logarithm ln() function based on log2. Not very gas-efficient but brief
-    """
-    # adapted from: https://medium.com/coinmonks/9aef8515136e
-    # and vyper log implementation
-    # This can be much more optimal but that's not important here
-    x: int = _x
-    res: int = 0
-    for i in range(8):
-        t: int = 2**(7 - i)
-        p: int = 2**t
-        if x >= p * 10**18:
-            x //= p
-            res += t * 10**18
-    d: int = 10**18
-    for i in range(59):  # 18 decimals: math.log2(10**10) == 59.7
-        if (x >= 2 * 10**18):
-            res += d
-            x //= 2
-        x = x * x // 10**18
-        d //= 2
-    # Now res = log2(x)
-    # ln(x) = log2(x) / log2(e)
-    return res * 10**18 // 1442695040888963328
-## End of low-level math
