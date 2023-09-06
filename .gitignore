@@ -10,6 +10,9 @@
 # Python
 *.py[co]
 
+# test
+.hypothesis/
+
 ## Packages
 *.egg
 *.egg-info

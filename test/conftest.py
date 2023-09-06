@@ -1,3 +1,4 @@
+import pytest
 from math import log
 
 
@@ -14,3 +15,8 @@ def approx(x1: int, x2: int, precision: int, abs_precision=None):
     elif x1 == 0:
         return abs(x2) <= abs_precision
     return result or (abs(log(x1 / x2)) <= precision)
+
+
+@pytest.fixture(scope="session")
+def accounts():
+    return ["user_address_%d" % i for i in range(5)]

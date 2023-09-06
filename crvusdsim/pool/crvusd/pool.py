@@ -1,10 +1,12 @@
 """
 Mainly a module to house the `LLAMMAPool`, a LLAMMA implementation in Python.
 """
+from collections import defaultdict
 import time
 from math import isqrt, prod
 from typing import List
 from crvusdsim.pool.crvusd.clac import ln_int
+from crvusdsim.pool.crvusd.vyper_func import shift, unsafe_add, unsafe_div, unsafe_mul, unsafe_sub
 
 from curvesim.exceptions import CalculationError, CryptoPoolError
 from curvesim.logging import get_logger
@@ -19,7 +21,8 @@ MAX_SKIP_TICKS = 1024
 PREV_P_O_DELAY = 2 * 60  # s = 2 min
 MAX_P_O_CHG = 12500 * 10**14  # <= 2**(1/3) - max relative change to have fee < 50%
 BORROWED_TOKEN = "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e"
-BORROWED_PRECISION = 18
+BORROWED_PRECISION = 1
+DEAD_SHARES = 1000
 
 
 class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
@@ -60,11 +63,11 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
 
         "total_shares",
         "user_shares",
-        "DEAD_SHARES",
 
         "liquidity_mining_callback", # LMGauge
 
-        "collateral",
+        "COLLATERAL_TOKEN",
+        "COLLATERAL_PRECISION",
         "BASE_PRICE",
         "admin",                # admin address
     )
@@ -77,6 +80,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         BASE_PRICE: int,
         collateral=None,
         price_oracle_contract=None,
+        liquidity_mining_callback=None,
         admin=None,
     ):
         """
@@ -85,7 +89,8 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         A : int
         @todo
         """
-        self.collateral = collateral
+        self.COLLATERAL_TOKEN: str = collateral["address"]
+        self.COLLATERAL_PRECISION: int = collateral["precision"]
 
         self.A = A
         self.Aminus1 = A - 1
@@ -112,6 +117,16 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         self.LOG_A_RATIO = ln_int(A_ratio)
         # (A / (A - 1)) ** 50
         self.MAX_ORACLE_DN_POW = int(A**25 * 10**18 // (self.Aminus1 ** 25)) ** 2 // 10**18
+
+        self.active_band = 0
+        self.min_band = 0
+        self.max_band = 0
+        self.bands_x = defaultdict(int)
+        self.bands_y = defaultdict(int)
+        self.total_shares = defaultdict(int)
+        self.user_shares = defaultdict(_default_user_shares)
+
+        self.liquidity_mining_callback = liquidity_mining_callback
     
 
     def _increment_timestamp(self, blocks=1, timestamp=None):
@@ -326,7 +341,8 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         
         Returns
         -------
-        Price at 1e18 base
+        int
+            Price at 1e18 base
         """
         return self._p_current_band(n + 1)
 
@@ -342,7 +358,8 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         
         Returns
         -------
-        Price at 1e18 base
+        int
+            Price at 1e18 base
         """
         return self._p_current_band(n)
     
@@ -374,20 +391,653 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         
         Returns
         -------
-        Price at 1e18 base
+        int
+            Price at 1e18 base
         """
         return self._p_oracle_up(n+1)
+    
+
+    def _get_y0(self, x: int, y: int, p_o: int, p_o_up: int) -> int:
+        """
+        Calculate y0 for the invariant based on current liquidity in band.
+        The value of y0 has a meaning of amount of collateral when band has no stablecoin
+        but current price is equal to both oracle price and upper band price.
+
+        Parameters
+        ----------
+        x : int
+            Amount of stablecoin in band
+        y : int
+            Amount of collateral in band
+        p_o : int
+            External oracle price
+        p_o_up : int
+            Upper boundary of the band
+
+        Returns
+        -------
+        y0 : int
+        """
+        assert p_o != 0
+        # solve:
+        # p_o * A * y0**2 - y0 * (p_oracle_up/p_o * (A-1) * x + p_o**2/p_oracle_up * A * y) - xy = 0
+        b: int = 0
+        # p_o_up * unsafe_sub(A, 1) * x / p_o + A * p_o**2 / p_o_up * y / 10**18
+        if x != 0:
+            b = p_o_up * self.Aminus1 * x // p_o
+        if y != 0:
+            b += self.A * p_o**2 / p_o_up * y // 10**18
+        if x > 0 and y > 0:
+            D: int = b**2 + ((4 * self.A) * p_o) * y // 10**18 * x
+            return ((b + isqrt(D)) * 10**18) // 2 * self.A * p_o
+        else:
+            return b * 10**18 // (self.A * p_o)
+    
+
+    def _get_p(self, n: int, x: int, y: int) -> int:
+        """
+        Get current AMM price in band
+
+        Parameters
+        ----------
+        n : int
+            Band number
+        x : int
+            Amount of stablecoin in band
+        y : int
+            Amount of collateral in band
+
+        Returns
+        -------
+        int
+            Current price at 1e18 base
+        """
+        p_o_up: int = self._p_oracle_up(n)
+        p_o: int = self._price_oracle_ro()[0]
+        assert p_o_up != 0
+
+        # Special cases
+        if x == 0:
+            if y == 0:  # x and y are 0
+                # Return mid-band
+                return unsafe_div((unsafe_div(unsafe_div(p_o**2, p_o_up) * p_o, p_o_up) * self.A), self.Aminus1)
+            # if x == 0: # Lowest point of this band -> p_current_down
+            return unsafe_div(unsafe_div(p_o**2, p_o_up) * p_o, p_o_up)
+        if y == 0: # Highest point of this band -> p_current_up
+            p_o_up = unsafe_div(p_o_up * self.Aminus1, self.A)  # now this is _actually_ p_o_down
+            return unsafe_div(p_o**2 // p_o_up * p_o, p_o_up)
+
+        y0: int = self._get_y0(x, y, p_o, p_o_up)
+        # ^ that call also checks that p_o != 0
+
+        # (f(y0) + x) / (g(y0) + y)
+        f: int = unsafe_div(self.A * y0 * p_o, p_o_up) * p_o
+        g: int = unsafe_div(self.Aminus1 * y0 * p_o_up, p_o)
+        return (f + x * 10**18) // (g + y)
+    
+
+    def get_p(self) -> int:
+        """
+        Get current AMM price in active_band
+        
+        Returns
+        -------
+        int
+            Current price at 1e18 base
+        """
+        n: int = self.active_band
+        return self._get_p(n, self.bands_x[n], self.bands_y[n])
 
 
+    def _read_user_tick_numbers(self, user: str) -> List[int]:
+        n1: int = self.user_shares[user].n1
+        n2: int = self.user_shares[user].n2
+        return [n1, n2]
+    
 
-def shift(n: int, s: int) -> int:
-    if s >= 0:
-        return n << abs(s)
-    else:
-        return n >> abs(s)
+    def read_user_tick_numbers(self, user: str) -> List[int]:
+        """
+        Unpacks and reads user tick numbers
+        @param user User address
+        
+        Returns
+        -------
+        [n1, n2] : List[int]
+            Lowest and highest band the user deposited into
+        """
+        return self._read_user_tick_numbers(user)
+
+
+    def _read_user_ticks(self, user: str, ns: List[int]) -> List[int]:
+        """
+        Unpacks and reads user ticks (shares) for all the ticks user deposited into
+
+        Parameters
+        ----------
+        user : str
+            User address
+        ns : [int, int]
+            [n1, n2] Number of ticks the user deposited into
+        
+        Returns
+        -------
+        List[int]
+            Array of shares the user has
+        """
+        ticks: List[int] = []
+        size: int = ns[1] - ns[0] + 1
+        for i in range(MAX_TICKS):
+            if len(ticks) == size:
+                break
+            ticks.append(self.user_shares[user].ticks[i])
+        return ticks
+
+    
+    def can_skip_bands(self, n_end: int) -> bool:
+        """
+        Check that we have no liquidity between active_band and `n_end`
+        """
+        n: int = self.active_band
+        for i in range(MAX_SKIP_TICKS):
+            if n_end > n:
+                if self.bands_y[n] != 0:
+                    return False
+                n += 1
+            else:
+                if self.bands_x[n] != 0:
+                    return False
+                n -= 1
+            if n == n_end:  # not including n_end
+                break
+        return True
+        # Actually skipping bands:
+        # * change self.active_band to the new n
+        # * change self.p_base_mul
+        # to do n2-n1 times (if n2 > n1):
+        # out.base_mul = unsafe_div(out.base_mul * Aminus1, A)
+
+    
+    def active_band_with_skip(self) -> int:
+        n0: int = self.active_band
+        n: int = n0
+        min_band: int = self.min_band
+        for i in range(MAX_SKIP_TICKS):
+            if n < min_band:
+                n = n0 - MAX_SKIP_TICKS
+                break
+            if self.bands_x[n] != 0:
+                break
+            n -= 1
+        return n
+
+
+    def has_liquidity(self, user: str) -> bool:
+        """
+        Check if `user` has any liquidity in the AMM
+        """
+        return self.user_shares[user].ticks[0] != 0
+    
+
+    def save_user_shares(self, user: str, user_shares: List[int]):
+        ptr: int = 0
+        for j in range(MAX_TICKS_UINT):
+            if ptr >= len(user_shares):
+                break
+            tick: int = user_shares[ptr]
+            ptr += 1
+            self.user_shares[user].ticks[j] = tick
+
+
+    def deposit_range(self, user: str, amount: int, n1: int, n2: int):
+        """
+        Deposit for a user in a range of bands. Only admin contract (Controller) can do it
+
+        Parameters
+        ----------
+        user : str
+            User address
+        amount : int
+            Amount of collateral to deposit
+        n1 : int
+            Lower band in the deposit range
+        n2 : int
+            Upper band in the deposit range
+        """
+        # assert msg.sender == self.admin @todo
+
+        user_shares: List[int] = []
+        collateral_shares: List[int] = []
+
+        n0: int = self.active_band
+
+        # We assume that n1,n2 area already sorted (and they are in Controller)
+        assert n2 < 2**127
+        assert n1 > -2**127
+
+        lm = self.liquidity_mining_callback
+
+        # Autoskip bands if we can
+        for i in range(MAX_SKIP_TICKS + 1):
+            if n1 > n0:
+                if i != 0:
+                    self.active_band = n0
+                break
+            assert self.bands_x[n0] == 0 and i < MAX_SKIP_TICKS, "Deposit below current band"
+            n0 -= 1
+
+        n_bands: int = unsafe_add(unsafe_sub(n2, n1), 1)
+        assert n_bands <= MAX_TICKS_UINT
+
+        y_per_band: int = unsafe_div(amount * self.COLLATERAL_PRECISION, n_bands)
+        assert y_per_band > 100, "Amount too low"
+
+        assert self.user_shares[user].ticks[0] == 0  # dev: User must have no liquidity
+        self.user_shares[user].n1 = n1
+        self.user_shares[user].n2 = n2
+
+        for i in range(MAX_TICKS):
+            band: int = unsafe_add(n1, i)
+            if band > n2:
+                break
+
+            assert self.bands_x[band] == 0, "Band not empty"
+            y: int = y_per_band
+            if i == 0:
+                y = amount * self.COLLATERAL_PRECISION - y * unsafe_sub(n_bands, 1)
+
+            total_y: int = self.bands_y[band]
+
+            # Total / user share
+            s: int = self.total_shares[band]
+            ds: int = unsafe_div((s + DEAD_SHARES) * y, total_y + 1)
+            assert ds > 0, "Amount too low"
+            user_shares.append(ds)
+            s += ds
+            assert s <= 2**128 - 1
+            self.total_shares[band] = s
+
+            total_y += y
+            self.bands_y[band] = total_y
+
+            if lm is not None and lm.address is not None:
+                # If initial s == 0 - s becomes equal to y which is > 100 => nonzero
+                collateral_shares.append(unsafe_div(total_y * 10**18, s))
+
+        self.min_band = min(self.min_band, n1)
+        self.max_band = max(self.max_band, n2)
+
+        self.save_user_shares(user, user_shares)
+
+        self.rate_mul = self._rate_mul()
+        self.rate_time = self._block_timestamp
+
+        if lm is not None and lm.address is not None:
+            lm.callback_collateral_shares(n1, collateral_shares)
+            lm.callback_user_shares(user, n1, user_shares)
+
+
+    def withdraw(self, user: str, frac: int) -> List[int]:
+        """
+        Withdraw liquidity for the user. Only admin contract can do it
+
+        Parameters
+        ----------
+        user : str
+            User who owns liquidity
+        frac : int
+            Fraction to withdraw (1e18 being 100%)
+        
+        Returns
+        -------
+        List[int]
+            Amount of [stablecoins, collateral] withdrawn
+        """
+        # assert msg.sender == self.admin @todo
+        assert frac <= 10**18
+
+        lm = self.liquidity_mining_callback
+
+        ns: List[int] = self._read_user_tick_numbers(user)
+        n: int = ns[0]
+        user_shares: List[int] = self._read_user_ticks(user, ns)
+        assert user_shares[0] > 0, "No deposits"
+
+        total_x: int = 0
+        total_y: int = 0
+        min_band: int = self.min_band
+        old_min_band: int = min_band
+        old_max_band: int = self.max_band
+        max_band: int = n - 1
+
+        for i in range(MAX_TICKS):
+            x: int = self.bands_x[n]
+            y: int = self.bands_y[n]
+            ds: int = unsafe_div(frac * user_shares[i], 10**18)  # Can ONLY zero out when frac == 10**18
+            user_shares[i] = unsafe_sub(user_shares[i], ds)
+            s: int = self.total_shares[n]
+            new_shares: int = s - ds
+            self.total_shares[n] = new_shares
+            s += DEAD_SHARES
+            dx: int = (x + 1) * ds // s
+            dy: int = unsafe_div((y + 1) * ds, s)
+            
+            x -= dx
+            y -= dy
+
+            # If withdrawal is the last one - tranfer dust to admin fees
+            if new_shares == 0:
+                if x > 0:
+                    self.admin_fees_x += x
+                if y > 0:
+                    self.admin_fees_y += y // self.COLLATERAL_PRECISION
+                x = 0
+                y = 0
+
+            if n == min_band:
+                if x == 0:
+                    if y == 0:
+                        min_band += 1
+            if x > 0 or y > 0:
+                max_band = n
+            self.bands_x[n] = x
+            self.bands_y[n] = y
+            total_x += dx
+            total_y += dy
+
+            if n == ns[1]:
+                break
+            else:
+                n += 1
+
+        self.save_user_shares(user, user_shares)
+
+        if old_min_band != min_band:
+            self.min_band = min_band
+        if old_max_band <= ns[1]:
+            self.max_band = max_band
+
+        total_x = unsafe_div(total_x, BORROWED_PRECISION)
+        total_y = unsafe_div(total_y, self.COLLATERAL_PRECISION)
+
+        self.rate_mul = self._rate_mul()
+        self.rate_time = self._block_timestamp
+
+        if lm is not None and lm.address is not None:
+            lm.callback_collateral_shares(0, [])  # collateral/shares ratio is unchanged
+            lm.callback_user_shares(user, ns[0], user_shares)
+
+        return [total_x, total_y]
+
+
+    def get_xy_up(self, user: str, use_y: bool) -> int:
+        """
+        Measure the amount of y (collateral) in the band n if we adiabatically trade near p_oracle on the way up,
+        or the amount of x (stablecoin) if we trade adiabatically down
+
+        Parameters
+        ----------
+        user : str
+            User the amount is calculated for
+        use_y : bool
+            Calculate amount of collateral if True and of stablecoin if False
+
+        Returns
+        -------
+        int
+            Amount of coins
+        """
+        ns: List[int] = self._read_user_tick_numbers(user)
+        ticks: List[int] = self._read_user_ticks(user, ns)
+        if ticks[0] == 0:  # Even dynamic array will have 0th element set here
+            return 0
+        p_o: int = self._price_oracle_ro()[0]
+        assert p_o != 0
+
+        n: int = ns[0] - 1
+        n_active: int = self.active_band
+        p_o_down: int = self._p_oracle_up(ns[0])
+        XY: int = 0
+
+        for i in range(MAX_TICKS):
+            n += 1
+            if n > ns[1]:
+                break
+            x: int = 0
+            y: int = 0
+            if n >= n_active:
+                y = self.bands_y[n]
+            if n <= n_active:
+                x = self.bands_x[n]
+            # p_o_up: int = self._p_oracle_up(n)
+            p_o_up: int = p_o_down
+            # p_o_down = self._p_oracle_up(n + 1)
+            p_o_down = unsafe_div(p_o_down * self.Aminus1, self.A)
+            if x == 0:
+                if y == 0:
+                    continue
+
+            total_share: int = self.total_shares[n]
+            user_share: int = ticks[i]
+            if total_share == 0:
+                continue
+            if user_share == 0:
+                continue
+            total_share += DEAD_SHARES
+            # Also ideally we'd want to add +1 to all quantities when calculating with shares
+            # but we choose to save bytespace and slightly under-estimate the result of this call
+            # which is also more conservative
+
+            # Also this will revert if p_o_down is 0, and p_o_down is 0 if p_o_up is 0
+            p_current_mid: int = unsafe_div(p_o**2 // p_o_down * p_o, p_o_up)
+
+            # if p_o > p_o_up - we "trade" everything to y and then convert to the result
+            # if p_o < p_o_down - "trade" to x, then convert to result
+            # otherwise we are in-band, so we do the more complex logic to trade
+            # to p_o rather than to the edge of the band
+            # trade to the edge of the band == getting to the band edge while p_o=const
+
+            # Cases when special conversion is not needed (to save on computations)
+            if x == 0 or y == 0:
+                if p_o > p_o_up:  # p_o < p_current_down
+                    # all to y at constant p_o, then to target currency adiabatically
+                    y_equiv: int = y
+                    if y == 0:
+                        y_equiv = x * 10**18 // p_current_mid
+                    if use_y:
+                        XY += unsafe_div(y_equiv * user_share, total_share)
+                    else:
+                        XY += unsafe_div(unsafe_div(y_equiv * p_o_up, self.SQRT_BAND_RATIO) * user_share, total_share)
+                    continue
+
+                elif p_o < p_o_down:  # p_o > p_current_up
+                    # all to x at constant p_o, then to target currency adiabatically
+                    x_equiv: int = x
+                    if x == 0:
+                        x_equiv = unsafe_div(y * p_current_mid, 10**18)
+                    if use_y:
+                        XY += unsafe_div(unsafe_div(x_equiv * self.SQRT_BAND_RATIO, p_o_up) * user_share, total_share)
+                    else:
+                        XY += unsafe_div(x_equiv * user_share, total_share)
+                    continue
+
+            # If we are here - we need to "trade" to somewhere mid-band
+            # So we need more heavy math
+
+            y0: int = self._get_y0(x, y, p_o, p_o_up)
+            f: int = unsafe_div(unsafe_div(self.A * y0 * p_o, p_o_up) * p_o, 10**18)
+            g: int = unsafe_div(self.Aminus1 * y0 * p_o_up, p_o)
+            # (f + x)(g + y) = const = p_top * A**2 * y0**2 = I
+            Inv: int = (f + x) * (g + y)
+            # p = (f + x) / (g + y) => p * (g + y)**2 = I or (f + x)**2 / p = I
+
+            # First, "trade" in this band to p_oracle
+            x_o: int = 0
+            y_o: int = 0
+
+            if p_o > p_o_up:  # p_o < p_current_down, all to y
+                # x_o = 0
+                y_o = unsafe_sub(max(Inv // f, g), g)
+                if use_y:
+                    XY += unsafe_div(y_o * user_share, total_share)
+                else:
+                    XY += unsafe_div(unsafe_div(y_o * p_o_up, self.SQRT_BAND_RATIO) * user_share, total_share)
+
+            elif p_o < p_o_down:  # p_o > p_current_up, all to x
+                # y_o = 0
+                x_o = unsafe_sub(max(Inv // g, f), f)
+                if use_y:
+                    XY += unsafe_div(unsafe_div(x_o * self.SQRT_BAND_RATIO, p_o_up) * user_share, total_share)
+                else:
+                    XY += unsafe_div(x_o * user_share, total_share)
+
+            else:
+                # Equivalent from Chainsecurity (which also has less numerical errors):
+                y_o = unsafe_div(self.A * y0 * unsafe_sub(p_o, p_o_down), p_o)
+                # x_o = unsafe_div(A * y0 * p_o, p_o_up) * unsafe_sub(p_o_up, p_o)
+                # Old math
+                # y_o = unsafe_sub(max(self.sqrt_int(unsafe_div(Inv * 10**18, p_o)), g), g)
+                x_o = unsafe_sub(max(Inv // (g + y_o), f), f)
+
+                # Now adiabatic conversion from definitely in-band
+                if use_y:
+                    XY += unsafe_div((y_o + x_o * 10**18 // isqrt(p_o_up * p_o)) * user_share, total_share)
+
+                else:
+                    XY += unsafe_div((x_o + unsafe_div(y_o * isqrt(p_o_down * p_o), 10**18)) * user_share, total_share)
+
+        if use_y:
+            return unsafe_div(XY, self.COLLATERAL_PRECISION)
+        else:
+            return unsafe_div(XY, BORROWED_PRECISION)
+
+
+    def get_y_up(self, user: str) -> int:
+        """
+        Measure the amount of y (collateral) in the band n if we adiabatically trade near p_oracle on the way up
+
+        Parameters
+        ----------
+        user : str
+            User the amount is calculated for
+        
+        Returns
+        -------
+        int
+            Amount of coins
+        """
+        return self.get_xy_up(user, True)
+
+
+    def get_x_down(self, user: str) -> int:
+        """
+        Measure the amount of x (stablecoin) if we trade adiabatically down
+
+        Parameters
+        ----------
+        user : int
+            User the amount is calculated for
+
+        Returns
+        -------
+        int
+            Amount of coins
+        """
+        return self.get_xy_up(user, False)
+    
+
+    def _get_xy(self, user: str, is_sum: bool) -> List[int]:
+        """
+        A low-gas function to measure amounts of stablecoins and collateral which user currently owns
+
+        Parameters
+        ----------
+        user : 
+            User address
+        is_sum : 
+            Return sum or amounts by bands
+        
+        Returns
+        -------
+        List[int]
+            Amounts of (stablecoin, collateral) in a tuple
+        """
+        xs: List[int] = []
+        ys: List[int] = []
+        if is_sum:
+            xs.append(0)
+            ys.append(0)
+        ns: List[int] = self._read_user_tick_numbers(user)
+        ticks: List[int] = self._read_user_ticks(user, ns)
+        if ticks[0] != 0:
+            for i in range(MAX_TICKS):
+                total_shares: int = self.total_shares[ns[0]] + DEAD_SHARES
+                ds: int = ticks[i]
+                dx: int = unsafe_div((self.bands_x[ns[0]] + 1) * ds, total_shares)
+                dy: int = unsafe_div((self.bands_y[ns[0]] + 1) * ds, total_shares)
+                if is_sum:
+                    xs[0] += dx
+                    ys[0] += dy
+                else:
+                    xs.append(unsafe_div(dx, BORROWED_PRECISION))
+                    ys.append(unsafe_div(dy, self.COLLATERAL_PRECISION))
+                if ns[0] == ns[1]:
+                    break
+                ns[0] = unsafe_add(ns[0], 1)
+
+        if is_sum:
+            xs[0] = unsafe_div(xs[0], BORROWED_PRECISION)
+            ys[0] = unsafe_div(ys[0], self.COLLATERAL_PRECISION)
+
+        return [xs, ys]
+
+
+    def get_sum_xy(self, user: str) -> List[int]:
+        """
+        A low-gas function to measure amounts of stablecoins and collateral which user currently owns
+
+        Parameters
+        ----------
+        user : str
+            User address
+        
+        Returns
+        -------
+        List[int]
+            Amounts of (stablecoin, collateral) in a tuple
+        """
+        xy: List[int] = self._get_xy(user, True)
+        return [xy[0][0], xy[1][0]]
+
+
+    def get_xy(self, user: str) -> List[int]:
+        """
+        A low-gas function to measure amounts of stablecoins and collateral by bands which user currently owns
+
+        Parameters
+        ----------
+        user : str
+            User address
+
+        Returns
+        -------
+        List[int]
+            Amounts of (stablecoin, collateral) by bands in a tuple
+        """
+        return self._get_xy(user, False)
 
 
 def _get_unix_timestamp():
     """Get the timestamp in Unix time."""
     return int(time.time())
+
+
+class UserShares():
+    """n1, n2 and fraction of n'th band owned by a user"""
+    def __init__(self):
+        self.n1 = 0
+        self.n2 = 0
+        self.ticks = [0] * MAX_TICKS
+
+def _default_user_shares():
+    return UserShares()
 
