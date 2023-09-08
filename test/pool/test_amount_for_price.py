@@ -22,7 +22,7 @@ def test_amount_for_price(accounts, oracle_price, n1, dn, deposit_amount, init_t
     user = accounts[0]
     amm.set_fee(0)
     n2 = n1 + dn
-    # price_oracle.set_price(oracle_price)
+    price_oracle.set_price(oracle_price)
 
     # Initial deposit
     amm.deposit_range(user, deposit_amount, n1, n2)
