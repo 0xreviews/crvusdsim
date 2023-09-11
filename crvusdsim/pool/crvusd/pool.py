@@ -88,9 +88,14 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         fee: int,
         admin_fee: int,
         BASE_PRICE: int,
+        active_band: int = None,
+        min_band: int = None,
+        max_band: int = None,
         collateral=None,
         price_oracle_contract=None,
         liquidity_mining_callback=None,
+        bands_x=None,
+        bands_y=None,
         admin=None,
     ):
         """
@@ -132,11 +137,19 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
             int(A**25 * 10**18 // (self.Aminus1**25)) ** 2 // 10**18
         )
 
-        self.active_band = 0
-        self.min_band = 0
-        self.max_band = 0
-        self.bands_x = defaultdict(int)
-        self.bands_y = defaultdict(int)
+        self.active_band = 0 if active_band is None else active_band
+        self.min_band = 0 if min_band is None else min_band
+        self.max_band = 0 if max_band is None else max_band
+
+        if bands_x is None:
+            self.bands_x = defaultdict(int)
+        else:
+            self.bands_x = bands_x
+        if bands_y is None:
+            self.bands_y = defaultdict(int)
+        else:
+            self.bands_y = bands_y
+
         self.total_shares = defaultdict(int)
         self.user_shares = defaultdict(_default_user_shares)
 
