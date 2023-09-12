@@ -11,38 +11,39 @@ __all__ = [
     "get_metadata",
 ]
 
+from crvusdsim.pool_data.cache import PoolDataCache
+
 from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 from crvusdsim.pool.crvusd import LLAMMAPool
 from .metadata import PoolMetaData
 from .queries import from_address
-# from .cache import PoolDataCache
 
 
-# def get_data_cache(address, chain="mainnet", days=60, end=None):
-#     """
-#     Fetch historical volume and redemption price data and return
-#     in a cache object.
+def get_data_cache(address, chain="mainnet", days=60, end=None):
+    """
+    Fetch historical volume and redemption price data and return
+    in a cache object.
 
-#     Deprecation warning: this will likely be removed in a future release.
+    Deprecation warning: this will likely be removed in a future release.
 
-#     Parameters
-#     ----------
-#     address : str
-#         Pool address prefixed with “0x”.
+    Parameters
+    ----------
+    address : str
+        Pool address prefixed with “0x”.
 
-#     chain : str
-#         Chain/layer2 identifier, e.g. “mainnet”, “arbitrum”, “optimism".
+    chain : str
+        Chain identifier, e.g. “mainnet”.
 
-#     Returns
-#     -------
-#     :class:`PoolDataCache`
+    Returns
+    -------
+    :class:`PoolDataCache`
 
-#     """
-#     # TODO: validate function arguments
-#     metadata_dict = from_address(address, chain, end_ts=end)
-#     pool_data = PoolDataCache(metadata_dict, days=days, end=end)
+    """
+    # TODO: validate function arguments
+    metadata_dict = from_address(address, chain, end_ts=end)
+    pool_data = PoolDataCache(metadata_dict, days=days, end=end)
 
-#     return pool_data
+    return pool_data
 
 
 def get_metadata(

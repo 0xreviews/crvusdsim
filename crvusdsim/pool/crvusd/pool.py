@@ -17,7 +17,7 @@ from crvusdsim.pool.crvusd.vyper_func import (
 from curvesim.exceptions import CalculationError, CryptoPoolError
 from curvesim.logging import get_logger
 from curvesim.pool.base import Pool
-from crvusdsim.pool.snapshot import LLAMMABandsSnapshot
+from crvusdsim.pool.snapshot import LLAMMASnapshot
 
 logger = get_logger(__name__)
 
@@ -45,7 +45,7 @@ class DetailedTrade:
 class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
     """LLAMMA implementation in Python."""
 
-    snapshot_class = LLAMMABandsSnapshot
+    snapshot_class = LLAMMASnapshot
 
     __slots__ = (
         "A",
@@ -91,6 +91,8 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         active_band: int = None,
         min_band: int = None,
         max_band: int = None,
+        rate: int = None,
+        rate_mul: int = None,
         collateral=None,
         price_oracle_contract=None,
         liquidity_mining_callback=None,
@@ -125,9 +127,9 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         self.admin_fees_x = 0
         self.admin_fees_y = 0
 
-        self.rate = 0
+        self.rate = 0 if rate is None else rate
         self.rate_time = self._block_timestamp
-        self.rate_mul = 10**18
+        self.rate_mul = 10**18 if rate_mul is None else rate_mul
 
         A_ratio = 10**18 * A // (A - 1)
         self.SQRT_BAND_RATIO = isqrt(A_ratio * 10**18)

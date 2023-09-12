@@ -264,6 +264,7 @@ async def market_snapshot(llamma_address, end_ts=None):
             "collateral_precision": r["collateralPrecision"],
             "collateral_name": r["collateralName"],
         },
+        "symbol": "Curve.fi Stablecoin %s" % (r["collateralName"]),
         "minted": r["minted"],
         "redeemed": r["redeemed"],
         "totalKeeperDebt": r["totalKeeperDebt"],

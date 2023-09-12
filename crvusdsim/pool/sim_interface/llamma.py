@@ -1,5 +1,7 @@
 """Module to house the `SimPool` extension of the `LLAMMAPool`."""
 
+from typing import Tuple
+
 from curvesim.exceptions import SimPoolError
 from curvesim.templates import SimAssets
 from curvesim.utils import cache, override
@@ -31,7 +33,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         """Return list of asset balances in same order as asset_names."""
         return self.balances  # @todo
 
-    def price(self, coin_in, coin_out, use_fee=True):
+    def price(self, coin_in, coin_out):
         """
         Returns the spot price of `coin_in` quoted in terms of `coin_out`,
         i.e. the ratio of output coin amount to input coin amount for
@@ -92,7 +94,6 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         in_amount_done, out_amount_done = self.exchange(i, j, size, min_amount=0)
         return in_amount_done, out_amount_done
 
-    @override
     def prepare_for_trades(self, timestamp):
         """
         Updates the pool's _block_timestamp attribute to current sim time.
@@ -119,7 +120,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             The price time_series, price_sampler.prices.
         """
         # Get/set initial prices
-        initial_price = prices.iloc.tolist()[0]
+        initial_price = prices.iloc[0, :].tolist()[0]
         self.price_oracle_contract.set_price(initial_price)
 
     @property
@@ -133,4 +134,8 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         SimAssets
             SimAssets object that stores the properties of the pool's assets.
         """
-        return SimAssets(self.coin_names, self.coin_addresses, self.chain)
+        return SimAssets(
+            list(reversed(self.coin_names)),
+            list(reversed(self.coin_addresses)),
+            self.chain,
+        )
