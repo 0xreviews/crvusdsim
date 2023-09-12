@@ -1,7 +1,7 @@
 from scipy.optimize import root_scalar
 
 from curvesim.logging import get_logger
-from curvesim.metrics import metrics as Metrics
+from crvusdsim.metrics import metrics as Metrics
 
 logger = get_logger(__name__)
 DEFAULT_METRICS = [
@@ -41,7 +41,7 @@ def get_arb_trades(pool, prices, profit_threshold=50 * 10**18):
 
     for pair in prices:
         i, j = pair
-        p_o = prices[pair]
+        p_o = int(prices[pair] * 10**18)
 
         pool.price_oracle_contract.set_price(p_o)
         amount, pump = pool.get_amount_for_price(p_o)
@@ -55,7 +55,7 @@ def get_arb_trades(pool, prices, profit_threshold=50 * 10**18):
 
         # simply calc profit
         amm_p = pool.price(i, j)
-        profit = amount * (amm_p - p_o)
+        profit = amount * (amm_p - p_o) / 10**18
         if abs(profit) < profit_threshold:
             trades.append((0, pair, prices[pair]))
             continue

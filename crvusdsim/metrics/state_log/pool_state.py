@@ -18,9 +18,19 @@ def get_pool_state(pool):
 
 # @todo
 def get_llamma_pool_state(pool):
-    """Returns pool state for stableswap non-meta pools."""
+    """Returns pool state for llamma pools."""
     return {
         "A": pool.A,
+        "active_band": pool.active_band,
+        "min_band": pool.min_band,
+        "max_band": pool.max_band,
+        "rate": pool.rate,
+        "rate_mul": pool.rate_mul,
+        "fee": pool.fee,
+        "admin_fee": pool.admin_fee,
+        "oracle_price": pool.price_oracle_contract.price(),
+        "bands_x_sum": sum(pool.bands_x.values()),
+        "bands_y_sum": sum(pool.bands_y.values()),
     }
 
 
