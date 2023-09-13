@@ -1,5 +1,5 @@
 """
-Mainly a module to house the `LLAMMAPool`, a LLAMMA implementation in Python.
+Mainly a module to house the `Curve Stablecoin`, a LLAMMA implementation in Python.
 """
 from collections import defaultdict
 import time

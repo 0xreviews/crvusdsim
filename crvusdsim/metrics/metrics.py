@@ -206,77 +206,6 @@ class PoolVolume(PoolPricingMetric):
         return results
 
 
-# @todo
-class PoolBalance(PoolMetric):
-    """
-    Computes the pool balance metric, which ranges from 0 (completely imbalanced) to 1
-    (completely balanced).
-    """
-
-    @property
-    @cache
-    def pool_config(self):
-        ss_config = {
-            "functions": {
-                "metrics": self.get_pool_bands,
-                "summary": {"pool_balance": ["median", "min"]},
-            },
-            "plot": {
-                "metrics": {
-                    "pool_balance": {
-                        "title": "Pool Balance/Imbalance",
-                        "style": "time_series",
-                        "resample": "median",
-                        "encoding": {
-                            "y": {
-                                "title": "% Balanced (Daily Median)",
-                                "axis": Axis(format="%"),
-                            },
-                        },
-                    }
-                },
-                "summary": {
-                    "pool_balance": {
-                        "title": "Pool Balance/Imbalance",
-                        "style": "point_line",
-                        "encoding": {
-                            "y": {"title": "% Balanced", "axis": Axis(format="%")},
-                        },
-                    }
-                },
-            },
-        }
-
-        return dict.fromkeys(
-            [SimLLAMMAPool],
-            ss_config,
-        )
-
-    # @todo
-    def get_pool_bands(self, **kwargs):
-        """
-        Computes pool balance metrics for each timestamp in an individual run.
-        Used for any Curve pool.
-        """
-        pool_state = kwargs["pool_state"]
-        balance = pool_state.apply(self._compute_stableswap_balance, axis=1)
-        return DataFrame(balance, columns=["pool_balance"])
-
-    def _compute_stableswap_balance(self, pool_state_row):
-        """
-        Computes balance metric for a single row of data (i.e., a single timestamp).
-        Used for any Curve pool.
-        """
-        self.set_pool_state(pool_state_row)
-        pool = self._pool
-
-        xp = array(pool._xp())  # pylint: disable=protected-access
-        n = pool.n
-        bal = 1 - sum(abs(xp / sum(xp) - 1 / n)) / (2 * (n - 1) / n)
-
-        return bal
-
-
 class PoolValue(PoolPricingMetric):
     """
     Computes pool's value over time in virtual units and the chosen
@@ -363,7 +292,8 @@ class PoolValue(PoolPricingMetric):
 
         pool_value = self._get_value_from_prices(reserves / 10**18, prices)
 
-        results = concat([pool_value], axis=1)
+        # @todo
+        results = concat([pool_value, pool_value], axis=1)
         results.columns = list(self.config["plot"]["metrics"])
         return results.astype("float64")
 
@@ -382,7 +312,7 @@ class PoolValue(PoolPricingMetric):
 
     def compute_annualized_returns(self, data):
         """Computes annualized returns from a series of pool values."""
-        year_multipliers = timedelta64(1, "Y") / data.index.to_series().diff()
+        year_multipliers = timedelta64(365, "D") / data.index.to_series().diff()
         log_returns = log(data).diff()  # pylint: disable=no-member
 
         return exp((log_returns * year_multipliers).mean()) - 1

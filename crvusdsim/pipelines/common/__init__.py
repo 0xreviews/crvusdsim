@@ -7,8 +7,6 @@ logger = get_logger(__name__)
 DEFAULT_METRICS = [
     Metrics.Timestamp,
     Metrics.PoolValue,
-    Metrics.PoolBalance,
-    # Metrics.PriceDepth,
     Metrics.PoolVolume,
     Metrics.ArbMetrics,
 ]

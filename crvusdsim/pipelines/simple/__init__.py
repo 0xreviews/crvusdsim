@@ -126,9 +126,8 @@ def pipeline(  # pylint: disable=too-many-locals
     
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
-    print(output)
-    # results = make_results(*output, _metrics)
-    # return results
+    results = make_results(*output, _metrics)
+    return results
 
 
 class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin, ParameterizedPoolIterator):
