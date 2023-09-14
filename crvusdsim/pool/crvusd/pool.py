@@ -13,11 +13,13 @@ from crvusdsim.pool.crvusd.vyper_func import (
     unsafe_mul,
     unsafe_sub,
 )
+from crvusdsim.pool.crvusd.utils import _get_unix_timestamp
+from crvusdsim.pool.snapshot import LLAMMASnapshot
 
 from curvesim.exceptions import CalculationError, CryptoPoolError
 from curvesim.logging import get_logger
 from curvesim.pool.base import Pool
-from crvusdsim.pool.snapshot import LLAMMASnapshot
+
 
 logger = get_logger(__name__)
 
@@ -1666,17 +1668,17 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
 
         Parameters
         ----------
-        i : int 
+        i : int
             Input coin index
-        j : int 
+        j : int
             Output coin index
-        in_amount : int 
+        in_amount : int
             Amount of input coin to swap
-        min_amount : int 
+        min_amount : int
             Minimal amount to get as output
-        _for : int 
+        _for : int
             Address to send coins to
-        
+
         Returns
         -------
         [in_amount_done, out_amount_done] : [int, int]
@@ -1684,28 +1686,29 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         """
         return self._exchange(i, j, in_amount, min_amount, True)
 
-    def exchange_dy(self, i: int, j: int, out_amount: int, max_amount: int) -> List[int]:
+    def exchange_dy(
+        self, i: int, j: int, out_amount: int, max_amount: int
+    ) -> List[int]:
         """
         Exchanges two coins, callable by anyone
 
         Parameters
         ----------
-        i : int 
+        i : int
             Input coin index
-        j : int 
+        j : int
             Output coin index
-        out_amount : int 
+        out_amount : int
             Desired amount of output coin to receive
-        max_amount : int 
+        max_amount : int
             Maximum amount to spend (revert if more)
-        
+
         Returns
         -------
         [in_amount_done, out_amount_done] : [int, int]
             Amount of coins given in/out
         """
         return self._exchange(i, j, out_amount, max_amount, False)
-
 
     def get_amount_for_price(self, p: int) -> Tuple[int, bool]:
         """
@@ -1720,7 +1723,9 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         n: int = self.active_band
         p_o: List[int] = self._price_oracle_ro()
         p_o_up: int = self._p_oracle_up(n)
-        p_down: int = unsafe_div(unsafe_div(p_o[0]**2, p_o_up) * p_o[0], p_o_up)  # p_current_down
+        p_down: int = unsafe_div(
+            unsafe_div(p_o[0] ** 2, p_o_up) * p_o[0], p_o_up
+        )  # p_current_down
         p_up: int = unsafe_div(p_down * self.A2, self.Aminus12)  # p_crurrent_up
         amount: int = 0
         y0: int = 0
@@ -1740,7 +1745,9 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
             not_empty: bool = x > 0 or y > 0
             if not_empty:
                 y0 = self._get_y0(x, y, p_o[0], p_o_up)
-                f = unsafe_div(unsafe_div(self.A * y0 * p_o[0], p_o_up) * p_o[0], 10**18)
+                f = unsafe_div(
+                    unsafe_div(self.A * y0 * p_o[0], p_o_up) * p_o[0], 10**18
+                )
                 g = unsafe_div(self.Aminus1 * y0 * p_o_up, p_o[0])
                 Inv = (f + x) * (g + y)
                 if j == MAX_TICKS_UINT:
@@ -1799,12 +1806,15 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
 
         # Precision and round up
         if pump:
-            amount = unsafe_add(unsafe_div(unsafe_sub(amount, 1), BORROWED_PRECISION), 1)
+            amount = unsafe_add(
+                unsafe_div(unsafe_sub(amount, 1), BORROWED_PRECISION), 1
+            )
         else:
-            amount = unsafe_add(unsafe_div(unsafe_sub(amount, 1), self.COLLATERAL_PRECISION), 1)
+            amount = unsafe_add(
+                unsafe_div(unsafe_sub(amount, 1), self.COLLATERAL_PRECISION), 1
+            )
 
         return amount, pump
-    
 
     def set_rate(self, rate: int) -> int:
         """
@@ -1812,9 +1822,9 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
 
         Parameters
         ----------
-        rate : 
+        rate :
             New rate in units of int(fraction * 1e18) per second
-        
+
         Returns
         -------
         rate_mul : int
@@ -1827,32 +1837,29 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         self.rate = rate
         return rate_mul
 
-
     def set_fee(self, fee: int):
         """
         Set AMM fee
 
         Parameters
         ----------
-        fee : 
+        fee :
             Fee where 1e18 == 100%
         """
         # assert msg.sender == self.admin
         self.fee = fee
 
-
     def set_admin_fee(self, fee: int):
         """
         Set admin fee - fraction of the AMM fee to go to admin
-        
+
         Parameters
         ----------
-        fee : int 
+        fee : int
             Admin fee where 1e18 == 100%
         """
         # assert msg.sender == self.admin
         self.admin_fee = fee
-
 
     def reset_admin_fees(self):
         """
@@ -1861,11 +1868,6 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         # assert msg.sender == self.admin
         self.admin_fees_x = 0
         self.admin_fees_y = 0
-
-
-def _get_unix_timestamp():
-    """Get the timestamp in Unix time."""
-    return int(time.time())
 
 
 class UserShares:

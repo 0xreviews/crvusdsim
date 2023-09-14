@@ -2,6 +2,4 @@ __all__ = [
     "PegKeeper"
 ]
 
-class PegKeeper:
-    def __init__():
-        pass
+from peg_keeper import PegKeeper
