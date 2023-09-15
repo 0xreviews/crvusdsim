@@ -2,12 +2,9 @@
 MonetaryPolicy - monetary policy based on aggregated prices for crvUSD
 """
 
-from abc import ABC, abstractmethod
 from typing import List
-from crvusdsim.pool.crvusd.price_oracle import PriceOracle
-from crvusdsim.pool.crvusd.stabilizer import PegKeeper
-from crvusdsim.pool.crvusd.controller_factory import ControllerFactory
-from crvusdsim.pool.crvusd.controller import Controller
+from ..stabilizer import PegKeeper
+from ..controller import Controller
 
 MAX_TARGET_DEBT_FRACTION = 10**18
 MAX_SIGMA = 10**18
@@ -17,16 +14,37 @@ MAX_RATE = 43959106799  # 300% APY
 TARGET_REMAINDER = 10**17  # rate is x2 when 10% left before ceiling
 
 
-class MonetaryPolicy(ABC):
+class MonetaryPolicy:
+    """AggMonetaryPolicy2 implementation in Python."""
+
     def __init__(
         self,
-        price_oracle_contract: PriceOracle,
-        controller_factory_contract: ControllerFactory,
+        price_oracle_contract: any,
+        controller_factory_contract: any,
         peg_keepers: List[PegKeeper],
-        rate: int,
+        rate0: int,
         sigma: int,
         target_debt_fraction: int,
     ):
+        """
+        Contract constructor
+
+        Parameters
+        ----------
+        price_oracle_contract : PriceOracle
+            Contract PriceOracle
+        controller_factory_contract : ControllerFactory
+            Contract ControllerFactory
+        peg_keepers : List[PegKeeper]
+            PegKeepers
+        rate0 : int
+            rate0
+        sigma : int
+            sigma
+        target_debt_fraction : int
+            target_debt_fraction
+        """
+
         self.PRICE_ORACLE = price_oracle_contract
         self.CONTROLLER_FACTORY = controller_factory_contract
         self.peg_keepers = peg_keepers
@@ -34,8 +52,8 @@ class MonetaryPolicy(ABC):
         assert sigma >= MIN_SIGMA
         assert sigma <= MAX_SIGMA
         assert target_debt_fraction <= MAX_TARGET_DEBT_FRACTION
-        assert rate <= MAX_RATE
-        self.rate0 = rate
+        assert rate0 <= MAX_RATE
+        self.rate0 = rate0
         self.sigma = sigma
         self.target_debt_fraction = target_debt_fraction
 

@@ -1,7 +1,8 @@
 from collections import defaultdict
 from curvesim.logging import get_logger
 from curvesim.pool_data.metadata.base import PoolMetaDataBase
-from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+
+from ...pool.crvusd.price_oracle.price_oracle import PriceOracle
 
 logger = get_logger(__name__)
 

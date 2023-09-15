@@ -3,9 +3,19 @@ from math import log
 from crvusdsim.pool.crvusd.pool import LLAMMAPool
 
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+from crvusdsim.pool.crvusd.stable_swap import CurveStableSwapPool
 
+# LLAMMA
 A = 100
 INIT_PRICE = 3000 * 10**18
+# StableSwap
+STABLE_N = 2
+STABLE_A = 500  # initially, can go higher later
+STABLE_FEE = 1000000  # 0.01%
+STABLE_ASSET_TYPE = 0
+STABLE_MA_EXP_TIME = 866  # 10 min / ln(2)
+STABLE_BALANCES = [10**6 * 10**18] * STABLE_N
+
 
 def approx(x1: int, x2: int, precision: int, abs_precision=None):
     if precision >= 1:
@@ -33,7 +43,6 @@ def price_oracle():
     return price_oracle
 
 
-
 @pytest.fixture
 def amm(price_oracle):
     amm = LLAMMAPool(
@@ -42,7 +51,7 @@ def amm(price_oracle):
         fee=10**16,
         admin_fee=0,
         price_oracle_contract=price_oracle,
-        collateral= {
+        collateral={
             "address": "wstETH address",
             "precision": 1,
         },
@@ -58,9 +67,28 @@ def create_amm():
         fee=10**16,
         admin_fee=0,
         price_oracle_contract=price_oracle,
-        collateral= {
+        collateral={
             "address": "wstETH address",
             "precision": 1,
         },
     )
     return amm, price_oracle
+
+@pytest.fixture
+def stable_swap():
+    pool = CurveStableSwapPool(
+        A=STABLE_A,
+        D=STABLE_BALANCES,
+        n=STABLE_N,
+        fee=STABLE_FEE,
+    )
+    return pool
+
+def create_stable_swap():
+    pool = CurveStableSwapPool(
+        A=STABLE_A,
+        D=STABLE_BALANCES,
+        n=STABLE_N,
+        fee=STABLE_FEE,
+    )
+    return pool

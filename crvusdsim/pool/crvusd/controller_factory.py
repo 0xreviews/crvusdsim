@@ -4,11 +4,11 @@ crvUSD ControllerFactory
 from collections import defaultdict
 from math import isqrt
 from typing import List, Tuple
-from crvusdsim.pool.crvusd.clac import ln_int
-from crvusdsim.pool.crvusd.controller import Controller
-from crvusdsim.pool.crvusd.mpolicies.monetary_policy import MonetaryPolicy
-from crvusdsim.pool.crvusd.pool import LLAMMAPool
-from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+
+from .clac import ln_int
+from .price_oracle import PriceOracle
+from .pool import LLAMMAPool
+from .controller import Controller
 
 MAX_CONTROLLERS = 50000
 # Limits
@@ -22,6 +22,7 @@ MIN_LIQUIDATION_DISCOUNT = 10**16
 
 
 class ControllerFactory:
+
     __slots__ = [
         "controllers",
         "amms",
@@ -74,7 +75,7 @@ class ControllerFactory:
         fee: int,
         admin_fee: int,
         _price_oracle_contract: PriceOracle,
-        monetary_policy: MonetaryPolicy,
+        monetary_policy: any,
         loan_discount: int,
         liquidation_discount: int,
         debt_ceiling: int,

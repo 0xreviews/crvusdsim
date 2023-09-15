@@ -5,20 +5,21 @@ from collections import defaultdict
 import time
 from math import isqrt, prod
 from typing import List, Tuple
-from crvusdsim.pool.crvusd.clac import ln_int
-from crvusdsim.pool.crvusd.vyper_func import (
+
+from curvesim.exceptions import CalculationError, CryptoPoolError
+from curvesim.logging import get_logger
+from curvesim.pool.base import Pool
+
+from .clac import ln_int
+from .vyper_func import (
     shift,
     unsafe_add,
     unsafe_div,
     unsafe_mul,
     unsafe_sub,
 )
-from crvusdsim.pool.crvusd.utils import _get_unix_timestamp
-from crvusdsim.pool.snapshot import LLAMMASnapshot
-
-from curvesim.exceptions import CalculationError, CryptoPoolError
-from curvesim.logging import get_logger
-from curvesim.pool.base import Pool
+from .utils import _get_unix_timestamp
+from ..snapshot import LLAMMASnapshot
 
 
 logger = get_logger(__name__)

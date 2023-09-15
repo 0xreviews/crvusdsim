@@ -2,4 +2,4 @@ __all__ = [
     "PegKeeper"
 ]
 
-from peg_keeper import PegKeeper
+from .peg_keeper import PegKeeper

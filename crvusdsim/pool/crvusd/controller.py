@@ -6,11 +6,10 @@ from typing import Callable, List, Tuple
 from math import isqrt
 
 from curvesim.pool.snapshot import SnapshotMixin
-from crvusdsim.pool.crvusd.mpolicies.monetary_policy import MonetaryPolicy
 
-from crvusdsim.pool.crvusd.pool import LLAMMAPool
-from crvusdsim.pool.crvusd.clac import ln_int
-from crvusdsim.pool.crvusd.vyper_func import (
+from .pool import LLAMMAPool
+from .clac import ln_int
+from .vyper_func import (
     shift,
     unsafe_add,
     unsafe_div,
@@ -1311,7 +1310,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self.AMM.set_admin_fee(fee)
 
 
-    def set_monetary_policy(self, monetary_policy: MonetaryPolicy):
+    def set_monetary_policy(self, monetary_policy: any):
         """
         Set monetary policy contract
 

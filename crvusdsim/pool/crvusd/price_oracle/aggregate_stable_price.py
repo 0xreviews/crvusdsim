@@ -6,8 +6,8 @@ from collections import defaultdict
 from typing import List
 from curvesim.pool.cryptoswap import CurveCryptoPool
 
-from crvusdsim.pool.crvusd.utils import _get_unix_timestamp
-from crvusdsim.pool.crvusd.vyper_func import (
+from ..utils import BlocktimestampMixins
+from ..vyper_func import (
     shift,
     unsafe_add,
     unsafe_div,
@@ -26,7 +26,7 @@ class PricePair:
         self.is_inverse = False
 
 
-class AggregateStablePrice:
+class AggregateStablePrice(BlocktimestampMixins):
     __all__ = [
         "STABLECOIN",
         "SIGMA",
@@ -45,7 +45,7 @@ class AggregateStablePrice:
         )
         self.admin = admin
         self.last_price = 10**18
-        self.last_timestamp = _get_unix_timestamp()
+        self.last_timestamp = self._block_timestamp
 
         self.price_pairs = defaultdict(PricePair)
         self.n_price_pairs = 0
@@ -223,10 +223,3 @@ class AggregateStablePrice:
             self.last_price = p
             return p
 
-    def _increment_timestamp(self, blocks=1, timestamp=None):
-        """Update the internal clock used to mimic the block timestamp."""
-        if timestamp:
-            self._block_timestamp = timestamp
-            return
-
-        self._block_timestamp += 12 * blocks

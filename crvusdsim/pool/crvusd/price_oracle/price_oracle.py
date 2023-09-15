@@ -1,5 +1,9 @@
-class PriceOracle:
+from ..utils import BlocktimestampMixins
+
+
+class PriceOracle(BlocktimestampMixins):
     def __init__(self, p: int):
+        super().__init__()
         self._price = p
 
 

@@ -3,7 +3,7 @@ __all__ = [
     "log2",
 ]
 
-from crvusdsim.pool.crvusd.vyper_func import (
+from ..vyper_func import (
     shift,
     unsafe_add,
     unsafe_div,
