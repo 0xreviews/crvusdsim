@@ -1,6 +1,6 @@
 import pytest
 from math import log
-from crvusdsim.pool.crvusd.pool import LLAMMAPool
+from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
 from crvusdsim.pool.crvusd.stable_swap import CurveStableSwapPool
@@ -52,6 +52,7 @@ def amm(price_oracle):
         admin_fee=0,
         price_oracle_contract=price_oracle,
         collateral={
+            "symbol": "wstETH",
             "address": "wstETH address",
             "precision": 1,
         },
@@ -68,6 +69,7 @@ def create_amm():
         admin_fee=0,
         price_oracle_contract=price_oracle,
         collateral={
+            "symbol": "wstETH",
             "address": "wstETH address",
             "precision": 1,
         },

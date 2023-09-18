@@ -12,7 +12,7 @@ __all__ = [
     "CurveStableSwapPool"
 ]
 
-from .pool import LLAMMAPool
+from .LLAMMA import LLAMMAPool
 from .controller import Controller
 from .controller_factory import ControllerFactory
 from .price_oracle import AggregateStablePrice, PriceOracle

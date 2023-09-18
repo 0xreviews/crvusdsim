@@ -5,9 +5,11 @@ from collections import defaultdict
 from math import isqrt
 from typing import List, Tuple
 
+
 from .clac import ln_int
+from .stablecoin import StableCoin
 from .price_oracle import PriceOracle
-from .pool import LLAMMAPool
+from .LLAMMA import LLAMMAPool
 from .controller import Controller
 
 MAX_CONTROLLERS = 50000
@@ -24,6 +26,7 @@ MIN_LIQUIDATION_DISCOUNT = 10**16
 class ControllerFactory:
 
     __slots__ = [
+        "STABLECOIN",
         "controllers",
         "amms",
         "fee_receiver",
@@ -34,7 +37,8 @@ class ControllerFactory:
         "debt_ceiling_residual",
     ]
 
-    def __init__(self, fee_receiver: str = ""):
+    def __init__(self, stablecoin : StableCoin, fee_receiver: str = ""):
+        self.STABLECOIN = stablecoin
         self.fee_receiver = fee_receiver
 
         self.debt_ceiling_residual = defaultdict(int)
@@ -53,17 +57,17 @@ class ControllerFactory:
         update : bool
             Whether to actually update the debt ceiling (False is used for burning the residuals)
         """
-        # old_debt_residual: int = self.debt_ceiling_residual[addr]
+        old_debt_residual: int = self.debt_ceiling_residual[addr]
 
-        # if debt_ceiling > old_debt_residual:
-        #     to_mint: int = debt_ceiling - old_debt_residual
-        #     # STABLECOIN.mint(addr, to_mint) @todo
-        #     self.debt_ceiling_residual[addr] = debt_ceiling
+        if debt_ceiling > old_debt_residual:
+            to_mint: int = debt_ceiling - old_debt_residual
+            self.STABLECOIN.mint(addr, to_mint)
+            self.debt_ceiling_residual[addr] = debt_ceiling
 
-        # if debt_ceiling < old_debt_residual:
-        #     diff: int = min(old_debt_residual - debt_ceiling, STABLECOIN.balanceOf(addr))
-        #     STABLECOIN.burnFrom(addr, diff)
-        #     self.debt_ceiling_residual[addr] = old_debt_residual - diff
+        if debt_ceiling < old_debt_residual:
+            diff: int = min(old_debt_residual - debt_ceiling, self.STABLECOIN.balanceOf(addr))
+            self.STABLECOIN.burnFrom(addr, diff)
+            self.debt_ceiling_residual[addr] = old_debt_residual - diff
 
         if update:
             self.debt_ceiling[addr] = debt_ceiling
@@ -219,6 +223,7 @@ class ControllerFactory:
         self._set_debt_ceiling(_to, self.debt_ceiling[_to], False)
 
 
+    # @todo
     def collect_fees_above_ceiling(self, _to: str):
         """
         If the receiver is the controller - increase the debt ceiling if it's not enough to claim admin fees
@@ -235,10 +240,10 @@ class ControllerFactory:
         # assert self.debt_ceiling[_to] > 0 or old_debt_residual > 0
 
         # admin_fees: int = Controller(_to).total_debt() + Controller(_to).redeemed() - Controller(_to).minted()
-        # b: int = STABLECOIN.balanceOf(_to)
+        # b: int = self.STABLECOIN.balanceOf(_to)
         # if admin_fees > b:
         #     to_mint: int = admin_fees - b
-        #     STABLECOIN.mint(_to, to_mint)
+        #     self.STABLECOIN.mint(_to, to_mint)
         #     self.debt_ceiling_residual[_to] = old_debt_residual + to_mint
         # Controller(_to).collect_fees()
         pass

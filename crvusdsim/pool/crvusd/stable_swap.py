@@ -11,14 +11,13 @@ from curvesim.pool.stableswap.pool import CurvePool
 
 
 class CurveStableSwapPool(CurvePool):
-    __slots__ = [
+    __slots__ = (
         "balanceOf",
         "totalSupply",
-    ]
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
         self.balanceOf = defaultdict(int)
         self.totalSupply = self.D()
 
@@ -80,6 +79,8 @@ class CurveStableSwapPool(CurvePool):
         self.totalSupply = total_supply
 
         return amounts
+
+    # def _ma_price # @todo
 
     def transfer(self, _from: str, _to: str, _value: int) -> bool:
         """
@@ -156,5 +157,3 @@ class CurveStableSwapPool(CurvePool):
         assert self.balanceOf[_to] - _value >= 0, "insufficient balance"
         self.balanceOf[_to] -= _value
         self.totalSupply -= _value
-
-    # def _ma_price # @todo

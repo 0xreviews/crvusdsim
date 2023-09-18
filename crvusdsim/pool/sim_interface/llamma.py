@@ -7,7 +7,7 @@ from curvesim.templates import SimAssets
 from curvesim.utils import cache, override
 from curvesim.pool.sim_interface.asset_indices import AssetIndicesMixin
 
-from ..crvusd.pool import LLAMMAPool
+from ..crvusd.LLAMMA import LLAMMAPool
 
 
 class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):

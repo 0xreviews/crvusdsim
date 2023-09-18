@@ -7,7 +7,9 @@ from math import isqrt
 
 from curvesim.pool.snapshot import SnapshotMixin
 
-from .pool import LLAMMAPool
+from crvusdsim.pool.crvusd.stablecoin import StableCoin
+
+from .LLAMMA import LLAMMAPool
 from .clac import ln_int
 from .vyper_func import (
     shift,
@@ -60,6 +62,9 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
     snapshot_class = None
 
     __slots__ = (
+        "address",
+        "FACTORY",
+        "STABLECOIN",
         "loan",
         "liquidation_discounts",
         "_total_debt",
@@ -82,11 +87,14 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
+        stablecoin: StableCoin,
+        factory: any,
         collateral_token: str,
         loan_discount: int,
         liquidation_discount: int,
         amm: LLAMMAPool,
         monetary_policy: str = None,
+        address : str = None,
     ):
         """
         Controller constructor deployed by the factory from blueprint
@@ -107,6 +115,10 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             LLAMMA - crvUSD AMM
 
         """
+
+        self.address = address if address is not None else "Controller_{}" % (self.collateral_token)
+        self.STABLECOIN = stablecoin
+        self.FACTORY = factory
 
         self.loan = defaultdict(Loan)
         self.liquidation_discounts = defaultdict(int)
@@ -398,11 +410,10 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             max(unsafe_div(y_effective * self.max_p_base(), 10**18), 1), 1
         )
         x = unsafe_div(x * (10**18 - 10**14), 10**18)  # Make it a bit smaller
-        # @todo
-        # return min(
-        #     x, STABLECOIN.balanceOf(self) + current_debt
-        # )  # Cannot borrow beyond the amount of coins Controller has
-        return x
+
+        return min(
+            x, self.STABLECOIN.balanceOf[self.address] + current_debt
+        )  # Cannot borrow beyond the amount of coins Controller has
 
     def min_collateral(self, debt: int, N: int) -> int:
         """
@@ -530,6 +541,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
         if transfer_coins:
             self._deposit_collateral(collateral)
+            self.STABLECOIN.transfer(user, debt)
 
     def create_loan(self, user: str, collateral: int, debt: int, N: int):
         """
@@ -577,7 +589,9 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         callback_args : List[int]
             Extra arguments for the callback (up to 5) such as min_amount etc
         """
-        # Before callback
+        # @todo Before callback
+        # self.STABLECOIN.transfer(callbacker, debt)
+
 
         # Callback
         # If there is any unused debt, callbacker can send it to the user
@@ -690,6 +704,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self.minted += debt
         if collateral != 0:
             self._deposit_collateral(collateral)
+        self.STABLECOIN.transfer(user, debt)
 
     def _remove_from_list(self, _for: str):
         last_loan_ix: int = self.n_loans - 1
@@ -738,6 +753,10 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             # Allow to withdraw all assets even when underwater
             xy: int[2] = self.AMM.withdraw(_for, 10**18)
 
+            if xy[0] > 0:
+                self.STABLECOIN.transferFrom(self.AMM.address, _for, xy[0])
+
+
             if xy[1] > 0:
                 self._withdraw_collateral(_for, xy[1], use_eth)
             self._remove_from_list(_for)
@@ -772,6 +791,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             assert self._health(_for, debt, False, liquidation_discount) > 0
 
         # If we withdrew already - will burn less!
+        self.STABLECOIN.transferFrom(_for, self, d_debt)  # fail: insufficient funds
         self.redeemed += d_debt
 
         self.loan[_for].initial_debt = debt
@@ -782,6 +802,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self._total_debt.initial_debt = unsafe_sub(max(total_debt, d_debt), d_debt)
         self._total_debt.rate_mul = rate_mul
 
+    # @todo
     def repay_extended(self, user: str, callback: Callable, callback_args: List[int]):
         """
         Repay loan but get a stablecoin for that from callback (to deleverage)
@@ -790,7 +811,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         ----------
         user : str
             user address
-        callbacker : Callable
+        callback : Callable
             Address of the callback contract
         callback_args : List[int]
             Extra arguments for the callback (up to 5) such as min_amount etc
@@ -821,14 +842,18 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             self._remove_from_list(user)
 
             # Transfer debt to self, everything else to sender
-            # if cb.stablecoins > 0:
-            #     STABLECOIN.transferFrom(callbacker, self, cb.stablecoins)
-            # if xy[0] > 0:
-            #     STABLECOIN.transferFrom(AMM.address, self, xy[0])
-            # if total_stablecoins > d_debt:
-            #     STABLECOIN.transfer(msg.sender, unsafe_sub(total_stablecoins, d_debt))
+            if cb.stablecoins > 0:
+                # STABLECOIN.transferFrom(callbacker, self, cb.stablecoins)
+                self.STABLECOIN.transferFrom(user, self, cb.stablecoins)
+
+            if xy[0] > 0:
+                # STABLECOIN.transferFrom(AMM.address, self, xy[0])
+                self.STABLECOIN.transferFrom(self.AMM.address, self, xy[0])
+            if total_stablecoins > d_debt:
+                # STABLECOIN.transfer(msg.sender, unsafe_sub(total_stablecoins, d_debt))
+                self.STABLECOIN.transfer(user, unsafe_sub(total_stablecoins, d_debt))
             # if cb.collateral > 0:
-            #     assert COLLATERAL_TOKEN.transferFrom(callbacker, msg.sender, cb.collateral, default_return_value=True)
+                # assert COLLATERAL_TOKEN.transferFrom(callbacker, msg.sender, cb.collateral, default_return_value=True)
 
         # Else - partial repayment -> deleverage, but only if we are not underwater
         else:
@@ -990,6 +1015,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
     def _liquidate(
         self,
+        liquidator: str,
         user: str,
         min_x: int,
         health_limit: int,
@@ -1003,6 +1029,8 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
         Parameters
         ----------
+        liquidator : str
+            Address of the liquidator (msg.sender)
         user : str
             Address of the user
         min_x : int
@@ -1044,39 +1072,41 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         assert xy[0] >= min_x, "Slippage"
 
         min_amm_burn: int = min(xy[0], debt)
-        # if min_amm_burn != 0:
-        #     STABLECOIN.transferFrom(AMM.address, self, min_amm_burn)
+        if min_amm_burn != 0:
+            self.STABLECOIN.transferFrom(self.AMM.address, self, min_amm_burn)
 
         if debt > xy[0]:
             to_repay: int = unsafe_sub(debt, xy[0])
 
-            if callback is not None:
+            if callback is None:
                 # Withdraw collateral if no callback is present
                 self._withdraw_collateral(user, xy[1], use_eth)
                 # Request what's left from user
-                # STABLECOIN.transferFrom(msg.sender, self, to_repay)
+                self.STABLECOIN.transferFrom(liquidator, self.address, to_repay)
 
             else:
+                # @todo
                 # Move collateral to callbacker, call it and remove everything from it back in
                 # if xy[1] > 0:
                 #     assert COLLATERAL_TOKEN.transferFrom(AMM.address, callbacker, xy[1], default_return_value=True)
                 # Callback
-                cb: CallbackData = self.execute_callback(
-                    callback, user, xy[0], xy[1], debt, callback_args
-                )
-                assert cb.stablecoins >= to_repay, "not enough proceeds"
+                # cb: CallbackData = self.execute_callback(
+                #     callback, user, xy[0], xy[1], debt, callback_args
+                # )
+                # assert cb.stablecoins >= to_repay, "not enough proceeds"
                 # if cb.stablecoins > to_repay:
-                #     STABLECOIN.transferFrom(callbacker, msg.sender, unsafe_sub(cb.stablecoins, to_repay))
+                #     self.STABLECOIN.transferFrom(callbacker, liquidator, unsafe_sub(cb.stablecoins, to_repay))
                 # STABLECOIN.transferFrom(callbacker, self, to_repay)
                 # if cb.collateral > 0:
                 #     assert COLLATERAL_TOKEN.transferFrom(callbacker, msg.sender, cb.collateral)
+                pass
 
         else:
             # Withdraw collateral
             self._withdraw_collateral(user, xy[1], use_eth)
             # Return what's left to user
-            # if xy[0] > debt:
-            #     STABLECOIN.transferFrom(AMM.address, user, unsafe_sub(xy[0], debt))
+            if xy[0] > debt:
+                self.STABLECOIN.transferFrom(self.AMM.address, user, unsafe_sub(xy[0], debt))
 
         self.redeemed += debt
         self.loan[user].initial_debt = final_debt
@@ -1366,12 +1396,12 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         """
         Collect the fees charged as interest
         """
-        # _to: address = FACTORY.fee_receiver()
+        _to: str = self.FACTORY.fee_receiver
         # AMM-based fees
-        # borrowed_fees: int = self.AMM.admin_fees_x()
-        # collateral_fees: int = self.AMM.admin_fees_y()
-        # if borrowed_fees > 0:
-        #     STABLECOIN.transferFrom(self.AMM.address, _to, borrowed_fees)
+        borrowed_fees: int = self.AMM.admin_fees_x
+        collateral_fees: int = self.AMM.admin_fees_y
+        if borrowed_fees > 0:
+            self.STABLECOIN.transferFrom(self.AMM.address, _to, borrowed_fees)
         # if collateral_fees > 0:
         #     assert COLLATERAL_TOKEN.transferFrom(self.AMM.address, _to, collateral_fees, default_return_value=True)
         self.AMM.reset_admin_fees()
@@ -1391,7 +1421,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         if to_be_redeemed > minted:
             self.minted = to_be_redeemed
             to_be_redeemed = unsafe_sub(to_be_redeemed, minted)  # Now this is the fees to charge
-            # STABLECOIN.transfer(_to, to_be_redeemed)
+            self.STABLECOIN.transfer(_to, to_be_redeemed)
             return to_be_redeemed
         else:
             return 0

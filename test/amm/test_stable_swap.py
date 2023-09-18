@@ -2,7 +2,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from crvusdsim.pool.crvusd.stable_swap import CurveStableSwapPool
-from test.pool.conftest import create_stable_swap
+from test.amm.conftest import create_stable_swap
 
 # @given(
 #     ns=st.lists(st.integers(min_value=1, max_value=20), min_size=5, max_size=5),

@@ -10,6 +10,8 @@ from curvesim.exceptions import CalculationError, CryptoPoolError
 from curvesim.logging import get_logger
 from curvesim.pool.base import Pool
 
+from crvusdsim.pool.crvusd.stablecoin import StableCoin
+
 from .clac import ln_int
 from .vyper_func import (
     shift,
@@ -29,7 +31,6 @@ MAX_TICKS_UINT = 50
 MAX_SKIP_TICKS = 1024
 PREV_P_O_DELAY = 2 * 60  # s = 2 min
 MAX_P_O_CHG = 12500 * 10**14  # <= 2**(1/3) - max relative change to have fee < 50%
-BORROWED_TOKEN = "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e"
 BORROWED_PRECISION = 1
 DEAD_SHARES = 1000
 
@@ -51,6 +52,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
     snapshot_class = LLAMMASnapshot
 
     __slots__ = (
+        "address",
         "A",
         "Aminus1",
         "A2",  # A^2
@@ -79,6 +81,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         "total_shares",
         "user_shares",
         "liquidity_mining_callback",  # LMGauge
+        "BORROWED_TOKEN",
         "COLLATERAL_TOKEN",
         "COLLATERAL_PRECISION",
         "BASE_PRICE",
@@ -102,6 +105,8 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         bands_x=None,
         bands_y=None,
         admin=None,
+        address: str = None,
+        borrowed_token: StableCoin = None
     ):
         """
         Parameters
@@ -109,6 +114,9 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         A : int
         @todo
         """
+        self.address = address if address is not None else "LLAMMA_%s" % (collateral["symbol"])
+        self.BORROWED_TOKEN = borrowed_token if borrowed_token is not None else StableCoin()
+
         self.COLLATERAL_TOKEN: str = collateral["address"]
         self.COLLATERAL_PRECISION: int = collateral["precision"]
 
@@ -145,6 +153,8 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         self.active_band = 0 if active_band is None else active_band
         self.min_band = 0 if min_band is None else min_band
         self.max_band = 0 if max_band is None else max_band
+        self.admin_fees_x = 0
+        self.admin_fees_y = 0
 
         if bands_x is None:
             self.bands_x = defaultdict(int)
@@ -1369,7 +1379,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         lm = self.liquidity_mining_callback
         collateral_shares: List[int] = []
 
-        in_coin = BORROWED_TOKEN
+        in_coin = self.BORROWED_TOKEN.address
         out_coin = self.COLLATERAL_TOKEN
         in_precision: int = BORROWED_PRECISION
         out_precision: int = self.COLLATERAL_PRECISION
@@ -1377,7 +1387,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
             in_precision = out_precision
             in_coin = out_coin
             out_precision = BORROWED_PRECISION
-            out_coin = BORROWED_TOKEN
+            out_coin = self.BORROWED_TOKEN.address
 
         out: DetailedTrade = DetailedTrade()
         if use_in_amount:
