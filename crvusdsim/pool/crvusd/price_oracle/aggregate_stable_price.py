@@ -39,10 +39,11 @@ class AggregateStablePrice(BlocktimestampMixins):
     ]
 
     def __init__(self, stablecoin: str, sigma: int, admin: str):
+        super().__init__()
+        
         self.STABLECOIN = stablecoin
-        self.SIGMA = (
-            sigma  # The change is so rare that we can change the whole thing altogether
-        )
+        # The change is so rare that we can change the whole thing altogether
+        self.SIGMA = sigma
         self.admin = admin
         self.last_price = 10**18
         self.last_timestamp = self._block_timestamp

@@ -17,4 +17,4 @@ from .controller import Controller
 from .controller_factory import ControllerFactory
 from .price_oracle import AggregateStablePrice, PriceOracle
 from .mpolicies import MonetaryPolicy
-from .stable_swap import CurveStableSwapPool
+from .stableswap import CurveStableSwapPool

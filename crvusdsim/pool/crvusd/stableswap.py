@@ -9,15 +9,43 @@ from typing import List
 
 from curvesim.pool.stableswap.pool import CurvePool
 
+from crvusdsim.pool.crvusd.stablecoin import StableCoin
+
 
 class CurveStableSwapPool(CurvePool):
     __slots__ = (
+        "address",
+        "name",
+        "symbol",
         "balanceOf",
         "totalSupply",
+        "coins",
+        "precisions",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        address: str = None,
+        name: str = "crvUSD/USDC",
+        symbol: str = "crvUSD-USDC",
+        coins: List[StableCoin] = None,
+        **kwargs
+    ):
         super().__init__(**kwargs)
+        self.address = address if address is not None else name
+        self.name = name
+        self.symbol = symbol + "-f"
+        self.coins = coins if coins is not None else [
+            StableCoin(),
+            StableCoin(
+                address="%s_address" % name.split("/")[1],
+                name="%s" % name.split("/")[1],
+                symbol="%s_address" % name.split("/")[1],
+                decimals=18
+            )
+        ]
+        self.precisions = [10**(18 - coin.decimals) for coin in self.coins]
+
         self.balanceOf = defaultdict(int)
         self.totalSupply = self.D()
 

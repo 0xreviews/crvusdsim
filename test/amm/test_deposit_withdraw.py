@@ -3,7 +3,8 @@ from hypothesis import strategies as st
 import pytest
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
-from .conftest import approx, A, create_amm, price_oracle
+from test.utils import approx
+from .conftest import create_amm
 
 DEAD_SHARES = 10**3
 

@@ -5,7 +5,7 @@ Peg Keeper for pool with equal decimals of coins
 from collections import defaultdict
 from typing import List
 
-from ..stable_swap import CurveStableSwapPool
+from ..stableswap import CurveStableSwapPool
 from ..utils import BlocktimestampMixins
 from ..controller_factory import ControllerFactory
 from ..price_oracle.aggregate_stable_price import (
@@ -82,10 +82,10 @@ class PegKeeper(BlocktimestampMixins):
         assert _index < 2
         self.POOL = _pool
         self.I = _index
-        pegged: str = _pool.coins(_index)
+        pegged: str = _pool.coins[_index]
         self.PEGGED = pegged
 
-        self.PEG_MUL = 10**18 // _pool.precisions(1 - _index)  # @todo
+        self.PEG_MUL = 10**18 // _pool.precisions[1 - _index]
 
         self.admin = _admin
         # assert _receiver != empty(address)

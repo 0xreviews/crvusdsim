@@ -24,8 +24,8 @@ MIN_LIQUIDATION_DISCOUNT = 10**16
 
 
 class ControllerFactory:
-
     __slots__ = [
+        "address",
         "STABLECOIN",
         "controllers",
         "amms",
@@ -37,12 +37,18 @@ class ControllerFactory:
         "debt_ceiling_residual",
     ]
 
-    def __init__(self, stablecoin : StableCoin, fee_receiver: str = ""):
+    def __init__(self, stablecoin: StableCoin, fee_receiver: str = ""):
+        self.address = "controller_factory_address"
         self.STABLECOIN = stablecoin
         self.fee_receiver = fee_receiver
 
+        self.controllers = defaultdict(None)
+        self.amms = defaultdict(None)
+        self.n_collaterals = 0
+        self.collaterals = defaultdict(default_collateral)
+        self.debt_ceiling = defaultdict(int)
         self.debt_ceiling_residual = defaultdict(int)
-        self.collaterals_index = defaultdict(defaultdict(int))
+        self.collaterals_index = defaultdict(default_collaterals_index)
 
     def _set_debt_ceiling(self, addr: str, debt_ceiling: int, update: bool):
         """
@@ -65,7 +71,9 @@ class ControllerFactory:
             self.debt_ceiling_residual[addr] = debt_ceiling
 
         if debt_ceiling < old_debt_residual:
-            diff: int = min(old_debt_residual - debt_ceiling, self.STABLECOIN.balanceOf(addr))
+            diff: int = min(
+                old_debt_residual - debt_ceiling, self.STABLECOIN.balanceOf(addr)
+            )
             self.STABLECOIN.burnFrom(addr, diff)
             self.debt_ceiling_residual[addr] = old_debt_residual - diff
 
@@ -125,7 +133,7 @@ class ControllerFactory:
         assert (
             loan_discount > liquidation_discount
         ), "need loan_discount>liquidation_discount"
-        monetary_policy.rate_write()  # Test that MonetaryPolicy has correct ABI
+        monetary_policy.rate_write(_for=None)
 
         p: int = _price_oracle_contract.price()  # This also validates price oracle ABI
         assert p > 0
@@ -138,18 +146,27 @@ class ControllerFactory:
             BASE_PRICE=p,
             price_oracle_contract=_price_oracle_contract,
             collateral=token,  # <- This validates ERC20 ABI
+            borrowed_token=self.STABLECOIN,
         )
         controller: Controller = Controller(
-            token["address"], monetary_policy, loan_discount, liquidation_discount, amm
+            stablecoin=self.STABLECOIN,
+            factory=self,
+            collateral_token=token["address"],
+            monetary_policy=monetary_policy,
+            loan_discount=loan_discount,
+            liquidation_discount=liquidation_discount,
+            amm=amm,
         )
         amm.set_admin(controller)
-        self._set_debt_ceiling(controller, debt_ceiling, True)
+        self._set_debt_ceiling(
+            addr=controller.address, debt_ceiling=debt_ceiling, update=True
+        )
 
         N: int = self.n_collaterals
-        self.collaterals[N] = token
+        self.collaterals[N] = token["address"]
         for i in range(1000):
-            if self.collaterals_index[token][i] == 0:
-                self.collaterals_index[token][i] = 2**128 + N
+            if self.collaterals_index[token["address"]][i] == 0:
+                self.collaterals_index[token["address"]][i] = 2**128 + N
                 break
             assert i != 999, "Too many controllers for same collateral"
         self.controllers[N] = controller
@@ -186,12 +203,12 @@ class ControllerFactory:
     def get_amm(self, collateral: str, i: int = 0) -> str:
         """
         Get AMM address for collateral
-        
+
         Parameters
         ----------
-        collateral : str 
+        collateral : str
             Address of collateral token
-        i : int 
+        i : int
             Iterate over several amms for collateral if needed
         """
         return self.amms[self.collaterals_index[collateral][i] - 2**128]
@@ -210,7 +227,6 @@ class ControllerFactory:
         # assert msg.sender == self.admin
         self._set_debt_ceiling(_to, debt_ceiling, True)
 
-
     def rug_debt_ceiling(self, _to: str):
         """
         Remove stablecoins above the debt ceiling from the address and burn them
@@ -221,7 +237,6 @@ class ControllerFactory:
             Address to remove stablecoins from
         """
         self._set_debt_ceiling(_to, self.debt_ceiling[_to], False)
-
 
     # @todo
     def collect_fees_above_ceiling(self, _to: str):
@@ -247,3 +262,15 @@ class ControllerFactory:
         #     self.debt_ceiling_residual[_to] = old_debt_residual + to_mint
         # Controller(_to).collect_fees()
         pass
+
+
+def default_collateral():
+    return {
+        "address": None,
+        "symbol": None,
+        "precision": 1,
+    }
+
+
+def default_collaterals_index():
+    return defaultdict(int)

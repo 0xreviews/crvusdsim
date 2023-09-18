@@ -3,6 +3,8 @@ MonetaryPolicy - monetary policy based on aggregated prices for crvUSD
 """
 
 from typing import List
+
+from crvusdsim.pool.crvusd.clac import exp
 from ..stabilizer import PegKeeper
 from ..controller import Controller
 
@@ -86,7 +88,7 @@ class MonetaryPolicy:
         p: int = _price
         pk_debt: int = 0
         for pk in self.peg_keepers:
-            pk_debt += pk.debt()
+            pk_debt += pk.debt
 
         power: int = (
             (10**18 - p) * 10**18 // sigma
@@ -101,24 +103,26 @@ class MonetaryPolicy:
                 )
 
         # Rate accounting for crvUSD price and PegKeeper debt
-        rate: int = self.rate0 * min(self.exp(power), MAX_EXP) // 10**18
-
-        # Account for individual debt ceiling to dynamically tune rate depending on filling the market
-        ceiling: int = self.CONTROLLER_FACTORY.debt_ceiling(_for)
-        if ceiling > 0:
-            f: int = min(
-                _for.total_debt() * 10**18 // ceiling,
-                10**18 - TARGET_REMAINDER // 1000,
-            )
-            rate = min(
-                rate
-                * (
-                    (10**18 - TARGET_REMAINDER)
-                    + TARGET_REMAINDER * 10**18 // (10**18 - f)
+        rate: int = self.rate0 * min(exp(power), MAX_EXP) // 10**18
+    
+        # if _for is None, msg.sender is ControllerFactory
+        if _for is not None:
+            # Account for individual debt ceiling to dynamically tune rate depending on filling the market
+            ceiling: int = self.CONTROLLER_FACTORY.debt_ceiling[_for.address]
+            if ceiling > 0:
+                f: int = min(
+                    _for.total_debt() * 10**18 // ceiling,
+                    10**18 - TARGET_REMAINDER // 1000,
                 )
-                // 10**18,
-                MAX_RATE,
-            )
+                rate = min(
+                    rate
+                    * (
+                        (10**18 - TARGET_REMAINDER)
+                        + TARGET_REMAINDER * 10**18 // (10**18 - f)
+                    )
+                    // 10**18,
+                    MAX_RATE,
+                )
 
         return rate
 

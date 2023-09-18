@@ -1859,6 +1859,17 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         """
         # assert msg.sender == self.admin
         self.fee = fee
+    
+    def set_admin(self, admin: any):
+        """
+        Set admin of the factory (should end up with DAO)
+
+        Parameters
+        ----------
+        admin Address of the admin
+        """
+        # assert msg.sender == self.admin
+        self.admin = admin # Controller
 
     def set_admin_fee(self, fee: int):
         """

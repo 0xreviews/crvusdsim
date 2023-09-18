@@ -3,7 +3,10 @@ from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
-from .conftest import INIT_PRICE, approx, A, create_amm, price_oracle
+from test.utils import approx
+from test.conftest import INIT_PRICE, price_oracle
+from .conftest import create_amm
+
 
 
 @given(

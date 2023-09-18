@@ -63,8 +63,9 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
         "address",
-        "FACTORY",
         "STABLECOIN",
+        "FACTORY",
+        "collateral_token",
         "loan",
         "liquidation_discounts",
         "_total_debt",
@@ -116,7 +117,8 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
         """
 
-        self.address = address if address is not None else "Controller_{}" % (self.collateral_token)
+        self.address = address if address is not None else "Controller_%s" % (collateral_token)
+        self.collateral_token = collateral_token
         self.STABLECOIN = stablecoin
         self.FACTORY = factory
 
