@@ -9,7 +9,7 @@ from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
 )
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
-from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
+from crvusdsim.pool.crvusd.stableswap import ARBITRAGUR, LP_PROVIDER, CurveStableSwapPool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
 INIT_PRICE = 3000 * 10**18
@@ -20,6 +20,7 @@ LLAMMA_FEE = 10**16
 LLAMMA_ADMIN_FEE = 0
 
 # StableSwap
+STABLE_COINS = ["USDC", "USDT", "USDP", "TUSD"]
 STABLE_N = 2
 STABLE_A = 500  # initially, can go higher later
 STABLE_FEE = 1000000  # 0.01%
@@ -42,8 +43,11 @@ MARKET_DEBT_CEILING = 10**7 * 10**18  # 10M
 PEG_KEEPER_CALLER_SHARE = 2 * 10**4
 PEG_KEEPER_RECEIVER = "PEG_KEEPER_RECEIVER"
 PEG_KEEPER_ADMIN = "PEG_KEEPER_ADMIN"
+INIT_PEG_KEEPER_CEILING = MARKET_DEBT_CEILING // len(STABLE_COINS)
+
 # Aggregator
 AGGREGATOR_SIGMA = 10**15
+
 
 
 @pytest.fixture(scope="module")
@@ -51,12 +55,17 @@ def accounts():
     return ["user_address_%d" % i for i in range(5)]
 
 
-@pytest.fixture
-def stablecoin():
-    return StableCoin()
+@pytest.fixture(scope="module")
+def stablecoin(accounts):
+    coin = StableCoin()
+    coin._mint(LP_PROVIDER, 10**6 * 10**18)
+    coin._mint(ARBITRAGUR, 10**6 * 10**18)
+    for addr in accounts:
+        coin._mint(addr, 5 * 10**4 * 10**18)
+    return coin
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def collateral():
     return {
         "symbol": "wstETH",
@@ -65,62 +74,79 @@ def collateral():
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def price_oracle():
     return PriceOracle(INIT_PRICE)
 
 
-@pytest.fixture
-def stableswaps(stablecoin):
-    pools = []
-    for symbol in ["USDC", "USDT", "USDP", "TUSD"]:
-        pegged_coin = StableCoin(
+@pytest.fixture(scope="module")
+def other_coins(accounts):
+    coins = []
+    for symbol in STABLE_COINS:
+        _coin = StableCoin(
             address="%s_address" % (symbol),
+            symbol=symbol,
             name="%s" % (symbol),
             decimals=18,
         )
-        pools.append(
-            CurveStableSwapPool(
-                name="crvUSD/%s" % (symbol),
-                symbol="crvUSD-%s" % (symbol),
-                A=STABLE_A,
-                D=STABLE_BALANCES,
-                n=STABLE_N,
-                fee=STABLE_FEE,
-                coins=[stablecoin, pegged_coin],
-            )
+        _coin._mint(LP_PROVIDER, 10**6 * 10**18)
+        _coin._mint(ARBITRAGUR, 10**6 * 10**18)
+        for user in accounts:
+            _coin._mint(user, 5 * 10**4 * 10**18)
+        coins.append(_coin)
+
+    return coins
+
+
+@pytest.fixture(scope="module")
+def stableswaps(stablecoin, other_coins):
+    pools = []
+    for peg_coin in other_coins:
+        _pool = CurveStableSwapPool(
+            name="crvUSD/%s" % (peg_coin.symbol),
+            symbol="crvUSD-%s" % (peg_coin.symbol),
+            A=STABLE_A,
+            D=STABLE_BALANCES.copy(),
+            n=STABLE_N,
+            fee=STABLE_FEE,
+            coins=[peg_coin, stablecoin],
         )
+        pools.append(_pool)
+
     return pools
 
 
-@pytest.fixture
-def aggregator(stablecoin):
-    return AggregateStablePrice(
+@pytest.fixture(scope="module")
+def aggregator(stablecoin, stableswaps):
+    _aggregator = AggregateStablePrice(
         stablecoin=stablecoin,
         sigma=AGGREGATOR_SIGMA,
         admin="",
     )
+    for pool in stableswaps:
+        _aggregator.add_price_pair(pool)
+    return _aggregator
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def pegkeepers(factory, aggregator, stableswaps):
     keepers = []
     for pool in stableswaps:
-        keepers.append(
-            PegKeeper(
-                _pool=pool,
-                _index=1,
-                _caller_share=PEG_KEEPER_CALLER_SHARE,
-                _factory=factory,
-                _aggregator=aggregator,
-                _receiver=PEG_KEEPER_RECEIVER,
-                _admin=PEG_KEEPER_ADMIN,
-            )
+        pk = PegKeeper(
+            _pool=pool,
+            _index=1,
+            _caller_share=PEG_KEEPER_CALLER_SHARE,
+            _factory=factory,
+            _aggregator=aggregator,
+            _receiver=PEG_KEEPER_RECEIVER,
+            _admin=PEG_KEEPER_ADMIN,
         )
+        factory.set_debt_ceiling(pk.address, INIT_PEG_KEEPER_CEILING)
+        keepers.append(pk)
     return keepers
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def factory(stablecoin) -> ControllerFactory:
     return ControllerFactory(
         stablecoin=stablecoin,
@@ -128,7 +154,7 @@ def factory(stablecoin) -> ControllerFactory:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def monetary_policy(price_oracle, pegkeepers, factory):
     return MonetaryPolicy(
         price_oracle_contract=price_oracle,

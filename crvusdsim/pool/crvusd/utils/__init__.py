@@ -12,7 +12,7 @@ def _get_unix_timestamp():
 
 
 class BlocktimestampMixins:
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._block_timestamp = _get_unix_timestamp()
 
     def _increment_timestamp(self, blocks=1, timestamp=None):

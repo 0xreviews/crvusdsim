@@ -4,7 +4,8 @@ AggregatorStablePrice - aggregator of stablecoin prices for crvUSD
 
 from collections import defaultdict
 from typing import List
-from curvesim.pool.cryptoswap import CurveCryptoPool
+
+from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
 
 from ..utils import BlocktimestampMixins
 from ..vyper_func import (
@@ -22,7 +23,7 @@ TVL_MA_TIME = 50000  # s
 
 class PricePair:
     def __init__(self):
-        self.pool = CurveCryptoPool
+        self.pool = CurveStableSwapPool
         self.is_inverse = False
 
 
@@ -40,7 +41,7 @@ class AggregateStablePrice(BlocktimestampMixins):
 
     def __init__(self, stablecoin: str, sigma: int, admin: str):
         super().__init__()
-        
+
         self.STABLECOIN = stablecoin
         # The change is so rare that we can change the whole thing altogether
         self.SIGMA = sigma
@@ -50,7 +51,7 @@ class AggregateStablePrice(BlocktimestampMixins):
 
         self.price_pairs = defaultdict(PricePair)
         self.n_price_pairs = 0
-        self.last_tvl = 0
+        self.last_tvl = defaultdict(int)
 
     def set_admin(self, _admin: str):
         # We are not doing commit / apply because the owner will be a voting DAO anyway
@@ -64,18 +65,18 @@ class AggregateStablePrice(BlocktimestampMixins):
     def stablecoin(self) -> str:
         return self.STABLECOIN
 
-    def add_price_pair(self, _pool: CurveCryptoPool):
+    def add_price_pair(self, _pool: CurveStableSwapPool):
         # assert msg.sender == self.admin
         price_pair: PricePair = PricePair()
         price_pair.pool = _pool
-        coins: List[str] = [_pool.coins(0), _pool.coins(1)]
+        coins: List[str] = [_pool.coins[0], _pool.coins[1]]
         if coins[0] == self.STABLECOIN:
             price_pair.is_inverse = True
         else:
             assert coins[1] == self.STABLECOIN
         n: int = self.n_price_pairs
         self.price_pairs[n] = price_pair  # Should revert if too many pairs
-        self.last_tvl[n] = _pool.totalSupply()
+        self.last_tvl[n] = _pool.totalSupply
         self.n_price_pairs = n + 1
 
     def remove_price_pair(self, n: int):
@@ -145,7 +146,7 @@ class AggregateStablePrice(BlocktimestampMixins):
         alpha: int = 10**18
         if last_timestamp < self._block_timestamp:
             alpha = self.exp(
-                -(self._block_timestamp - last_timestamp) * 10**18 // TVL_MA_TIME
+                -1 * int(self._block_timestamp - last_timestamp) * 10**18 // TVL_MA_TIME
             )
         n_price_pairs: int = self.n_price_pairs
 
@@ -158,7 +159,7 @@ class AggregateStablePrice(BlocktimestampMixins):
                 # alpha = 0.0 when dt = inf
                 new_tvl: int = self.price_pairs[
                     i
-                ].pool.totalSupply()  # We don't do virtual price here to save on gas
+                ].pool.totalSupply  # We don't do virtual price here to save on gas
                 tvl = (new_tvl * (10**18 - alpha) + tvl * alpha) // 10**18
             tvls.append(tvl)
 
@@ -169,8 +170,8 @@ class AggregateStablePrice(BlocktimestampMixins):
 
     def _price(self, tvls: List[int]) -> int:
         n: int = self.n_price_pairs
-        prices: List[int] = []
-        D: List[int] = []
+        prices: List[int] = [0] * MAX_PAIRS
+        D: List[int] = [0] * MAX_PAIRS
         Dsum: int = 0
         DPsum: int = 0
         for i in range(MAX_PAIRS):
@@ -189,13 +190,13 @@ class AggregateStablePrice(BlocktimestampMixins):
         if Dsum == 0:
             return 10**18  # Placeholder for no active pools
         p_avg: int = DPsum // Dsum
-        e: List[int] = []
+        e: List[int] = [0] * MAX_PAIRS
         e_min: int = 2**256 - 1
         for i in range(MAX_PAIRS):
             if i == n:
                 break
             p: int = prices[i]
-            e[i] = (max(p, p_avg) - min(p, p_avg)) ** 2 // (self.SIGMA**2 // 10**18)
+            e[i] = int(max(p, p_avg) - min(p, p_avg)) ** 2 // (self.SIGMA**2 // 10**18)
             e_min = min(e[i], e_min)
         wp_sum: int = 0
         w_sum: int = 0
@@ -223,4 +224,3 @@ class AggregateStablePrice(BlocktimestampMixins):
             p: int = self._price(ema_tvl)
             self.last_price = p
             return p
-

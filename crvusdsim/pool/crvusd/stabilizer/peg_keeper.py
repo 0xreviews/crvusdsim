@@ -24,7 +24,7 @@ SHARE_PRECISION = 10**5
 
 class PegKeeper(BlocktimestampMixins):
     __all__ = [
-        "POOL",
+        "address" "POOL",
         "I",
         "PEGGED",
         "IS_INVERSE",
@@ -40,7 +40,6 @@ class PegKeeper(BlocktimestampMixins):
         "new_admin_deadline",
         "new_receiver_deadline",
         "FACTORY",
-        "lp_balance",
     ]
 
     def __init__(
@@ -50,6 +49,7 @@ class PegKeeper(BlocktimestampMixins):
         _caller_share: int,
         _factory: ControllerFactory,
         _aggregator: AggregateStablePrice,
+        _address: str = None,
         _receiver: str = "",
         _admin: str = "",
     ):
@@ -75,6 +75,10 @@ class PegKeeper(BlocktimestampMixins):
         """
         super().__init__()
 
+        self.address = (
+            _address if _address is not None else "%s_peg_keeper" % (_pool.name)
+        )
+
         self.last_change = 0
         self.debt = 0
         self.caller_share = 0
@@ -85,7 +89,7 @@ class PegKeeper(BlocktimestampMixins):
         pegged: str = _pool.coins[_index]
         self.PEGGED = pegged
 
-        self.PEG_MUL = 10**18 // _pool.precisions[1 - _index]
+        self.PEG_MUL = _pool.precisions[1 - _index]
 
         self.admin = _admin
         # assert _receiver != empty(address)
@@ -100,7 +104,6 @@ class PegKeeper(BlocktimestampMixins):
         self.FACTORY = _factory
         self.AGGREGATOR = _aggregator
         self.IS_INVERSE = _index == 0
-        self.lp_balance = 0
 
     def factory(self) -> str:
         return self.FACTORY
@@ -122,7 +125,7 @@ class PegKeeper(BlocktimestampMixins):
 
         amounts: List[int] = [0, 0]
         amounts[self.I] = _amount
-        self.lp_balance += self.POOL.add_liquidity(amounts, 0)
+        self.POOL.add_liquidity(amounts, _receiver=self.address)
 
         self.last_change = self._block_timestamp
 
@@ -137,15 +140,13 @@ class PegKeeper(BlocktimestampMixins):
 
         amounts: List[int] = [0, 0]
         amounts[self.I] = amount
-        self.lp_balance -= self.POOL.remove_liquidity_one_coin(
-            amount, i=self.I, min_amount=0
-        )
+        self.POOL.remove_liquidity_imbalance(amounts, _receiver=self.address)
 
         self.last_change = self._block_timestamp
         self.debt -= amount
 
     def _calc_profit(self) -> int:
-        lp_balance: int = self.POOL.balanceOf(self)
+        lp_balance: int = self.POOL.balanceOf[self.address]
 
         virtual_price: int = self.POOL.get_virtual_price()
         lp_debt: int = self.debt * PRECISION // virtual_price + PROFIT_THRESHOLD
@@ -156,7 +157,7 @@ class PegKeeper(BlocktimestampMixins):
             return lp_balance - lp_debt
 
     def _calc_future_profit(self, _amount: int, _is_deposit: bool) -> int:
-        lp_balance: int = self.lp_balance
+        lp_balance: int = self.POOL.balanceOf[self.address]
         debt: int = self.debt
         amount: int = _amount
         if not _is_deposit:
@@ -253,8 +254,8 @@ class PegKeeper(BlocktimestampMixins):
         if self.last_change + ACTION_DELAY > self._block_timestamp:
             return 0
 
-        balance_pegged: int = self.POOL.balances(self.I)
-        balance_peg: int = self.POOL.balances(1 - self.I) * self.PEG_MUL
+        balance_pegged: int = self.POOL.balances[self.I]
+        balance_peg: int = self.POOL.balances[1 - self.I] * self.PEG_MUL
 
         initial_profit: int = self._calc_profit()
 
@@ -265,19 +266,19 @@ class PegKeeper(BlocktimestampMixins):
 
         if balance_peg > balance_pegged:
             assert p_agg >= 10**18
-            self._provide((balance_peg - balance_pegged) / 5)  # this dumps stablecoin
+            self._provide((balance_peg - balance_pegged) // 5)  # this dumps stablecoin
 
         else:
             assert p_agg <= 10**18
-            self._withdraw((balance_pegged - balance_peg) / 5)  # this pumps stablecoin
+            self._withdraw((balance_pegged - balance_peg) // 5)  # this pumps stablecoin
 
         # Send generated profit
         new_profit: int = self._calc_profit()
         assert new_profit >= initial_profit, "peg unprofitable"
         lp_amount: int = new_profit - initial_profit
-        caller_profit: int = lp_amount * self.caller_share / SHARE_PRECISION
+        caller_profit: int = lp_amount * self.caller_share // SHARE_PRECISION
         if caller_profit > 0:
-            self.POOL.transfer(_beneficiary, caller_profit)
+            self.POOL.transfer(self.address, _beneficiary, caller_profit)
 
         return caller_profit
 
