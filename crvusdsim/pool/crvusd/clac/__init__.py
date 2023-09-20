@@ -4,6 +4,7 @@ __all__ = [
 ]
 
 from ..vyper_func import (
+    pow_mod256,
     shift,
     unsafe_add,
     unsafe_div,
@@ -54,7 +55,7 @@ def log2(_x: int) -> int:
         x = 10**36 // x
     t: int = 2**7
     for i in range(8):
-        p: int = t ** 2
+        p: int = pow_mod256(2, t)
         if x >= unsafe_mul(p, 10**18):
             x = unsafe_div(x, p)
             res = unsafe_add(unsafe_mul(t, 10**18), res)

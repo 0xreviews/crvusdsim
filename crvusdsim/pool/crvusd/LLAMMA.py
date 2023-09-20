@@ -315,7 +315,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         # p_oracle_down(n) = p_base * ((A - 1) / A) ** (n + 1) = p_oracle_up(n+1)
         # return unsafe_div(self._base_price() * self.exp_int(-n * LOG_A_RATIO), 10**18)
 
-        power: int = -n * self.LOG_A_RATIO
+        power: int = int(-n * self.LOG_A_RATIO)
 
         # ((A - 1) / A) ** n = exp(-n * A / (A - 1)) = exp(-n * LOG_A_RATIO)
         ## Exp implementation based on solmate's

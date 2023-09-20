@@ -45,7 +45,7 @@ class ControllerFactory:
         self.controllers = defaultdict(None)
         self.amms = defaultdict(None)
         self.n_collaterals = 0
-        self.collaterals = defaultdict(default_collateral)
+        self.collaterals = defaultdict(None)
         self.debt_ceiling = defaultdict(int)
         self.debt_ceiling_residual = defaultdict(int)
         self.collaterals_index = defaultdict(default_collaterals_index)
@@ -263,13 +263,6 @@ class ControllerFactory:
         # Controller(_to).collect_fees()
         pass
 
-
-def default_collateral():
-    return {
-        "address": None,
-        "symbol": None,
-        "precision": 1,
-    }
 
 
 def default_collaterals_index():

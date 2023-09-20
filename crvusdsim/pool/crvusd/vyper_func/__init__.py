@@ -29,3 +29,7 @@ def unsafe_mul(x: int, y: int) -> int:
 def unsafe_div(x: int, y: int) -> int:
     assert y != 0, "unsafe_div: divisor is zero"
     return x // y
+
+
+def pow_mod256(a: int, b: int) -> int:
+    return a**b % (2**256)

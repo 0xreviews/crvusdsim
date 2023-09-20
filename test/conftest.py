@@ -1,15 +1,21 @@
+from typing import Tuple
 import pytest
 from math import log
 
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.controller_factory import ControllerFactory
+from crvusdsim.pool.crvusd.controller import Controller
 from crvusdsim.pool.crvusd.mpolicies.monetary_policy import MonetaryPolicy
 from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
     AggregateStablePrice,
 )
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
-from crvusdsim.pool.crvusd.stableswap import ARBITRAGUR, LP_PROVIDER, CurveStableSwapPool
+from crvusdsim.pool.crvusd.stableswap import (
+    ARBITRAGUR,
+    LP_PROVIDER,
+    CurveStableSwapPool,
+)
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
 INIT_PRICE = 3000 * 10**18
@@ -49,38 +55,16 @@ INIT_PEG_KEEPER_CEILING = MARKET_DEBT_CEILING // len(STABLE_COINS)
 AGGREGATOR_SIGMA = 10**15
 
 
-
-@pytest.fixture(scope="module")
-def accounts():
-    return ["user_address_%d" % i for i in range(5)]
-
-
-@pytest.fixture(scope="module")
-def stablecoin(accounts):
+def _create_stablecoin():
     coin = StableCoin()
     coin._mint(LP_PROVIDER, 10**6 * 10**18)
     coin._mint(ARBITRAGUR, 10**6 * 10**18)
-    for addr in accounts:
-        coin._mint(addr, 5 * 10**4 * 10**18)
+    # for addr in accounts:
+    #     coin._mint(addr, 5 * 10**4 * 10**18)
     return coin
 
 
-@pytest.fixture(scope="module")
-def collateral():
-    return {
-        "symbol": "wstETH",
-        "address": "wstETH address",
-        "precision": 1,
-    }
-
-
-@pytest.fixture(scope="module")
-def price_oracle():
-    return PriceOracle(INIT_PRICE)
-
-
-@pytest.fixture(scope="module")
-def other_coins(accounts):
+def _create_other_coins():
     coins = []
     for symbol in STABLE_COINS:
         _coin = StableCoin(
@@ -91,15 +75,12 @@ def other_coins(accounts):
         )
         _coin._mint(LP_PROVIDER, 10**6 * 10**18)
         _coin._mint(ARBITRAGUR, 10**6 * 10**18)
-        for user in accounts:
-            _coin._mint(user, 5 * 10**4 * 10**18)
         coins.append(_coin)
 
     return coins
 
 
-@pytest.fixture(scope="module")
-def stableswaps(stablecoin, other_coins):
+def _create_stableswaps(stablecoin, other_coins):
     pools = []
     for peg_coin in other_coins:
         _pool = CurveStableSwapPool(
@@ -116,8 +97,11 @@ def stableswaps(stablecoin, other_coins):
     return pools
 
 
-@pytest.fixture(scope="module")
-def aggregator(stablecoin, stableswaps):
+def _create_price_oracle():
+    return PriceOracle(INIT_PRICE)
+
+
+def _create_aggregator(stablecoin, stableswaps):
     _aggregator = AggregateStablePrice(
         stablecoin=stablecoin,
         sigma=AGGREGATOR_SIGMA,
@@ -128,8 +112,7 @@ def aggregator(stablecoin, stableswaps):
     return _aggregator
 
 
-@pytest.fixture(scope="module")
-def pegkeepers(factory, aggregator, stableswaps):
+def _create_pegkeepers(factory, aggregator, stableswaps):
     keepers = []
     for pool in stableswaps:
         pk = PegKeeper(
@@ -146,16 +129,22 @@ def pegkeepers(factory, aggregator, stableswaps):
     return keepers
 
 
-@pytest.fixture(scope="module")
-def factory(stablecoin) -> ControllerFactory:
+def _create_collteral():
+    return {
+        "symbol": "wstETH",
+        "address": "wstETH address",
+        "precision": 1,
+    }
+
+
+def _create_factory(stablecoin) -> ControllerFactory:
     return ControllerFactory(
         stablecoin=stablecoin,
         fee_receiver=FEE_RECEIVER_DEFAULT,
     )
 
 
-@pytest.fixture(scope="module")
-def monetary_policy(price_oracle, pegkeepers, factory):
+def _create_monetary_policy(price_oracle, pegkeepers, factory):
     return MonetaryPolicy(
         price_oracle_contract=price_oracle,
         controller_factory_contract=factory,
@@ -164,3 +153,82 @@ def monetary_policy(price_oracle, pegkeepers, factory):
         sigma=POLICY_SIGMA,
         target_debt_fraction=POLICY_DEBT_FRACTION,
     )
+
+
+def create_controller_amm():
+    stablecoin = _create_stablecoin()
+    other_coins = _create_other_coins()
+    factory = _create_factory(stablecoin)
+    collateral = _create_collteral()
+    price_oracle = _create_price_oracle()
+    stableswaps = _create_stableswaps(stablecoin, other_coins)
+    aggregator = _create_aggregator(stablecoin, stableswaps)
+    pegkeepers = _create_pegkeepers(factory, aggregator, stableswaps)
+    monetary_policy = _create_monetary_policy(price_oracle, pegkeepers, factory)
+    controller, market_amm = factory.add_market(
+        token=collateral,
+        A=LLAMMA_A,
+        fee=LLAMMA_FEE,
+        admin_fee=LLAMMA_ADMIN_FEE,
+        _price_oracle_contract=price_oracle,
+        monetary_policy=monetary_policy,
+        loan_discount=MARKET_LOAN_DISCOUNT,
+        liquidation_discount=MARKET_LIQUIDATION_DISCOUNT,
+        debt_ceiling=MARKET_DEBT_CEILING,
+    )
+    return controller, market_amm
+
+
+@pytest.fixture(scope="module")
+def accounts():
+    return ["user_address_%d" % i for i in range(5)]
+
+
+@pytest.fixture(scope="module")
+def stablecoin(accounts):
+    return _create_stablecoin()
+
+
+@pytest.fixture(scope="module")
+def collateral():
+    return _create_collteral()
+
+
+@pytest.fixture(scope="module")
+def price_oracle():
+    return _create_price_oracle()
+
+
+@pytest.fixture(scope="module")
+def other_coins():
+    return _create_other_coins()
+
+
+@pytest.fixture(scope="module")
+def stableswaps(stablecoin, other_coins):
+    return _create_stableswaps(stablecoin, other_coins)
+
+
+@pytest.fixture(scope="module")
+def aggregator(stablecoin, stableswaps):
+    return _create_aggregator(stablecoin, stableswaps)
+
+
+@pytest.fixture(scope="module")
+def pegkeepers(factory, aggregator, stableswaps):
+    return _create_pegkeepers(factory, aggregator, stableswaps)
+
+
+@pytest.fixture(scope="module")
+def factory(stablecoin) -> ControllerFactory:
+    return _create_factory(stablecoin)
+
+
+@pytest.fixture(scope="module")
+def monetary_policy(price_oracle, pegkeepers, factory):
+    return _create_monetary_policy(price_oracle, pegkeepers, factory)
+
+
+@pytest.fixture(scope="module")
+def controller_and_amm():
+    return create_controller_amm()
