@@ -3,8 +3,8 @@ from hypothesis import strategies as st
 import pytest
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+from test.conftest import create_amm
 from test.utils import approx
-from .conftest import create_amm
 
 DEAD_SHARES = 10**3
 
@@ -26,6 +26,8 @@ def test_amount_for_price(accounts, oracle_price, n1, dn, deposit_amount, init_t
     price_oracle.set_price(oracle_price)
 
     # Initial deposit
+    amm.COLLATERAL_TOKEN._mint(user, deposit_amount)
+    amm.COLLATERAL_TOKEN.transfer(user, amm.address, deposit_amount)
     amm.deposit_range(user, deposit_amount, n1, n2)
 
     # Dump some to be somewhere inside the bands

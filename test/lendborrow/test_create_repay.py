@@ -9,6 +9,7 @@ INIT_PRICE_E1 = INIT_PRICE // 10**18
 def test_create_loan(accounts):
     controller, market_amm = create_controller_amm()
     stablecoin = controller.STABLECOIN
+    collateral = controller.COLLATERAL_TOKEN
     user = accounts[0]
 
     initial_amount = 10**25
@@ -30,6 +31,7 @@ def test_create_loan(accounts):
     # Phew, the loan finally was created
     old_balance_user = stablecoin.balanceOf[user]
     old_balance_controller = stablecoin.balanceOf[controller.address]
+    collateral._mint(user, c_amount)
     controller.create_loan(user, c_amount, l_amount, 5)
     # But cannot do it again
     with pytest.raises(AssertionError, match='Loan already created'):
@@ -55,17 +57,21 @@ def test_create_loan(accounts):
 
 def create_existing_loan(accounts):
     controller, market_amm = create_controller_amm()
+    stablecoin = controller.STABLECOIN
+    collateral = controller.COLLATERAL_TOKEN
     user = accounts[0]
     c_amount = int(2 * 1e6 * 1e18 * 1.5 / INIT_PRICE_E1)
     l_amount = 5 * 10**5 * 10**18
     n = 5
 
+    collateral._mint(user, c_amount)
     controller.create_loan(user, c_amount, l_amount, n)
     return controller, market_amm
 
 
-def test_repay_all(stablecoin, accounts):
+def test_repay_all(accounts):
     controller, market_amm = create_existing_loan(accounts)
+    stablecoin = controller.STABLECOIN
     user = accounts[0]
 
     c_amount = int(2 * 1e6 * 1e18 * 1.5 / INIT_PRICE_E1)
@@ -107,12 +113,14 @@ def test_repay_half(accounts):
 def test_add_collateral(accounts):
     controller, market_amm = create_existing_loan(accounts)
     stablecoin = controller.STABLECOIN
+    collateral = controller.COLLATERAL_TOKEN
     user = accounts[0]
 
     c_amount = int(2 * 1e6 * 1e18 * 1.5 / 3000)
     debt = controller.debt(user)
 
     n_before_0, n_before_1 = market_amm.read_user_tick_numbers(user)
+    collateral._mint(user, c_amount)
     controller.add_collateral(c_amount, user)
     n_after_0, n_after_1 = market_amm.read_user_tick_numbers(user)
 

@@ -35,8 +35,8 @@ def test_add_market(stablecoin, collateral, price_oracle, monetary_policy, facto
 
     N = factory.n_collaterals
     assert N == 1
-    assert factory.collaterals[N - 1] == collateral["address"]
-    assert factory.collaterals_index[collateral["address"]][0] == 2**128 + N - 1
+    assert factory.collaterals[N - 1] == collateral.address
+    assert factory.collaterals_index[collateral.address][0] == 2**128 + N - 1
     assert factory.amms[N - 1] == pool
     assert factory.controllers[N - 1] == controller
     assert factory.debt_ceiling[controller.address] == MARKET_DEBT_CEILING

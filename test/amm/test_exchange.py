@@ -2,8 +2,7 @@ import pytest
 from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 from test.utils import approx
-from test.conftest import INIT_PRICE
-from .conftest import create_amm
+from test.conftest import INIT_PRICE, create_amm
 
 
 @given(
@@ -20,6 +19,8 @@ def test_dxdy_limits(amounts, accounts, ns, dns):
     amm, price_oracle = create_amm()
     for user, amount, n1, dn in zip(accounts, amounts, ns, dns):
         n2 = n1 + dn
+        amm.COLLATERAL_TOKEN._mint(user, amount)
+        amm.COLLATERAL_TOKEN.transfer(user, amm.address, amount)
         amm.deposit_range(user, amount, n1, n2)
 
     # Swap 0
@@ -60,6 +61,8 @@ def test_exchange_down_up(amounts, accounts, ns, dns, amount):
     amm, price_oracle = create_amm()
     for user, amount, n1, dn in zip(accounts, amounts, ns, dns):
         n2 = n1 + dn
+        amm.COLLATERAL_TOKEN._mint(user, amount)
+        amm.COLLATERAL_TOKEN.transfer(user, amm.address, amount)
         if amount // (dn + 1) <= 100:
             with pytest.raises(AssertionError, match="Amount too low"):
                 amm.deposit_range(user, amount, n1, n2)

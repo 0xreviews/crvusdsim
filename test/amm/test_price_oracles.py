@@ -1,7 +1,9 @@
+from test.conftest import create_amm
 from test.utils import approx
 
 
-def test_p_oracle_updown(amm):
+def test_p_oracle_updown():
+    amm, price_oracle = create_amm()
     p_base = amm.get_base_price()
     A = amm.A
     assert amm.p_oracle_up(0) == p_base
@@ -15,7 +17,8 @@ def test_p_oracle_updown(amm):
         assert approx(amm.p_oracle_down(i), p_down, 1e-14)
 
 
-def test_p_current_updown(amm):
+def test_p_current_updown():
+    amm, price_oracle = create_amm()
     p_base = amm.get_base_price()
     p_oracle = amm.price_oracle()
     A = amm.A

@@ -3,10 +3,9 @@ from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+from crvusdsim.pool.crvusd.stableswap import ARBITRAGUR
 from test.utils import approx
-from test.conftest import INIT_PRICE, price_oracle
-from .conftest import create_amm
-
+from test.conftest import INIT_PRICE, create_amm, price_oracle
 
 
 @given(
@@ -20,6 +19,8 @@ def test_dydx_limits(amounts, accounts, ns, dns):
 
     for user, amount, n1, dn in zip(accounts, amounts, ns, dns):
         n2 = n1 + dn
+        amm.COLLATERAL_TOKEN._mint(user, amount)
+        amm.COLLATERAL_TOKEN.transfer(user, amm.address, amount)
         amm.deposit_range(user, amount, n1, n2)
 
     # Swap 0
@@ -56,6 +57,8 @@ def test_dydx_compare_to_dxdy(amounts, accounts, ns, dns):
 
     for user, amount, n1, dn in zip(accounts, amounts, ns, dns):
         n2 = n1 + dn
+        amm.COLLATERAL_TOKEN._mint(user, amount)
+        amm.COLLATERAL_TOKEN.transfer(user, amm.address, amount)
         amm.deposit_range(user, amount, n1, n2)
 
     # Swap 0
@@ -113,6 +116,8 @@ def test_exchange_dy_down_up(amounts, accounts, ns, dns, amount):
 
     for user, amount, n1, dn in zip(accounts, amounts, ns, dns):
         n2 = n1 + dn
+        amm.COLLATERAL_TOKEN._mint(user, amount)
+        amm.COLLATERAL_TOKEN.transfer(user, amm.address, amount)
         if amount // (dn + 1) <= 100:
             with pytest.raises(AssertionError, match="Amount too low"):
                 amm.deposit_range(user, amount, n1, n2)
@@ -127,6 +132,7 @@ def test_exchange_dy_down_up(amounts, accounts, ns, dns, amount):
     assert approx(dx, dx2, 1e-6)
     with pytest.raises(AssertionError, match="Slippage"):
         amm.exchange_dy(0, 1, dy2, dx2 - 1)  # crvUSD --> ETH
+    amm.BORROWED_TOKEN._mint(ARBITRAGUR, dx2)
     amm.exchange_dy(0, 1, dy2, dx2)  # crvUSD --> ETH
 
     # ETH --> crvUSD (dx - ETH, dy - crvUSD)

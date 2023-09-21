@@ -8,28 +8,35 @@ from ..utils import approx
 #     ns=st.lists(st.integers(min_value=1, max_value=20), min_size=5, max_size=5),
 # )
 def test_stableswap_add_remove_liquidity(accounts, stableswaps):
+    user = accounts[0]
     pool = stableswaps[0]
     amounts = [10000 * 10**18] * pool.n
+    for i in range(len(amounts)):
+        pool.coins[i]._mint(user, amounts[i])
 
     totalsupply_before = pool.totalSupply
-    lp_added = pool.add_liquidity(amounts, accounts[0])
+    lp_added = pool.add_liquidity(amounts, user)
 
-    assert pool.balanceOf[accounts[0]] == lp_added
+    assert pool.balanceOf[user] == lp_added
     assert pool.totalSupply == lp_added + totalsupply_before
 
-    remove_amounts = pool.remove_liquidity(lp_added, [0, 0, 0], accounts[0])
+    remove_amounts = pool.remove_liquidity(lp_added, [0, 0, 0], user)
     for i in range(len(remove_amounts)):
         assert approx(remove_amounts[i], amounts[i], 1e-2)
 
 
 def test_stableswap_lp_transfer(accounts, stableswaps):
+    user = accounts[0]
     pool = stableswaps[0]
     amounts = [10000 * 10**18] * pool.n
-    lp_balance = pool.add_liquidity(amounts, accounts[0])
+    for i in range(len(amounts)):
+        pool.coins[i]._mint(user, amounts[i])
 
-    pool.transfer(accounts[0], accounts[1], lp_balance)
+    lp_balance = pool.add_liquidity(amounts, user)
 
-    assert pool.balanceOf[accounts[0]] == 0
+    pool.transfer(user, accounts[1], lp_balance)
+
+    assert pool.balanceOf[user] == 0
     assert pool.balanceOf[accounts[1]] == lp_balance
 
 

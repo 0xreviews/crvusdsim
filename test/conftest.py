@@ -1,6 +1,7 @@
 from typing import Tuple
 import pytest
 from math import log
+from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.controller_factory import ControllerFactory
@@ -19,6 +20,7 @@ from crvusdsim.pool.crvusd.stableswap import (
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
 INIT_PRICE = 3000 * 10**18
+INIT_PRICE_D1 = INIT_PRICE // 10**18
 
 # LLAMMA
 LLAMMA_A = 100
@@ -61,6 +63,18 @@ def _create_stablecoin():
     coin._mint(ARBITRAGUR, 10**6 * 10**18)
     # for addr in accounts:
     #     coin._mint(addr, 5 * 10**4 * 10**18)
+    return coin
+
+
+def _create_collteral():
+    coin = ERC20(
+        address="wstETH_address",
+        name="Wrapped stETH",
+        symbol="wstETH",
+        decimals=18,
+    )
+    coin._mint(LP_PROVIDER, 10**6 * 10**18)
+    coin._mint(ARBITRAGUR, 10**6 * 10**18)
     return coin
 
 
@@ -129,14 +143,6 @@ def _create_pegkeepers(factory, aggregator, stableswaps):
     return keepers
 
 
-def _create_collteral():
-    return {
-        "symbol": "wstETH",
-        "address": "wstETH address",
-        "precision": 1,
-    }
-
-
 def _create_factory(stablecoin) -> ControllerFactory:
     return ControllerFactory(
         stablecoin=stablecoin,
@@ -144,15 +150,31 @@ def _create_factory(stablecoin) -> ControllerFactory:
     )
 
 
-def _create_monetary_policy(price_oracle, pegkeepers, factory):
+def _create_monetary_policy(aggregator, pegkeepers, factory):
     return MonetaryPolicy(
-        price_oracle_contract=price_oracle,
+        price_oracle_contract=aggregator,
         controller_factory_contract=factory,
         peg_keepers=pegkeepers,
         rate0=POLICY_RATE0,
         sigma=POLICY_SIGMA,
         target_debt_fraction=POLICY_DEBT_FRACTION,
     )
+
+
+def create_amm():
+    price_oracle = _create_price_oracle()
+    stablecoin = _create_stablecoin()
+    collateral = _create_collteral()
+    amm = LLAMMAPool(
+        A=LLAMMA_A,
+        BASE_PRICE=INIT_PRICE,
+        fee=LLAMMA_FEE,
+        admin_fee=LLAMMA_ADMIN_FEE,
+        price_oracle_contract=price_oracle,
+        collateral=collateral,
+        borrowed_token=stablecoin,
+    )
+    return amm, price_oracle
 
 
 def create_controller_amm():
@@ -164,7 +186,7 @@ def create_controller_amm():
     stableswaps = _create_stableswaps(stablecoin, other_coins)
     aggregator = _create_aggregator(stablecoin, stableswaps)
     pegkeepers = _create_pegkeepers(factory, aggregator, stableswaps)
-    monetary_policy = _create_monetary_policy(price_oracle, pegkeepers, factory)
+    monetary_policy = _create_monetary_policy(aggregator, pegkeepers, factory)
     controller, market_amm = factory.add_market(
         token=collateral,
         A=LLAMMA_A,

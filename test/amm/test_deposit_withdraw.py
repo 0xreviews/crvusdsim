@@ -3,8 +3,8 @@ from hypothesis import strategies as st
 import pytest
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+from test.conftest import create_amm
 from test.utils import approx
-from .conftest import create_amm
 
 DEAD_SHARES = 10**3
 
@@ -29,6 +29,8 @@ def test_deposit_withdraw(amounts, accounts, ns, dns, fracs):
             with pytest.raises(AssertionError, match='Amount too low'):
                 amm.deposit_range(user, amount, n1, n2)
         else:
+            amm.COLLATERAL_TOKEN._mint(user, amount)
+            amm.COLLATERAL_TOKEN.transfer(user, amm.address, amount)
             amm.deposit_range(user, amount, n1, n2)
             deposits[user] = amount
 
@@ -45,6 +47,7 @@ def test_deposit_withdraw(amounts, accounts, ns, dns, fracs):
     for user, frac, amount in zip(accounts, fracs, amounts):
         if user in deposits:
             before = amm.get_sum_xy(user)
+            amm.COLLATERAL_TOKEN.transferFrom(amm.address, user, amount)
             amm.withdraw(user, frac)
             after = amm.get_sum_xy(user)
             assert approx(before[1] - after[1], deposits[user] * frac / 1e18, precisions[user], 25 + deposits[user] * precisions[user])

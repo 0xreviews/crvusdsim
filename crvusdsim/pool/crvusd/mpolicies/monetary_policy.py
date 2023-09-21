@@ -93,6 +93,7 @@ class MonetaryPolicy:
         power: int = (
             (10**18 - p) * 10**18 // sigma
         )  # high price -> negative pow -> low rate
+        
         if pk_debt > 0:
             total_debt: int = self.CONTROLLER_FACTORY.total_debt()
             if total_debt == 0:

@@ -9,6 +9,7 @@ from typing import List, Tuple
 from curvesim.exceptions import CalculationError, CryptoPoolError
 from curvesim.logging import get_logger
 from curvesim.pool.base import Pool
+from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
@@ -20,7 +21,7 @@ from .vyper_func import (
     unsafe_mul,
     unsafe_sub,
 )
-from .utils import _get_unix_timestamp
+from .utils import BlocktimestampMixins, _get_unix_timestamp
 from ..snapshot import LLAMMASnapshot
 
 
@@ -46,7 +47,9 @@ class DetailedTrade:
         self.admin_fee: int = 0
 
 
-class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
+class LLAMMAPool(
+    Pool, BlocktimestampMixins
+):  # pylint: disable=too-many-instance-attributes
     """LLAMMA implementation in Python."""
 
     snapshot_class = LLAMMASnapshot
@@ -106,7 +109,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         bands_y=None,
         admin=None,
         address: str = None,
-        borrowed_token: StableCoin = None
+        borrowed_token: StableCoin = None,
     ):
         """
         Parameters
@@ -114,11 +117,17 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         A : int
         @todo
         """
-        self.address = address if address is not None else "LLAMMA_%s" % (collateral["symbol"])
-        self.BORROWED_TOKEN = borrowed_token if borrowed_token is not None else StableCoin()
+        super().__init__()
 
-        self.COLLATERAL_TOKEN: str = collateral["address"]
-        self.COLLATERAL_PRECISION: int = collateral["precision"]
+        self.address = (
+            address if address is not None else "LLAMMA_%s" % (collateral.symbol)
+        )
+        self.BORROWED_TOKEN = (
+            borrowed_token if borrowed_token is not None else StableCoin()
+        )
+
+        self.COLLATERAL_TOKEN: ERC20 = collateral
+        self.COLLATERAL_PRECISION: int = 10 ** (18 - collateral.decimals)
 
         self.A = A
         self.Aminus1 = A - 1
@@ -129,7 +138,6 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         self.admin_fee = admin_fee
         self.BASE_PRICE = BASE_PRICE
 
-        self._block_timestamp = _get_unix_timestamp()
         self.price_oracle_contract = price_oracle_contract
         self.old_p_o = price_oracle_contract.price()
         self.prev_p_o_time = self._block_timestamp
@@ -169,14 +177,6 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         self.user_shares = defaultdict(_default_user_shares)
 
         self.liquidity_mining_callback = liquidity_mining_callback
-
-    def _increment_timestamp(self, blocks=1, timestamp=None):
-        """Update the internal clock used to mimic the block timestamp."""
-        if timestamp:
-            self._block_timestamp = timestamp
-            return
-
-        self._block_timestamp += 12 * blocks
 
     def limit_p_o(self, p: int) -> List[int]:
         """
@@ -261,10 +261,10 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         @notice Rate multiplier which is 1.0 + integral(rate, dt)
         @return Rate multiplier in units where 1.0 == 1e18
         """
-        return (
+        return unsafe_div(
             self.rate_mul
-            * (10**18 + self.rate * (self._block_timestamp - self.rate_time))
-            // 10**18
+            * (10**18 + self.rate * (self._block_timestamp - self.rate_time)),
+            10**18,
         )
 
     def get_rate_mul(self) -> int:
@@ -463,7 +463,9 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
             b += self.A * p_o**2 // p_o_up * y // 10**18
         if x > 0 and y > 0:
             D: int = b**2 + unsafe_div(((4 * self.A) * p_o) * y, 10**18) * x
-            return unsafe_div((b + isqrt(D)) * 10**18, unsafe_mul(2 * self.A, p_o))
+            return unsafe_div(
+                (b + isqrt(int(D))) * 10**18, unsafe_mul(2 * self.A, p_o)
+            )
         else:
             return unsafe_div(b * 10**18, unsafe_mul(self.A, p_o))
 
@@ -1345,6 +1347,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         amount: int,
         minmax_amount: int,
         use_in_amount: bool,
+        _receiver: str = "ARBITRAGUR",
     ) -> List[int]:
         """
         Exchanges two coins, callable by anyone
@@ -1379,7 +1382,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         lm = self.liquidity_mining_callback
         collateral_shares: List[int] = []
 
-        in_coin = self.BORROWED_TOKEN.address
+        in_coin = self.BORROWED_TOKEN
         out_coin = self.COLLATERAL_TOKEN
         in_precision: int = BORROWED_PRECISION
         out_precision: int = self.COLLATERAL_PRECISION
@@ -1387,7 +1390,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
             in_precision = out_precision
             in_coin = out_coin
             out_precision = BORROWED_PRECISION
-            out_coin = self.BORROWED_TOKEN.address
+            out_coin = self.BORROWED_TOKEN
 
         out: DetailedTrade = DetailedTrade()
         if use_in_amount:
@@ -1444,8 +1447,8 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         if lm is not None and lm.address is not None:
             lm.callback_collateral_shares(n_start, collateral_shares)
 
-        # assert in_coin.transferFrom(msg.sender, self, in_amount_done, default_return_value=True)
-        # assert out_coin.transfer(_for, out_amount_done, default_return_value=True)
+        assert in_coin.transferFrom(_receiver, self.address, in_amount_done)
+        assert out_coin.transfer(self.address, _receiver, out_amount_done)
 
         return [in_amount_done, out_amount_done]
 
@@ -1673,7 +1676,14 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         out: DetailedTrade = self._get_dxdy(i, j, out_amount, False)
         return (out.out_amount, out.in_amount)
 
-    def exchange(self, i: int, j: int, in_amount: int, min_amount: int) -> List[int]:
+    def exchange(
+        self,
+        i: int,
+        j: int,
+        in_amount: int,
+        min_amount: int = 0,
+        _receiver: str = "ARBITRAGUR",
+    ) -> List[int]:
         """
         Exchanges two coins, callable by anyone
 
@@ -1695,10 +1705,15 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         [in_amount_done, out_amount_done] : [int, int]
             Amount of coins given in/out
         """
-        return self._exchange(i, j, in_amount, min_amount, True)
+        return self._exchange(i, j, in_amount, min_amount, True, _receiver)
 
     def exchange_dy(
-        self, i: int, j: int, out_amount: int, max_amount: int
+        self,
+        i: int,
+        j: int,
+        out_amount: int,
+        max_amount: int,
+        _receiver: str = "ARBITRAGUR",
     ) -> List[int]:
         """
         Exchanges two coins, callable by anyone
@@ -1719,7 +1734,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         [in_amount_done, out_amount_done] : [int, int]
             Amount of coins given in/out
         """
-        return self._exchange(i, j, out_amount, max_amount, False)
+        return self._exchange(i, j, out_amount, max_amount, False, _receiver)
 
     def get_amount_for_price(self, p: int) -> Tuple[int, bool]:
         """
@@ -1859,7 +1874,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         """
         # assert msg.sender == self.admin
         self.fee = fee
-    
+
     def set_admin(self, admin: any):
         """
         Set admin of the factory (should end up with DAO)
@@ -1869,7 +1884,7 @@ class LLAMMAPool(Pool):  # pylint: disable=too-many-instance-attributes
         admin Address of the admin
         """
         # assert msg.sender == self.admin
-        self.admin = admin # Controller
+        self.admin = admin  # Controller
 
     def set_admin_fee(self, fee: int):
         """

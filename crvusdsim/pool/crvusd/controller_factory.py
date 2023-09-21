@@ -151,7 +151,7 @@ class ControllerFactory:
         controller: Controller = Controller(
             stablecoin=self.STABLECOIN,
             factory=self,
-            collateral_token=token["address"],
+            collateral_token=token.address,
             monetary_policy=monetary_policy,
             loan_discount=loan_discount,
             liquidation_discount=liquidation_discount,
@@ -163,10 +163,10 @@ class ControllerFactory:
         )
 
         N: int = self.n_collaterals
-        self.collaterals[N] = token["address"]
+        self.collaterals[N] = token.address
         for i in range(1000):
-            if self.collaterals_index[token["address"]][i] == 0:
-                self.collaterals_index[token["address"]][i] = 2**128 + N
+            if self.collaterals_index[token.address][i] == 0:
+                self.collaterals_index[token.address][i] = 2**128 + N
                 break
             assert i != 999, "Too many controllers for same collateral"
         self.controllers[N] = controller
