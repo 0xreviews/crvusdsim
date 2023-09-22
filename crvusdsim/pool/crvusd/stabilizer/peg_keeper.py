@@ -52,6 +52,7 @@ class PegKeeper(BlocktimestampMixins):
         _address: str = None,
         _receiver: str = "",
         _admin: str = "",
+        debt : int = 0,
     ):
         """
         Contract constructor
@@ -94,6 +95,7 @@ class PegKeeper(BlocktimestampMixins):
         self.admin = _admin
         # assert _receiver != empty(address)
         self.receiver = _receiver
+        self.debt = debt
 
         assert _caller_share <= SHARE_PRECISION, "bad part value"
         self.caller_share = _caller_share

@@ -4,7 +4,7 @@ from curvesim.network.subgraph import redemption_prices_sync as _redemption_pric
 from curvesim.network.subgraph import volume_sync as _volume
 from curvesim.pool_data.metadata.base import PoolMetaDataInterface
 
-from .metadata import PoolMetaData
+from .metadata import MarketMetaData
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ class PoolDataCache:
 
         """
         if isinstance(metadata_dict, dict):
-            self.metadata = PoolMetaData(metadata_dict)
+            self.metadata = MarketMetaData(metadata_dict)
         elif isinstance(metadata_dict, PoolMetaDataInterface):
             self.metadata = metadata_dict
         else:

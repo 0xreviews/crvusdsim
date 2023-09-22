@@ -39,7 +39,7 @@ class AggregateStablePrice(BlocktimestampMixins):
         "admin",
     ]
 
-    def __init__(self, stablecoin: str, sigma: int, admin: str):
+    def __init__(self, stablecoin: any, sigma: int, admin: str = "aggregator_admin"):
         super().__init__()
 
         self.STABLECOIN = stablecoin
@@ -63,7 +63,7 @@ class AggregateStablePrice(BlocktimestampMixins):
         return self.SIGMA
 
     def stablecoin(self) -> str:
-        return self.STABLECOIN
+        return self.STABLECOIN.address
 
     def add_price_pair(self, _pool: CurveStableSwapPool):
         # assert msg.sender == self.admin

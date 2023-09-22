@@ -90,12 +90,13 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self,
         stablecoin: StableCoin,
         factory: any,
-        collateral_token: str,
+        collateral_token: any,
         loan_discount: int,
         liquidation_discount: int,
         amm: LLAMMAPool,
-        monetary_policy: str = None,
+        monetary_policy: any = None,
         address: str = None,
+        n_loans: int = 0,
     ):
         """
         Controller constructor deployed by the factory from blueprint
@@ -130,7 +131,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
         self.loans = defaultdict(str)  # address[]
         self.loan_ix = defaultdict(int)  # HashMap[address, uint256]
-        self.n_loans = 0
+        self.n_loans = n_loans
 
         self.minted = 0
         self.redeemed = 0

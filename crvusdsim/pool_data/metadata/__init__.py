@@ -1,3 +1,3 @@
-__all__ = ["PoolMetaData"]
+__all__ = ["MarketMetaData"]
 
-from .llamma import PoolMetaData
+from .market import MarketMetaData

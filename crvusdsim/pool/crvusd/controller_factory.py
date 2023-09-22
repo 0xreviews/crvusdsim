@@ -37,7 +37,11 @@ class ControllerFactory:
         "debt_ceiling_residual",
     ]
 
-    def __init__(self, stablecoin: StableCoin, fee_receiver: str = ""):
+    def __init__(
+        self,
+        stablecoin: StableCoin,
+        fee_receiver: str = "controller_factory_fee_receiver",
+    ):
         self.address = "controller_factory_address"
         self.STABLECOIN = stablecoin
         self.fee_receiver = fee_receiver
@@ -262,7 +266,6 @@ class ControllerFactory:
         #     self.debt_ceiling_residual[_to] = old_debt_residual + to_mint
         # Controller(_to).collect_fees()
         pass
-
 
 
 def default_collaterals_index():

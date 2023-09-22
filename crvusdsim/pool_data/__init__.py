@@ -15,7 +15,7 @@ from crvusdsim.pool_data.cache import PoolDataCache
 
 from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 from crvusdsim.pool.crvusd import LLAMMAPool
-from .metadata import PoolMetaData
+from .metadata import MarketMetaData
 from .queries import from_address
 
 
@@ -65,6 +65,6 @@ def get_metadata(
     """
     # TODO: validate function arguments
     metadata_dict = from_address(address, end_ts=end_ts)
-    metadata = PoolMetaData(metadata_dict, LLAMMAPool, SimLLAMMAPool)
+    metadata = MarketMetaData(metadata_dict, LLAMMAPool, SimLLAMMAPool)
 
     return metadata

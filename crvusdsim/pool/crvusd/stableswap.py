@@ -54,7 +54,6 @@ class CurveStableSwapPool(BlocktimestampMixins):
         n,
         rates=None,
         fee=4 * 10**6,
-        fee_mul=None,
         admin_fee=0 * 10**9,
         address: str = None,
         decimals=18,
@@ -103,7 +102,6 @@ class CurveStableSwapPool(BlocktimestampMixins):
         self.fee = fee
         self.rates = rates
         self.balances = balances
-        self.fee_mul = fee_mul
         self.admin_fee = admin_fee
         self.admin_balances = [0] * n
 

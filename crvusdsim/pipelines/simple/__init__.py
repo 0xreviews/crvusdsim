@@ -11,11 +11,9 @@ from crvusdsim.pipelines.common import DEFAULT_METRICS
 from crvusdsim.iterators.params_samplers.pool_mixins import LLAMMAPoolMixin
 from crvusdsim.pipelines.common import DEFAULT_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
-from crvusdsim.pool import get_sim_pool
+from crvusdsim.pool import get_sim_market
 from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 from crvusdsim.pool_data.cache import PoolDataCache
-
-
 
 
 # @todo
@@ -94,7 +92,7 @@ def pipeline(  # pylint: disable=too-many-locals
 
     """
     ncpu = ncpu or os.cpu_count()
-    fixed_params = fixed_params or {} # @todo
+    fixed_params = fixed_params or {}  # @todo
 
     default_params = DEFAULT_PARAMS.copy()
     for key in DEFAULT_PARAMS:
@@ -106,7 +104,17 @@ def pipeline(  # pylint: disable=too-many-locals
     # if pool_data_cache is None:
     #     pool_data_cache = PoolDataCache(pool_metadata, days=days, end=end_ts)
 
-    pool = get_sim_pool(pool_metadata, pool_data_cache=pool_data_cache, end_ts=end_ts)
+    (
+        pool,
+        controller,
+        stablecoin,
+        collateral_token,
+        stablecoin,
+        aggregator,
+        peg_keepers,
+        policy,
+        factory,
+    ) = get_sim_market(pool_metadata, pool_data_cache=pool_data_cache, end_ts=end_ts)
 
     if test:
         fixed_params = {}
@@ -123,7 +131,6 @@ def pipeline(  # pylint: disable=too-many-locals
 
     _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
     strategy = SimpleStrategy(_metrics)
-    
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
     results = make_results(*output, _metrics)

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from curvesim.network.subgraph import query
+from curvesim.network.subgraph import query, _pool_snapshot
 from curvesim.exceptions import SubgraphResultError
 from curvesim.network.utils import sync
 from curvesim.logging import get_logger
@@ -8,9 +8,15 @@ from curvesim.overrides import override_subgraph_data
 
 from eth_utils import to_checksum_address
 
+from crvusdsim.pool.crvusd.stablecoin import StableCoin
+
+from ..pool.crvusd.conf import MONETARY_POLICY_CONF, STABLECOIN_TOKEN_CONF
+
+
 CONVEX_CRVUSD_URL = "https://api.thegraph.com/subgraphs/name/convex-community/crvusd"
 
 logger = get_logger(__name__)
+
 
 async def convex_crvusd(q):
     """
@@ -115,20 +121,6 @@ async def _market_snapshot(llamma_address, end_ts=None):
                 }
             ) {
                 id
-                market {
-                    id
-                    index
-                    collateral
-                    collateralPrecision
-                    collateralName
-                    controller
-                    amm {
-                        id
-                    }
-                    monetaryPolicy {
-                        id
-                    }
-                }
                 A
                 rate
                 futureRate
@@ -154,6 +146,53 @@ async def _market_snapshot(llamma_address, end_ts=None):
                 activeBand
                 minBand
                 maxBand
+                blockNumber
+                timestamp
+
+                market {
+                    id
+                    index
+                    collateral
+                    collateralPrecision
+                    collateralName
+                    controller
+                    amm {
+                        id
+                    }
+                    monetaryPolicy {
+                        id
+                    }
+                }
+
+                policy {
+                    id
+                    priceOracle
+                    keepers
+                    pegKeepers(first: 5) {
+                        pegKeeper {
+                            id
+                            active
+                            pool
+                            debt
+                            totalProvided
+                            totalWithdrawn
+                            totalProfit
+                        }
+                    }
+                    benchmarkRates(first: 1, orderBy: blockTimestamp, orderDirection: desc) {
+                        id
+                        rate
+                        blockNumber
+                        blockTimestamp
+                    }
+                    debtFractions(first: 1, orderBy: blockTimestamp, orderDirection: desc) {
+                        id
+                        target
+                        blockNumber
+                        blockTimestamp
+                    }
+                    
+                }
 
                 bandSnapshot
                 bands (
@@ -191,9 +230,6 @@ async def _market_snapshot(llamma_address, end_ts=None):
                     health
                     timestamp
                 }
-                
-                blockNumber
-                timestamp
 
             }
         }
@@ -211,6 +247,41 @@ async def _market_snapshot(llamma_address, end_ts=None):
         ) from e
 
     return r
+
+
+async def _stableswap_snapshot(pool_addresses):
+    pools_params = []
+    for addr in pool_addresses:
+        r = await _pool_snapshot(address=addr, chain="mainnet", env="prod")
+        coins = []
+        for i in range(len(r["pool"]["coins"])):
+            coins.append(
+                StableCoin(
+                    address=r["pool"]["coins"][i],
+                    name=r["pool"]["coinNames"][i],
+                    symbol=r["pool"]["coinNames"][i],
+                    decimals=int(r["pool"]["coinDecimals"][i]),
+                )
+            )
+
+        pools_params.append(
+            {
+                "address": r["pool"]["address"],
+                "A": int(r["A"]),
+                "D": [int(reserve) for reserve in r["reserves"]],
+                "n": len(r["pool"]["coins"]),
+                "rates": [
+                    10 ** (18 - int(decimals)) for decimals in r["pool"]["coinDecimals"]
+                ],
+                "fee": int(float(r["fee"]) * 1e18),
+                "admin_fee": int(float(r["adminFee"]) * 1e18),
+                "name": r["pool"]["name"],
+                "symbol": r["pool"]["symbol"],
+                "decimals": 18,
+                "coins": coins,
+            }
+        )
+    return pools_params
 
 
 async def market_snapshot(llamma_address, end_ts=None):
@@ -231,40 +302,82 @@ async def market_snapshot(llamma_address, end_ts=None):
     r = await _market_snapshot(llamma_address, end_ts)
     logger.debug("Market snapshot: %s", r)
 
-    # Flatten
-    pool = r.pop("market")
-    r.update(pool)
-
-
     # Coins
-    names = ["crvUSD", r["collateralName"]]
-    addrs = ["0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E", to_checksum_address(r["collateral"])]
-    decimals = [18, int(r["collateralPrecision"])]
+    names = [STABLECOIN_TOKEN_CONF["symbol"], r["market"]["collateralName"]]
+    addrs = [
+        STABLECOIN_TOKEN_CONF["address"],
+        to_checksum_address(r["market"]["collateral"]),
+    ]
+    decimals = [18, int(r["market"]["collateralPrecision"])]
 
     coins = {"names": names, "addresses": addrs, "decimals": decimals}
 
+    # peg_keepers_params
+    peg_keepers_params = [
+        {
+            "address": pk["pegKeeper"]["id"],
+            "active": pk["pegKeeper"]["active"],
+            "pool": pk["pegKeeper"]["pool"],
+            "debt": pk["pegKeeper"]["debt"],
+            "total_provided": pk["pegKeeper"]["totalProvided"],
+            "total_withdrawn": pk["pegKeeper"]["totalWithdrawn"],
+            "total_profit": pk["pegKeeper"]["totalProfit"],
+        }
+        for pk in r["policy"]["pegKeepers"]
+    ]
+
+    # stableswap pools
+    stableswap_pools_params = await _stableswap_snapshot(
+        [p["pool"] for p in peg_keepers_params]
+    )
 
     # Output
     data = {
-        "params": {
+        "llamma_params": {
+            "address": r["market"]["id"],
             "A": r["A"],
-            "rate": r["rate"],
-            "future_rate": r["futureRate"],
-            "liquidation_discount": r["liquidationDiscount"],
-            "loan_discount": r["loanDiscount"],
             "fee": r["fee"],
             "admin_fee": r["adminFee"],
             "BASE_PRICE": r["basePrice"],
             "active_band": r["activeBand"],
-            "n_loans": r["nLoans"],
             "min_band": r["minBand"],
             "max_band": r["maxBand"],
             "oracle_price": r["oraclePrice"],
-            "collateral_address": r["collateral"],
-            "collateral_precision": r["collateralPrecision"],
-            "collateral_name": r["collateralName"],
+            "collateral_address": r["market"]["collateral"],
+            "collateral_precision": r["market"]["collateralPrecision"],
+            "collateral_name": r["market"]["collateralName"],
+            "collateral_symbol": r["market"]["collateralName"],
         },
-        "symbol": "Curve.fi Stablecoin %s" % (r["collateralName"]),
+        "controller_params": {
+            "address": r["market"]["controller"],
+            "liquidation_discount": r["liquidationDiscount"],
+            "loan_discount": r["loanDiscount"],
+            "rate": r["rate"],
+            "future_rate": r["futureRate"],
+            "n_loans": r["nLoans"],
+        },
+        "collateral_token_params": {
+            "address": r["market"]["collateral"],
+            "name": r["market"]["collateralName"],
+            "symbol": r["market"]["collateralName"],
+            "precision": r["market"]["collateralPrecision"],
+        },
+        "policy_params": {
+            "address": r["policy"]["id"],
+            "rate0": int(r["policy"]["benchmarkRates"][0]["rate"])
+            if len(r["policy"]["benchmarkRates"]) > 0
+            else MONETARY_POLICY_CONF["rate0"],
+            "sigma": MONETARY_POLICY_CONF["sigma"],  # @todo subgraph not supports
+            "fraction": int(r["policy"]["debtFractions"][0]["target"])
+            if len(r["policy"]["debtFractions"]) > 0
+            else MONETARY_POLICY_CONF["fraction"],
+        },
+        "stableswap_pools_params": stableswap_pools_params,
+        "peg_keepers_params": peg_keepers_params,
+        "price_oracle_params": {
+            "oracle_price": r["oraclePrice"],
+        },
+        "symbol": "Curve.fi Stablecoin %s" % (r["market"]["collateralName"]),
         "minted": r["minted"],
         "redeemed": r["redeemed"],
         "totalKeeperDebt": r["totalKeeperDebt"],
@@ -282,10 +395,7 @@ async def market_snapshot(llamma_address, end_ts=None):
         "userStates": r["userStates"],
         "blockNumber": r["blockNumber"],
         "timestamp": r["timestamp"],
-        "index": r["index"],
-        "controller": r["controller"],
-        "amm": r["amm"],
-        "monetaryPolicy": r["monetaryPolicy"],
+        "index": r["market"]["index"],
         "coins": coins,
     }
 
