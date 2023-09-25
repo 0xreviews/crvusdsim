@@ -15,6 +15,7 @@ from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
+from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 from crvusdsim.pool_data import get_metadata
 from curvesim.pool_data.metadata import PoolMetaDataInterface
 from crvusdsim.pool_data.metadata.market import MarketMetaData
@@ -63,7 +64,7 @@ def get_sim_market(
         pool_kwargs, controller_kwargs, monetary_policy_kwargs, peg_keepers_kwargs
     )
 
-    pool = LLAMMAPool(**pool_kwargs)
+    pool = SimLLAMMAPool(**pool_kwargs)
     stablecoin = pool.BORROWED_TOKEN
     factory = ControllerFactory(stablecoin=stablecoin)
     collateral_token = pool.COLLATERAL_TOKEN

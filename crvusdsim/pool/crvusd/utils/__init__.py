@@ -18,10 +18,13 @@ class BlocktimestampMixins:
     def __init__(self, **kwargs):
         self._block_timestamp = _get_unix_timestamp()
 
-    def _increment_timestamp(self, timestamp=None, blocks=1):
+    def _increment_timestamp(self, timestamp=None, timedelta=None, blocks=1):
         """Update the internal clock used to mimic the block timestamp."""
         if timestamp:
-            self._block_timestamp += timestamp
+            self._block_timestamp = timestamp
+            return
+        if timedelta:
+            self._block_timestamp += timedelta
             return
 
         self._block_timestamp += 12 * blocks

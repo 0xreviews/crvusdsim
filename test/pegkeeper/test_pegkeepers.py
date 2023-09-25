@@ -26,8 +26,8 @@ def test_pegkeepers_update(
 
     def increase_timestamp(td):
         for i in range(len(stableswaps)):
-            stableswaps[i]._increment_timestamp(td)
-            pegkeepers[i]._increment_timestamp(td)
+            stableswaps[i]._increment_timestamp(timedelta=td)
+            pegkeepers[i]._increment_timestamp(timedelta=td)
 
     increase_timestamp(time_delta)
     # make crvUSD price above water
@@ -36,7 +36,7 @@ def test_pegkeepers_update(
         pk = pegkeepers[i]
         dy = pool.exchange(0, 1, buy_amount, _receiver=ARBITRAGUR)
 
-    aggregator._increment_timestamp(time_delta)
+    aggregator._increment_timestamp(timedelta=time_delta)
 
     old_agg_p = aggregator.price()
     assert old_agg_p > 10**18, "aggregator.price() must be greater"
@@ -52,7 +52,7 @@ def test_pegkeepers_update(
         assert old_pool_p > pool.get_p(), "price must go down after provide"
 
     # make crvUSD price under water
-    aggregator._increment_timestamp(time_delta)
+    aggregator._increment_timestamp(timedelta=time_delta)
     assert old_agg_p > aggregator.price(), "price must go down after provide"
     old_agg_p = aggregator.price()
 
@@ -64,7 +64,7 @@ def test_pegkeepers_update(
         dy = pool.exchange(1, 0, int(buy_amount * 1.1), _receiver=ARBITRAGUR)
         assert old_pool_p > pool.get_p(), "price must go down after exchange"
 
-    aggregator._increment_timestamp(time_delta)
+    aggregator._increment_timestamp(timedelta=time_delta)
     assert old_agg_p > aggregator.price(), "price must go down after exchange"
 
     increase_timestamp(time_delta)
@@ -74,7 +74,7 @@ def test_pegkeepers_update(
         caller_profit = pk.update(beneficiary_addr)
         assert caller_profit > 0, "must have profit"
 
-    aggregator._increment_timestamp(time_delta)
+    aggregator._increment_timestamp(timedelta=time_delta)
 
 
 # def test_pegkeepers_calcp_rofit(factory, aggregator, stablecoin, pegged_coins, stableswaps, pegkeepers):

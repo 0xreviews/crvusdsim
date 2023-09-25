@@ -15,6 +15,7 @@ from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
 from .clac import ln_int
 from .vyper_func import (
+    pow_mod256,
     shift,
     unsafe_add,
     unsafe_div,
@@ -77,8 +78,6 @@ class LLAMMAPool(
         "old_p_o",
         "old_dfee",
         "prev_p_o_time",
-        "PREV_P_O_DELAY",
-        "MAX_P_O_CHG",
         "bands_x",
         "bands_y",
         "total_shares",
@@ -178,6 +177,10 @@ class LLAMMAPool(
 
         self.liquidity_mining_callback = liquidity_mining_callback
 
+        # _mint for amm pool
+        self.BORROWED_TOKEN._mint(self.address, sum(self.bands_x))
+        self.COLLATERAL_TOKEN._mint(self.address, sum(self.bands_y))
+
     def limit_p_o(self, p: int) -> List[int]:
         """
         Limits oracle price to avoid losses at abrupt changes, as well as calculates a dynamic fee.
@@ -201,35 +204,41 @@ class LLAMMAPool(
         List[int]
             [limited_price_oracle, dynamic_fee]
         """
-        p_new = p
-        dt = PREV_P_O_DELAY - min(
-            PREV_P_O_DELAY, self._block_timestamp - self.prev_p_o_time
+        p_new: int = p
+        dt: int = unsafe_sub(
+            PREV_P_O_DELAY,
+            min(PREV_P_O_DELAY, self._block_timestamp - self.prev_p_o_time),
         )
-        ratio = 0
+        ratio: int = 0
 
         # ratio = 1 - (p_o_min / p_o_max)**3
 
         if dt > 0:
-            old_p_o = self.old_p_o
-            old_ratio = self.old_dfee
+            old_p_o: int = self.old_p_o
+            old_ratio: int = self.old_dfee
             # ratio = p_o_min / p_o_max
             if p > old_p_o:
-                ratio = old_p_o * 10**18 // p
+                ratio = unsafe_div(old_p_o * 10**18, p)
                 if ratio < 10**36 // MAX_P_O_CHG:
-                    p_new = old_p_o * MAX_P_O_CHG // 10**18
+                    p_new = unsafe_div(old_p_o * MAX_P_O_CHG, 10**18)
                     ratio = 10**36 // MAX_P_O_CHG
             else:
-                ratio = p * 10**18 // old_p_o
+                ratio = unsafe_div(p * 10**18, old_p_o)
                 if ratio < 10**36 // MAX_P_O_CHG:
-                    p_new = old_p_o * 10**18 // MAX_P_O_CHG
+                    p_new = unsafe_div(old_p_o * 10**18, MAX_P_O_CHG)
                     ratio = 10**36 // MAX_P_O_CHG
 
             # ratio is guaranteed to be less than 1e18
             # Also guaranteed to be limited, therefore can have all ops unsafe
-            ratio = (
-                ((10**18 + old_ratio) - (ratio**3 // 10**36))
-                * dt
-                // PREV_P_O_DELAY
+            ratio = unsafe_div(
+                unsafe_mul(
+                    unsafe_sub(
+                        unsafe_add(10**18, old_ratio),
+                        unsafe_div(pow_mod256(ratio, 3), 10**36),
+                    ),  # (f' + (1 - r**3))
+                    dt,
+                ),  # * dt / T
+                PREV_P_O_DELAY,
             )
 
         return [p_new, ratio]

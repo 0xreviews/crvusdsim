@@ -40,10 +40,10 @@ def controller_for_liquidation(accounts):
         assert approx(health_0, health_1, 1e-6)
 
         # boa.env.time_travel(sleep_time)
-        price_oracle._increment_timestamp(sleep_time)
-        market_amm._increment_timestamp(sleep_time)
+        price_oracle._increment_timestamp(timedelta=sleep_time)
+        market_amm._increment_timestamp(timedelta=sleep_time)
         for pk in pegkeepers:
-            pk._increment_timestamp(sleep_time)
+            pk._increment_timestamp(timedelta=sleep_time)
 
         health_2 = controller.health(user)
         # Still healthy but liquidation threshold satisfied

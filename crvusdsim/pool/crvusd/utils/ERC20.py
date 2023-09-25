@@ -46,7 +46,7 @@ class ERC20:
         bool
             wether transfering is success or not
         """
-        assert self.balanceOf[_from] - _value >= 0, "insufficient balance"
+        assert self.balanceOf[_from] - _value >= 0, "%s insufficient balance" % (_from)
         self.balanceOf[_from] -= _value
         self.balanceOf[_to] += _value
         return True
@@ -69,7 +69,7 @@ class ERC20:
         bool
             wether transfering is success or not
         """
-        assert self.balanceOf[_from] - _value >= 0, "insufficient balance"
+        assert self.balanceOf[_from] - _value >= 0, "%s insufficient balance" % (_from)
         self.balanceOf[_from] -= _value
         self.balanceOf[_to] += _value
         # self.allowances[_from][msg.sender] -= _value

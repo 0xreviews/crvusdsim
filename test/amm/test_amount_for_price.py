@@ -32,7 +32,7 @@ def test_amount_for_price(accounts, oracle_price, n1, dn, deposit_amount, init_t
 
     # Dump some to be somewhere inside the bands
     eamount = int(deposit_amount * amm.get_p() // 10**18 * init_trade_frac)
-    amm._increment_timestamp(amm._block_timestamp + 600)  # To reset the prev p_o counter
+    amm._increment_timestamp(timedelta=600)  # To reset the prev p_o counter
     amm.exchange(0, 1, eamount, 0)
     n0 = amm.active_band
 
