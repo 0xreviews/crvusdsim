@@ -20,9 +20,6 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.bands_x = kwargs["bands_x"]
-        self.bands_y = kwargs["bands_y"]
-
         self.bands_x_snapshot_tmp = None
         self.bands_y_snapshot_tmp = None
 

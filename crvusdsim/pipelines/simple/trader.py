@@ -41,17 +41,16 @@ class SimpleArbitrageur(Trader):
         best_trade = None
         price_error = None
         for t in trades:
-            size, coins, price_target = t
+            in_amount_done, out_amount_done, coins, price_target = t
             i, j = coins
 
             with pool.use_snapshot_context():
-                out_amount, _ = pool.trade(i, j, size)
                 # assume we transacted at "infinite" depth at target price
                 # on the other exchange to obtain our in-token
-                profit = out_amount - size * price_target
+                profit = out_amount_done - in_amount_done * price_target
                 if profit > max_profit:
                     max_profit = profit
-                    best_trade = Trade(i, j, size)
+                    best_trade = Trade(i, j, in_amount_done)
                     price_error = pool.price(i, j) - price_target
 
         if not best_trade:

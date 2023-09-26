@@ -47,9 +47,12 @@ class MarketMetaData(PoolMetaDataBase):
             "max_band": int(data["llamma_params"]["max_band"]),
             "collateral": collateral_token,
             "price_oracle_contract": price_oracle_contract,
+            "bands_x": data["llamma_params"]["bands_x"],
+            "bands_y": data["llamma_params"]["bands_y"],
         }
 
         controller_kwargs = {
+            "address": data["controller_params"]["address"],
             "loan_discount": format_float_to_uint256(
                 data["controller_params"]["loan_discount"]
             ),

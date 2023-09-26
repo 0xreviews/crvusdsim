@@ -102,6 +102,52 @@ async def symbol_address(symbol, index=0):
     return (amm_address, controller_address, policy_address)
 
 
+async def get_debt_ceiling(address):
+    """
+    Async function to get debt ceiling
+    from its address.
+
+    Parameters
+    ----------
+    address: str
+
+    Returns
+    -------
+    int
+
+    """
+    # pylint: disable=consider-using-f-string
+    q = """
+        query GetDebtCeiling {
+            debtCeilings (
+                first: 1
+                orderBy: blockTimestamp
+                orderDirection: desc
+                where: {
+                    addr: "%s"
+                }
+            ) {
+                id
+                addr
+                debtCeiling
+                blockNumber
+                blockTimestamp
+            }
+        }
+    """ % (
+        address
+    )
+
+    data = await convex_crvusd(q)
+
+    if len(data["debtCeilings"]) < 1:
+        raise SubgraphResultError("No debt ceiling found for symbol query.")
+
+    ceiling = int(data["debtCeilings"][0])
+
+    return ceiling
+
+
 async def _market_snapshot(llamma_address, end_ts=None):
     if not end_ts:
         end_date = datetime.now(timezone.utc)
@@ -312,6 +358,12 @@ async def market_snapshot(llamma_address, end_ts=None):
 
     coins = {"names": names, "addresses": addrs, "decimals": decimals}
 
+    bands_x = {}
+    bands_y = {}
+    for b in r["bands"]:
+        bands_x[int(b["index"])] = int(float(b["stableCoin"]) * 1e18)
+        bands_y[int(b["index"])] = int(float(b["collateral"]) * 1e18)
+
     # peg_keepers_params
     peg_keepers_params = [
         {
@@ -347,6 +399,8 @@ async def market_snapshot(llamma_address, end_ts=None):
             "collateral_precision": r["market"]["collateralPrecision"],
             "collateral_name": r["market"]["collateralName"],
             "collateral_symbol": r["market"]["collateralName"],
+            "bands_x": bands_x,
+            "bands_y": bands_y,
         },
         "controller_params": {
             "address": r["market"]["controller"],

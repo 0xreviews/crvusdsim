@@ -4,6 +4,7 @@ crvUSD Stablecoin
 from collections import defaultdict
 from typing import List
 
+
 class ERC20:
     __slots__ = (
         "address",
@@ -46,7 +47,13 @@ class ERC20:
         bool
             wether transfering is success or not
         """
-        assert self.balanceOf[_from] - _value >= 0, "%s insufficient balance" % (_from)
+        assert (
+            self.balanceOf[_from] - _value >= 0
+        ), "%s insufficient balance: balanceOf %d, amount %d" % (
+            _from,
+            self.balanceOf[_from],
+            _value,
+        )
         self.balanceOf[_from] -= _value
         self.balanceOf[_to] += _value
         return True
@@ -69,13 +76,20 @@ class ERC20:
         bool
             wether transfering is success or not
         """
-        assert self.balanceOf[_from] - _value >= 0, "%s insufficient balance" % (_from)
+        assert (
+            self.balanceOf[_from] - _value >= 0
+        ), "%s insufficient balance: balanceOf %d, amount %d" % (
+            _from,
+            self.balanceOf[_from],
+            _value,
+        )
         self.balanceOf[_from] -= _value
         self.balanceOf[_to] += _value
         # self.allowances[_from][msg.sender] -= _value
         return True
 
     def _mint(self, _to: str, _value: int):
+        assert _value > 0, "mint amount must greater than zero."
         self.balanceOf[_to] += _value
         self.totalSupply += _value
 
@@ -83,7 +97,7 @@ class ERC20:
         assert self.balanceOf[_to] - _value >= 0, "insufficient balance"
         self.balanceOf[_to] -= _value
         self.totalSupply -= _value
-    
+
     def mint(self, _to: str, _value: int):
         """
         ERC20 mint
@@ -96,7 +110,7 @@ class ERC20:
             mint amount
         """
         self._mint(_to, _value)
-    
+
     def burnFrom(self, _from: str, _value: int) -> bool:
         """
         ERC20 _burn

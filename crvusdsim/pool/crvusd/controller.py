@@ -97,6 +97,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         monetary_policy: any = None,
         address: str = None,
         n_loans: int = 0,
+        debt_ceiling: int = 5 * 10**24,
     ):
         """
         Controller constructor deployed by the factory from blueprint
@@ -156,6 +157,10 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
         self.COLLATERAL_TOKEN: str = self.AMM.COLLATERAL_TOKEN
         self.COLLATERAL_PRECISION: int = self.AMM.COLLATERAL_PRECISION
+
+        # @todo set debt ceiling
+        # if debt_ceiling > 0:
+        #     self.STABLECOIN._mint(self.address, debt_ceiling)
 
     def _rate_mul_w(self) -> int:
         """
@@ -481,6 +486,11 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
     def _withdraw_collateral(self, amount: int, _receiver: str):
         assert self.COLLATERAL_TOKEN.transferFrom(self.AMM.address, _receiver, amount)
+    
+    def _transfer_stablecoin(self, _to: str, amount: int):
+        if self.STABLECOIN.balanceOf[self.address] < amount:
+            self.STABLECOIN._mint(self.address, amount)
+        self.STABLECOIN.transfer(self.address, _to, amount)
 
     def execute_callback(
         self,
@@ -546,7 +556,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
         if transfer_coins:
             self._deposit_collateral(collateral, user)
-            self.STABLECOIN.transfer(self.address, user, debt)
+            self._transfer_stablecoin(user, debt)
 
     def create_loan(self, user: str, collateral: int, debt: int, N: int):
         """
@@ -595,7 +605,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             Extra arguments for the callback (up to 5) such as min_amount etc
         """
         # Before callback
-        self.STABLECOIN.transfer(self.address, user, debt)
+        self._transfer_stablecoin(user, debt)
 
         # Callback
         # If there is any unused debt, callbacker can send it to the user
@@ -708,7 +718,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self.minted += debt
         if collateral != 0:
             self._deposit_collateral(collateral, user)
-        self.STABLECOIN.transfer(self.address, user, debt)
+        self._transfer_stablecoin(user, debt)
 
     def _remove_from_list(self, _for: str):
         last_loan_ix: int = self.n_loans - 1
@@ -1430,7 +1440,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             to_be_redeemed = unsafe_sub(
                 to_be_redeemed, minted
             )  # Now this is the fees to charge
-            self.STABLECOIN.transfer(self.address, _to, to_be_redeemed)
+            self._transfer_stablecoin(_to, to_be_redeemed)
             return to_be_redeemed
         else:
             return 0
