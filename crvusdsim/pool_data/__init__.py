@@ -11,6 +11,7 @@ __all__ = [
     "get_metadata",
 ]
 
+import json
 from crvusdsim.pool_data.cache import PoolDataCache
 
 from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
@@ -49,6 +50,7 @@ def get_data_cache(address, chain="mainnet", days=60, end=None):
 def get_metadata(
     address,
     end_ts=None,
+    save_dir=None,
 ):
     """
     Pulls pool state and metadata from daily snapshot.
@@ -66,5 +68,9 @@ def get_metadata(
     # TODO: validate function arguments
     metadata_dict = from_address(address, end_ts=end_ts)
     metadata = MarketMetaData(metadata_dict, LLAMMAPool, SimLLAMMAPool)
+
+    if save_dir is not None:
+        with open(save_dir, "w") as outfile:
+            outfile.write(json.dumps(metadata_dict, indent=4))
 
     return metadata

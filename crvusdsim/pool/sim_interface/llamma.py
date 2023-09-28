@@ -20,6 +20,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.last_active_band = None
         self.bands_x_snapshot_tmp = None
         self.bands_y_snapshot_tmp = None
 
@@ -89,6 +90,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             Amount of coins given in/out
         """
         self._before_exchange()
+
         i, j = self.get_asset_indices(coin_in, coin_out)
 
         if i == 0:
@@ -97,7 +99,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             self.COLLATERAL_TOKEN._mint("ARBITRAGUR", size)
 
         in_amount_done, out_amount_done = self.exchange(i, j, size, min_amount=0)
+        
         self._after_exchange()
+        
         return in_amount_done, out_amount_done
 
     def prepare_for_trades(self, timestamp):
@@ -110,7 +114,10 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             The current timestamp in the simulation.
         """
 
-        timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
+        if  isinstance(timestamp, float):
+            timestamp = int(timestamp)
+        if not isinstance(timestamp, int):
+            timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
         self._increment_timestamp(timestamp=timestamp)
         self.prev_p_o_time = timestamp
         self.rate_time = timestamp
@@ -120,15 +127,13 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         Sets price parameters to the first simulation price and updates
         balances to be equally-valued.
 
-        Balances are updated so that xcp(D) is preserved, but D may change.
-
         Parameters
         ----------
         timestamp : pandas.DataFrame
             The price time_series, price_sampler.prices.
         """
         # Get/set initial prices
-        initial_price = prices.iloc[0, :].tolist()[0]
+        initial_price = int(prices.iloc[0, :].tolist()[0] * 10**18)
         self.price_oracle_contract.set_price(initial_price)
 
     @property
@@ -149,27 +154,32 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         )
     
     def _before_exchange(self):
+        self.last_active_band = self.active_band
         self.bands_x_snapshot_tmp = self.bands_x.copy()
         self.bands_y_snapshot_tmp = self.bands_y.copy()
         pass
 
     def _after_exchange(self):
+        price = self.price_oracle()
+        index = self.last_active_band
+        delta_i = -1 if self.active_band < self.last_active_band else 1
         snapshot = {}
-        for index in self.bands_x:
-            if index not in snapshot:
-                snapshot[index] = {
-                    "x": 0,
-                    "y": 0,
-                }
-            snapshot[index]["x"] = self.bands_x[index] - self.bands_x_snapshot_tmp[index]
-        for index in self.bands_y:
-            if index not in snapshot:
-                snapshot[index] = {
-                    "x": 0,
-                    "y": 0,
-                }
-            snapshot[index]["y"] = self.bands_y[index] - self.bands_y_snapshot_tmp[index]
+        while True:
+            prev_value = self.bands_x_snapshot_tmp[index] + self.bands_y_snapshot_tmp[index] * price // 10**18
+            after_value = self.bands_x[index] + self.bands_y[index] * price // 10**18
+            loss = prev_value - after_value
+            snapshot[index] = {
+                "x": self.bands_x[index] - self.bands_x_snapshot_tmp[index],
+                "y": self.bands_y[index] - self.bands_y_snapshot_tmp[index],
+                "loss": loss,
+                "loss_percent": loss / prev_value if prev_value > 0 else 0
+            }
+            index += delta_i
+            if index == self.active_band + delta_i:
+                break
+
 
         self.bands_x_snapshot_tmp = None
         self.bands_y_snapshot_tmp = None
         self.bands_delta_snapshot[self._block_timestamp] = snapshot
+        self.last_active_band = None

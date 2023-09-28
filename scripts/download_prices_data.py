@@ -1,17 +1,14 @@
 import os
 import pandas as pd
 
-from crvusdsim.pool import get_sim_pool
 from curvesim.price_data import get
 
-wstETH_llamma_address = "0x37417b2238aa52d0dd2d6252d989e728e8f706e4"
+crvUSD_address = "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E".lower()
+wstETH_address = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".lower()
 
 def download_prices_data(collateral_address, days=60, data_dir="data"):
-    pool = get_sim_pool(collateral_address)
-    sim_assets = pool.assets
-    addresses = sim_assets.addresses
-    pair = sim_assets.symbols
-    filename = f"{addresses[0]}-{addresses[1]}.csv"
+    addresses = [collateral_address, crvUSD_address]
+    filename = f"{addresses[0].lower()}-{addresses[1].lower()}.csv"
     filepath = os.path.join(data_dir, filename)
 
     try:
@@ -22,7 +19,7 @@ def download_prices_data(collateral_address, days=60, data_dir="data"):
         curr_file = None
 
     prices, volumes, _ = get(
-        sim_assets.addresses,
+        addresses,
         chain="mainnet",
         days=days,
         data_dir=data_dir,
@@ -40,4 +37,4 @@ def download_prices_data(collateral_address, days=60, data_dir="data"):
 
 
 if __name__ == "__main__":
-    download_prices_data(wstETH_llamma_address)
+    download_prices_data(wstETH_address)

@@ -21,13 +21,18 @@ from curvesim.pool_data.metadata import PoolMetaDataInterface
 from crvusdsim.pool_data.metadata.market import MarketMetaData
 from curvesim.logging import get_logger
 
+__all__ = [
+    "SimLLAMMAPool",
+    "get_sim_market",
+]
+
 logger = get_logger(__name__)
 
 
 def get_sim_market(
     pool_metadata,
     *,
-    bands=True,
+    bands=False,
     pool_data_cache=None,
     end_ts=None,
 ):
@@ -42,7 +47,7 @@ def get_sim_market(
             raise CurvesimValueError(
                 "`end_ts` has no effect unless pool address is used."
             )
-        pool_metadata = MarketMetaData(pool_metadata)
+        pool_metadata = MarketMetaData(pool_metadata, LLAMMAPool, SimLLAMMAPool)
     elif isinstance(pool_metadata, PoolMetaDataInterface):
         if end_ts:
             raise CurvesimValueError(
@@ -52,7 +57,7 @@ def get_sim_market(
         raise CurvesimValueError(
             "`pool_metadata` must be of type `str`, `dict`, or `PoolMetaDataInterface`."
         )
-
+    
     (
         pool_kwargs,
         controller_kwargs,
@@ -72,9 +77,13 @@ def get_sim_market(
     aggregator = AggregateStablePrice(
         stablecoin=stablecoin, sigma=AGGREGATOR_CONF["sigma"]
     )
-    stableswap_pools = [
-        CurveStableSwapPool(**pool_kwargs) for pool_kwargs in stableswap_pools_kwargs
-    ]
+
+    stableswap_pools = []
+    for i in range(len(stableswap_pools_kwargs)):
+        pool_kwargs = stableswap_pools_kwargs[i]
+        pool_kwargs["coins"] = [StableCoin(**coin_kwargs) for coin_kwargs in pool_kwargs["coins"]]
+        stableswap_pools.append(CurveStableSwapPool(**pool_kwargs))
+
     peg_keepers = [
         PegKeeper(
             _pool=stableswap_pools[i],

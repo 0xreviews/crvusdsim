@@ -302,12 +302,12 @@ async def _stableswap_snapshot(pool_addresses):
         coins = []
         for i in range(len(r["pool"]["coins"])):
             coins.append(
-                StableCoin(
-                    address=r["pool"]["coins"][i],
-                    name=r["pool"]["coinNames"][i],
-                    symbol=r["pool"]["coinNames"][i],
-                    decimals=int(r["pool"]["coinDecimals"][i]),
-                )
+                {
+                    "address": r["pool"]["coins"][i],
+                    "name": r["pool"]["coinNames"][i],
+                    "symbol": r["pool"]["coinNames"][i],
+                    "decimals": int(r["pool"]["coinDecimals"][i]),
+                }
             )
 
         pools_params.append(

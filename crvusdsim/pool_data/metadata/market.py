@@ -3,6 +3,7 @@ from curvesim.logging import get_logger
 from curvesim.pool_data.metadata.base import PoolMetaDataBase
 
 from crvusdsim.pool.crvusd.price_oracle import PriceOracle
+from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.utils import ERC20
 
 logger = get_logger(__name__)
@@ -11,7 +12,7 @@ logger = get_logger(__name__)
 class MarketMetaData(PoolMetaDataBase):
     """Specific implementation of the `PoolMetaDataInterface` for LLAMMA."""
 
-    def init_kwargs(self, bands=True):
+    def init_kwargs(self, bands=False):
         data = self._dict
 
         collateral_token = ERC20(
@@ -33,7 +34,7 @@ class MarketMetaData(PoolMetaDataBase):
         )
 
         stableswap_pools_kwargs = data["stableswap_pools_params"]
-
+        
         peg_keepers_kwargs = data["peg_keepers_params"]
 
         pool_kwargs = {

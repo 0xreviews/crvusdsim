@@ -178,8 +178,10 @@ class LLAMMAPool(
         self.liquidity_mining_callback = liquidity_mining_callback
 
         # _mint for amm pool
-        self.BORROWED_TOKEN._mint(self.address, sum(self.bands_x.values()))
-        self.COLLATERAL_TOKEN._mint(self.address, sum(self.bands_y.values()))
+        if sum(self.bands_x.values()) > 0:
+            self.BORROWED_TOKEN._mint(self.address, sum(self.bands_x.values()))
+        if sum(self.bands_y.values()) > 0:
+            self.COLLATERAL_TOKEN._mint(self.address, sum(self.bands_y.values()))
 
     def limit_p_o(self, p: int) -> List[int]:
         """
