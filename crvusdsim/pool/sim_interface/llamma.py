@@ -119,8 +119,8 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         if not isinstance(timestamp, int):
             timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
         self._increment_timestamp(timestamp=timestamp)
-        self.prev_p_o_time = timestamp
-        self.rate_time = timestamp
+        # self.prev_p_o_time = timestamp
+        # self.rate_time = timestamp
 
     def prepare_for_run(self, prices):
         """
@@ -135,6 +135,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         # Get/set initial prices
         initial_price = int(prices.iloc[0, :].tolist()[0] * 10**18)
         self.price_oracle_contract.set_price(initial_price)
+        ts = int(prices.index[0].timestamp())
+        self.prev_p_o_time = ts
+        self.rate_time = ts
 
     @property
     @cache
@@ -183,3 +186,16 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.bands_y_snapshot_tmp = None
         self.bands_delta_snapshot[self._block_timestamp] = snapshot
         self.last_active_band = None
+
+    def get_total_y0(self):
+        total_y0 = 0
+        for i in range(self.min_band, self.max_band + 1):
+            if self.bands_x[i] == 0:
+                total_y0 += self.bands_y[i]
+            else:
+                x = self.bands_x[i]
+                y = self.bands_y[i]
+                p_o = self.price_oracle()
+                p_o_up = self.p_oracle_up(i)
+                total_y0 += self._get_y0(x, y, p_o, p_o_up)
+        return total_y0

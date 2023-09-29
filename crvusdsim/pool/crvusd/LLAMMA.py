@@ -1793,7 +1793,7 @@ class LLAMMAPool(
             if p <= p_up:
                 if p >= p_down:
                     if not_empty:
-                        ynew: int = unsafe_sub(max(isqrt(Inv * 10**18 // p), g), g)
+                        ynew: int = unsafe_sub(max(isqrt(int(Inv * 10**18 // p)), g), g)
                         xnew: int = unsafe_sub(max(Inv // (g + ynew), f), f)
                         if pump:
                             amount += unsafe_sub(max(xnew, x), x)

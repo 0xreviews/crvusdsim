@@ -39,17 +39,29 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
 
     trades = []
 
+    pool_max_price = pool.p_oracle_up(pool.min_band)
+    pool_min_price = pool.p_oracle_down(pool.max_band)
+
     for pair in prices:
         i, j = pair
         p_o = int(prices[pair] * 10**18)
 
+        target_price = p_o
+        target_price = min(pool_max_price, target_price)
+        target_price = max(pool_min_price, target_price)
+        
         pool.price_oracle_contract.set_price(p_o)
         amount, pump = pool.get_amount_for_price(p_o)
 
-        if pump and amount < trade_threshold:
-            continue
-        if not pump and amount < trade_threshold * 10**18 / p_o:
-            continue
+        amount_in, amount_out = pool.get_dxdy(i, j, amount)
+        price_avg = amount_in / amount_out if pump else amount_out / amount_in
+
+        if pump:
+            if amount_in < trade_threshold or price_avg * 1e18 > p_o:
+                continue
+        else:
+            if amount_in < trade_threshold * 10**18 / p_o or price_avg * 1e18 < p_o:
+                continue
 
         if pump:
             price = prices[pair]
@@ -59,11 +71,11 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
             coin_in, coin_out = j, i
         
         # exchange
-        in_amount_done, out_amount_done = pool.trade(i, j, amount)
+        in_amount_done, out_amount_done = pool.trade(i, j, amount_in)
 
         # simply calc profit
         amm_p = pool.price(i, j)
-        profit = amount * (amm_p - p_o) / 10**18
+        profit = amount_in * (amm_p - p_o) / 10**18
         if abs(profit) < profit_threshold:
             trades.append((0, pair, prices[pair]))
             continue
