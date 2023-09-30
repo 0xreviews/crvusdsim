@@ -469,14 +469,12 @@ class LLAMMAPool(
         b: int = 0
         # p_o_up * unsafe_sub(A, 1) * x / p_o + A * p_o**2 / p_o_up * y / 10**18
         if x != 0:
-            b = p_o_up * self.Aminus1 * x // p_o
+            b = unsafe_div(p_o_up * self.Aminus1 * x, p_o)
         if y != 0:
-            b += self.A * p_o**2 // p_o_up * y // 10**18
+            b += unsafe_div(self.A * p_o**2 // p_o_up * y, 10**18)
         if x > 0 and y > 0:
             D: int = b**2 + unsafe_div(((4 * self.A) * p_o) * y, 10**18) * x
-            return unsafe_div(
-                (b + isqrt(int(D))) * 10**18, unsafe_mul(2 * self.A, p_o)
-            )
+            return unsafe_div((b + isqrt(D)) * 10**18, unsafe_mul(2 * self.A, p_o))
         else:
             return unsafe_div(b * 10**18, unsafe_mul(self.A, p_o))
 

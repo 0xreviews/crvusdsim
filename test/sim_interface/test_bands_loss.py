@@ -14,10 +14,10 @@ def test_bands_loss(local_prices):
     pool = create_sim_pool()
 
     prices, volumes = local_prices
-    prices = prices[:]
+    prices = prices[:1000]
     time_duration = prices.index[-1] - prices.index[0]
-    prices_reverse = pd.DataFrame(prices.iloc[::-1].values.tolist(), index=prices.index + time_duration, columns=["price"])
-    prices = pd.concat([prices, prices_reverse], axis=0)
+    # prices_reverse = pd.DataFrame(prices.iloc[::-1].values.tolist(), index=prices.index + time_duration, columns=["price"])
+    # prices = pd.concat([prices, prices_reverse], axis=0)
     print(prices)
     simple_bands_strategy(
         pool,
@@ -28,7 +28,6 @@ def test_bands_loss(local_prices):
     )
 
     pool.prepare_for_run(prices=prices)
-    init_pool_value = pool.get_total_y0()
     init_bands_x = pool.bands_x.copy()
     init_bands_y = pool.bands_y.copy()
 
@@ -70,32 +69,36 @@ def test_bands_loss(local_prices):
 
         # exchange
         in_amount_done, out_amount_done = pool.trade(i, j, amount_in)
-        print("")
-        print(i, j)
-        print("fee", pool.dynamic_fee() / 1e18)
-        print(amount_in, amount_out)
-        print(in_amount_done, out_amount_done)
-        print("p_o", p_o / 1e18)
-        print("amm_p", amm_p / 1e18)
-        print("price_avg", price_avg)
-        print("amm_p after", pool.get_p() / 1e18)
+        # print("")
+        # print(i, j)
+        # print("fee", pool.dynamic_fee() / 1e18)
+        # print(amount_in, amount_out)
+        # print(in_amount_done, out_amount_done)
+        # print("p_o", p_o / 1e18)
+        # print("amm_p", amm_p / 1e18)
+        # print("price_avg", price_avg)
+        # print("amm_p after", pool.get_p() / 1e18)
 
-    final_pool_value = pool.get_total_y0()
+    price = pool.price_oracle()
+    init_pool_value = sum(init_bands_x.values()) + sum(init_bands_y.values()) * price / 1e18
+    final_pool_value = sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * price / 1e18
     
     assert final_pool_value < init_pool_value
 
     print("")
     print("init_pool_value", init_pool_value)
     print("final_pool_value", final_pool_value)
-    print("loss (y0) {:.4f}%".format((final_pool_value / init_pool_value - 1) * 100) )
+    print("loss {:.4f}%".format((final_pool_value / init_pool_value - 1) * 100) )
 
     # test bands_delta_snapshot
+    total_value_loss = 0
     for ts in pool.bands_delta_snapshot:
         _snapshot = pool.bands_delta_snapshot[ts]
         for index in _snapshot:
             init_bands_x[index] += _snapshot[index]["x"]
             init_bands_y[index] += _snapshot[index]["y"]
-
+            total_value_loss += _snapshot[index]["x0_loss"]
+    
     for index in pool.bands_x:
         assert init_bands_x[index] == pool.bands_x[index]
 
