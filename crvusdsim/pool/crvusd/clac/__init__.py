@@ -74,6 +74,10 @@ def log2(_x: int) -> int:
         return res
 
 def exp(power: int) -> int:
+    # This implementation is borrowed from transmissions11 and Remco Bloemen:
+    # https://github.com/transmissions11/solmate/blob/main/src/utils/SignedWadMath.sol
+    # Method: wadExp
+    
     if power <= -42139678854452767551:
         return 0
 

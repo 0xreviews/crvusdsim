@@ -1,7 +1,6 @@
 import os
 
 from curvesim.iterators.param_samplers import ParameterizedPoolIterator
-from curvesim.iterators.price_samplers import PriceVolume
 from curvesim.metrics.results import make_results
 from curvesim.pipelines import run_pipeline
 from curvesim.pool.cryptoswap.pool import CurveCryptoPool
@@ -13,6 +12,7 @@ from crvusdsim.pipelines.common import DEFAULT_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
 from crvusdsim.pool import get_sim_market
 from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
+from crvusdsim.iterators.price_samplers import PriceVolume
 from crvusdsim.pool_data.cache import PoolDataCache
 
 

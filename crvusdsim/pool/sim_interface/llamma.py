@@ -122,6 +122,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         if not isinstance(timestamp, int):
             timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
         self._increment_timestamp(timestamp=timestamp)
+        self.price_oracle_contract._increment_timestamp(timestamp=timestamp)
 
     def prepare_for_run(self, prices):
         """
@@ -134,11 +135,14 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             The price time_series, price_sampler.prices.
         """
         # Get/set initial prices
-        initial_price = int(prices.iloc[0, :].tolist()[0] * 10**18)
-        self.price_oracle_contract.set_price(initial_price)
         ts = int(prices.index[0].timestamp())
+        initial_price = int(prices.iloc[0, :].tolist()[0] * 10**18)
         self.prev_p_o_time = ts
         self.rate_time = ts
+        self.price_oracle_contract.set_price(initial_price)
+        self.price_oracle_contract._price_oracle = initial_price
+        self.price_oracle_contract._increment_timestamp(timestamp=ts)
+        self.price_oracle_contract.last_prices_timestamp = ts
 
     @property
     @cache
@@ -168,21 +172,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         delta_i = -1 if self.active_band < self.last_active_band else 1
         snapshot = {}
         while True:
-            old_x0 = self.get_band_xy_up(
-                index,
-                self.bands_x_snapshot_tmp[index],
-                self.bands_y_snapshot_tmp[index],
-                True,
-            )
-            x0 = self.get_band_xy_up(
-                index, self.bands_x[index], self.bands_y[index], True
-            )
             snapshot[index] = {
                 "x": self.bands_x[index] - self.bands_x_snapshot_tmp[index],
                 "y": self.bands_y[index] - self.bands_y_snapshot_tmp[index],
-                "x0": x0,
-                "old_x0": old_x0,
-                "x0_loss": old_x0 - x0,
             }
             index += delta_i
             if index == self.active_band + delta_i:
@@ -192,6 +184,25 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.bands_y_snapshot_tmp = None
         self.bands_delta_snapshot[self._block_timestamp] = snapshot
         self.last_active_band = None
+    
+    def get_band_snapshot(self, index: int, timestamp=None):
+        if timestamp is None:
+            timestamp = max(self.bands_delta_snapshot.keys()) + 1
+        
+        x = self.bands_x[index]
+        y = self.bands_y[index]
+
+        for ts in self.bands_delta_snapshot:
+            if ts >= timestamp:
+                _snapshot = self.bands_delta_snapshot[ts]
+                if index in _snapshot:
+                    x -= _snapshot[index]["x"]
+                    y -= _snapshot[index]["y"]
+        
+        return {
+            "x": x,
+            "y": y,
+        }
 
     def get_band_xy_up(self, index: int, x: int, y: int, use_y: bool):
         p_o = self.price_oracle()

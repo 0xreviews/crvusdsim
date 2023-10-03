@@ -15,7 +15,7 @@ def simple_bands_strategy(
 
     base_price = pool.get_base_price()
     init_index = floor(log(init_price / base_price, (A - 1) / A))
-    min_index = floor(log(max_price / base_price, (A - 1) / A)) + 1
+    min_index = floor(log(max_price / base_price, (A - 1) / A))
     max_index = floor(log(min_price / base_price, (A - 1) / A))
 
     p_up = pool.p_oracle_up(init_index)
@@ -43,6 +43,3 @@ def simple_bands_strategy(
         pool.BORROWED_TOKEN._mint(pool.address, sum(pool.bands_x.values()))
     if sum(pool.bands_y.values()) > 0:
         pool.COLLATERAL_TOKEN._mint(pool.address, sum(pool.bands_y.values()))
-
-    pool.price_oracle_contract.set_price(init_price)
-    pool.old_p_o = pool.get_p()

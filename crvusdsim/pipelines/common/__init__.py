@@ -54,13 +54,21 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
         amount, pump = pool.get_amount_for_price(p_o)
 
         amount_in, amount_out = pool.get_dxdy(i, j, amount)
+
+        if pump:
+            if amount_in < trade_threshold:
+                continue
+        else:
+            if amount_out < trade_threshold:
+                continue
+
         price_avg = amount_in / amount_out if pump else amount_out / amount_in
 
         if pump:
-            if amount_in < trade_threshold or price_avg * 1e18 > p_o:
+            if price_avg * 1e18 > p_o:
                 continue
         else:
-            if amount_in < trade_threshold * 10**18 / p_o or price_avg * 1e18 < p_o:
+            if price_avg * 1e18 < p_o:
                 continue
 
         if pump:
