@@ -1,8 +1,9 @@
 from typing import Tuple
 import pytest
 from math import log
-from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 
+from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
+from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.controller_factory import ControllerFactory
 from crvusdsim.pool.crvusd.controller import Controller
@@ -12,11 +13,7 @@ from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
 )
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
-from crvusdsim.pool.crvusd.stableswap import (
-    ARBITRAGUR,
-    LP_PROVIDER,
-    CurveStableSwapPool,
-)
+from crvusdsim.pool.crvusd.stableswap import LP_PROVIDER, CurveStableSwapPool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
 INIT_PRICE = 3000 * 10**18
@@ -60,7 +57,7 @@ AGGREGATOR_SIGMA = 10**15
 def _create_stablecoin():
     coin = StableCoin()
     coin._mint(LP_PROVIDER, 10**6 * 10**18)
-    coin._mint(ARBITRAGUR, 10**6 * 10**18)
+    coin._mint(ARBITRAGUR_ADDRESS, 10**6 * 10**18)
     # for addr in accounts:
     #     coin._mint(addr, 5 * 10**4 * 10**18)
     return coin
@@ -74,7 +71,7 @@ def _create_collteral():
         decimals=18,
     )
     coin._mint(LP_PROVIDER, 10**6 * 10**18)
-    coin._mint(ARBITRAGUR, 10**6 * 10**18)
+    coin._mint(ARBITRAGUR_ADDRESS, 10**6 * 10**18)
     return coin
 
 
@@ -88,7 +85,7 @@ def _create_other_coins():
             decimals=18,
         )
         _coin._mint(LP_PROVIDER, 10**6 * 10**18)
-        _coin._mint(ARBITRAGUR, 10**6 * 10**18)
+        _coin._mint(ARBITRAGUR_ADDRESS, 10**6 * 10**18)
         coins.append(_coin)
 
     return coins

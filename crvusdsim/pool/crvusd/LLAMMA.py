@@ -9,6 +9,7 @@ from typing import List, Tuple
 from curvesim.exceptions import CalculationError, CryptoPoolError
 from curvesim.logging import get_logger
 from curvesim.pool.base import Pool
+from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
@@ -1356,7 +1357,7 @@ class LLAMMAPool(
         amount: int,
         minmax_amount: int,
         use_in_amount: bool,
-        _receiver: str = "ARBITRAGUR",
+        _receiver: str = ARBITRAGUR_ADDRESS,
     ) -> List[int]:
         """
         Exchanges two coins, callable by anyone
@@ -1691,7 +1692,7 @@ class LLAMMAPool(
         j: int,
         in_amount: int,
         min_amount: int = 0,
-        _receiver: str = "ARBITRAGUR",
+        _receiver: str = ARBITRAGUR_ADDRESS,
     ) -> List[int]:
         """
         Exchanges two coins, callable by anyone
@@ -1722,7 +1723,7 @@ class LLAMMAPool(
         j: int,
         out_amount: int,
         max_amount: int,
-        _receiver: str = "ARBITRAGUR",
+        _receiver: str = ARBITRAGUR_ADDRESS,
     ) -> List[int]:
         """
         Exchanges two coins, callable by anyone

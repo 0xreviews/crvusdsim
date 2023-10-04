@@ -1,8 +1,8 @@
 """
 crvUSD Stablecoin
 """
-from collections import defaultdict
-from crvusdsim.pool.crvusd.conf import STABLECOIN_TOKEN_CONF
+
+from .conf import STABLECOIN_TOKEN_CONF
 
 from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 

@@ -1,5 +1,7 @@
+import pytest
 from datetime import datetime
 from random import randint
+from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx
@@ -58,17 +60,22 @@ def test_bands_loss(local_prices):
         min_price=1500 * 10**18,
         total_y=10000 * 10**18,
     )
-    pool.fee = 0
 
     pool.prepare_for_run(prices=prices)
     init_bands_x = pool.bands_x.copy()
     init_bands_y = pool.bands_y.copy()
+    
+    arbitragur_collateral_balance_before = pool.COLLATERAL_TOKEN.balanceOf[ARBITRAGUR_ADDRESS]
+    arbitragur_stablecoin_balance_before = pool.BORROWED_TOKEN.balanceOf[ARBITRAGUR_ADDRESS]
 
     pool_max_price = pool.p_oracle_up(pool.min_band)
     pool_min_price = pool.p_oracle_down(pool.max_band)
     print("pool_max_price", pool_max_price / 1e18)
     print("pool_min_price", pool_min_price / 1e18)
 
+    total_profit = 0
+    total_fee_collateral = 0
+    total_fee_borrowed = 0
     for ts, p_o in prices.iloc[:].iterrows():
         p_o = int(p_o.iloc[0] * 10**18)
         pool.price_oracle_contract.set_price(p_o)
@@ -110,8 +117,16 @@ def test_bands_loss(local_prices):
 
         # exchange
         in_amount_done, out_amount_done = pool.trade(i, j, amount_in)
+
+        total_profit += profit
+
         fee_rate = pool.dynamic_fee()
-        if fee_rate / 1e18 > 0.006:
+        if pump:
+            total_fee_borrowed += in_amount_done * fee_rate / 1e18
+        else:
+            total_fee_collateral += in_amount_done * fee_rate / 1e18
+
+        if fee_rate > pool.fee:
             print("")
             print(i, j)
             print("fee_rate", fee_rate / 1e18)
@@ -126,11 +141,19 @@ def test_bands_loss(local_prices):
     price = prices.iloc[-1, 0]
     init_pool_value = sum(init_bands_x.values()) + sum(init_bands_y.values()) * price
     final_pool_value = sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * price
+    
+    arbitragur_collateral_profit = pool.COLLATERAL_TOKEN.balanceOf[ARBITRAGUR_ADDRESS]  - arbitragur_collateral_balance_before
+    arbitragur_stablecoin_profit = pool.BORROWED_TOKEN.balanceOf[ARBITRAGUR_ADDRESS] - arbitragur_stablecoin_balance_before
+
 
     print("")
     print("init_pool_value", init_pool_value)
     print("final_pool_value", final_pool_value)
     print("loss {:.4f}%".format((final_pool_value / init_pool_value - 1) * 100))
+    print("total_fee_borrowed", total_fee_borrowed / 1e18)
+    print("total_fee_collateral", total_fee_collateral / 1e18)
+    print("arbitragur_collateral_balance delta", arbitragur_collateral_profit / 1e18)
+    print("arbitragur_stablecoin_balance delta", arbitragur_stablecoin_profit / 1e18)
 
     assert final_pool_value < init_pool_value
 

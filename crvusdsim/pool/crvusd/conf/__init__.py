@@ -6,6 +6,7 @@ __all__ = [
     "CONTROLLER_CONF",
     "PEG_KEEPER_CONF",
     "AGGREGATOR_CONF",
+    "ARBITRAGUR_ADDRESS",
 ]
 
 
@@ -54,3 +55,5 @@ PEG_KEEPER_CONF = {
 AGGREGATOR_CONF = {
     "sigma": 10**15,
 }
+
+ARBITRAGUR_ADDRESS = "ARBITRAGUR"

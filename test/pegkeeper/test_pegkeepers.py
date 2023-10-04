@@ -1,6 +1,6 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from crvusdsim.pool.crvusd.stableswap import ARBITRAGUR
+from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 from test.utils import approx
 
 
@@ -34,7 +34,7 @@ def test_pegkeepers_update(
     for i in range(len(stableswaps)):
         pool = stableswaps[i]
         pk = pegkeepers[i]
-        dy = pool.exchange(0, 1, buy_amount, _receiver=ARBITRAGUR)
+        dy = pool.exchange(0, 1, buy_amount, _receiver=ARBITRAGUR_ADDRESS)
 
     aggregator._increment_timestamp(timedelta=time_delta)
 
@@ -61,7 +61,7 @@ def test_pegkeepers_update(
         pool = stableswaps[i]
         pk = pegkeepers[i]
         old_pool_p = pool.get_p()
-        dy = pool.exchange(1, 0, int(buy_amount * 1.1), _receiver=ARBITRAGUR)
+        dy = pool.exchange(1, 0, int(buy_amount * 1.1), _receiver=ARBITRAGUR_ADDRESS)
         assert old_pool_p > pool.get_p(), "price must go down after exchange"
 
     aggregator._increment_timestamp(timedelta=time_delta)

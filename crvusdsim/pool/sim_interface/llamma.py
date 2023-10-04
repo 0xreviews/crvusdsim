@@ -8,6 +8,7 @@ from curvesim.exceptions import SimPoolError
 from curvesim.templates import SimAssets
 from curvesim.utils import cache, override
 from curvesim.pool.sim_interface.asset_indices import AssetIndicesMixin
+from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 
 from crvusdsim.pool.crvusd.vyper_func import unsafe_div, unsafe_sub
 
@@ -97,9 +98,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         i, j = self.get_asset_indices(coin_in, coin_out)
 
         if i == 0:
-            self.BORROWED_TOKEN._mint("ARBITRAGUR", size)
+            self.BORROWED_TOKEN._mint(ARBITRAGUR_ADDRESS, size)
         else:
-            self.COLLATERAL_TOKEN._mint("ARBITRAGUR", size)
+            self.COLLATERAL_TOKEN._mint(ARBITRAGUR_ADDRESS, size)
 
         in_amount_done, out_amount_done = self.exchange(i, j, size, min_amount=0)
 

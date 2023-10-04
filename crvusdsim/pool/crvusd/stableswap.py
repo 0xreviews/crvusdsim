@@ -11,13 +11,13 @@ from curvesim.pool.stableswap.pool import CurvePool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.clac import exp, shift
 from crvusdsim.pool.crvusd.utils import BlocktimestampMixins
+from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 
 PRECISION = 10**18
 A_PRECISION = 100
 FEE_DENOMINATOR = 10**10
 ADMIN_FEE = 5000000000
 
-ARBITRAGUR = "ARBITRAGUR"
 LP_PROVIDER = "LP_PROVIDER"
 
 
@@ -426,7 +426,7 @@ class CurveStableSwapPool(BlocktimestampMixins):
         return (x - xp[i]) * PRECISION // rates[i]
 
     def exchange(
-        self, i: int, j: int, _dx: int, _receiver: str = ARBITRAGUR, _min_dy: int = 0
+        self, i: int, j: int, _dx: int, _receiver: str = ARBITRAGUR_ADDRESS, _min_dy: int = 0
     ):
         """
         Perform an exchange between two coins.

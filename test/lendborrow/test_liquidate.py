@@ -1,7 +1,6 @@
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from crvusdsim.pool.crvusd.stableswap import ARBITRAGUR
 
 from test.conftest import create_controller_amm, stablecoin
 from ..utils import approx

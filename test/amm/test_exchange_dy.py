@@ -2,8 +2,8 @@ import pytest
 from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
+from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
-from crvusdsim.pool.crvusd.stableswap import ARBITRAGUR
 from test.utils import approx
 from test.conftest import INIT_PRICE, create_amm, price_oracle
 
@@ -132,7 +132,7 @@ def test_exchange_dy_down_up(amounts, accounts, ns, dns, amount):
     assert approx(dx, dx2, 1e-6)
     with pytest.raises(AssertionError, match="Slippage"):
         amm.exchange_dy(0, 1, dy2, dx2 - 1)  # crvUSD --> ETH
-    amm.BORROWED_TOKEN._mint(ARBITRAGUR, dx2)
+    amm.BORROWED_TOKEN._mint(ARBITRAGUR_ADDRESS, dx2)
     amm.exchange_dy(0, 1, dy2, dx2)  # crvUSD --> ETH
 
     # ETH --> crvUSD (dx - ETH, dy - crvUSD)
