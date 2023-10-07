@@ -1,10 +1,10 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import randint
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
 from test.sim_interface.conftest import create_sim_pool
-from test.utils import approx
+from test.utils import approx, generate_prices
 import time
 import numpy as np
 import pandas as pd
@@ -13,19 +13,25 @@ trade_threshold = 10**2 * 10**18
 profit_threshold = 50 * 10**18
 
 
-def test_bands_snapshot():
+def test_bands_snapshot(assets):
     pool = create_sim_pool()
     ts_begin = int(time.time())
     ts = ts_begin
     pool._increment_timestamp(ts)
     p_up = pool.p_oracle_up(0)
     p_down = pool.p_oracle_down(9)
+
+    prices = generate_prices(
+        price_max=p_up / 1e18,
+        price_min=p_down / 1e18,
+        trade_count=100,
+        columns=assets.symbol_pairs,
+    )
+
     total_y = 10000 * 10**18
     simple_bands_strategy(
         pool,
-        init_price=p_up,
-        max_price=p_up,
-        min_price=p_down,
+        prices,
         total_y=total_y,
     )
 
@@ -45,33 +51,29 @@ def test_bands_snapshot():
         )
 
 
-def test_bands_loss(local_prices):
+def test_bands_loss(assets, local_prices):
     pool = create_sim_pool()
 
     prices, volumes = local_prices
-    prices = prices[3000:8000]
+    prices = prices[:]
+
+    # Populate inverse price data, bringing it back to the initial price
     # time_duration = prices.index[-1] - prices.index[0]
-    # prices_reverse = pd.DataFrame(prices.iloc[::-1].values.tolist(), index=prices.index + time_duration, columns=["price"])
-    # prices = pd.concat([prices, prices_reverse], axis=0)
-    simple_bands_strategy(
-        pool,
-        init_price=prices.iloc[0, :].tolist()[0] * 10**18,
-        max_price=int(prices.iloc[0, :].max() * 10**18),
-        min_price=1500 * 10**18,
-        total_y=10000 * 10**18,
-    )
+    # prices_reverse = pd.DataFrame(
+    #     prices.iloc[::-1].values.tolist(),
+    #     index=prices.index + time_duration,
+    #     columns=assets.symbol_pairs,
+    # )
+    # prices = pd.concat([prices.iloc[:, 0], prices_reverse.iloc[:, 0]])
+    # prices = pd.DataFrame(prices, columns=assets.symbol_pairs)
+
+    simple_bands_strategy(pool, prices, total_y=10000 * 10**18, unuse_bands=20)
 
     pool.prepare_for_run(prices=prices)
     init_bands_x = pool.bands_x.copy()
     init_bands_y = pool.bands_y.copy()
-    
-    arbitragur_collateral_balance_before = pool.COLLATERAL_TOKEN.balanceOf[ARBITRAGUR_ADDRESS]
-    arbitragur_stablecoin_balance_before = pool.BORROWED_TOKEN.balanceOf[ARBITRAGUR_ADDRESS]
 
-    pool_max_price = pool.p_oracle_up(pool.min_band)
-    pool_min_price = pool.p_oracle_down(pool.max_band)
-    print("pool_max_price", pool_max_price / 1e18)
-    print("pool_min_price", pool_min_price / 1e18)
+    init_pool_value = pool.get_total_xy_up(use_y=False)
 
     total_profit = 0
     total_fee_collateral = 0
@@ -81,11 +83,8 @@ def test_bands_loss(local_prices):
         pool.price_oracle_contract.set_price(p_o)
         pool.prepare_for_trades(ts)
 
-        target_price = p_o
-        target_price = min(pool_max_price, target_price)
-        target_price = max(pool_min_price, target_price)
+        target_price = pool.price_oracle()
 
-        amm_p = pool.get_p()
         amount_in, pump = pool.get_amount_for_price(int(target_price))
 
         if amount_in == 0:
@@ -105,14 +104,14 @@ def test_bands_loss(local_prices):
             if amount_out < trade_threshold:
                 continue
 
-        # price_avg = amount_in / amount_out if pump else amount_out / amount_in
-
         if pump:
             profit = amount_out * p_o / 10**18 - amount_in
         else:
             profit = amount_out - amount_in * p_o / 10**18
 
-        if profit < profit_threshold:
+        # do exchange if profit enough, except for last round
+        # (we need amm p to approximate p_out in order to calculate loss)
+        if profit < profit_threshold and ts != prices.index[-1]:
             continue
 
         # exchange
@@ -126,34 +125,19 @@ def test_bands_loss(local_prices):
         else:
             total_fee_collateral += in_amount_done * fee_rate / 1e18
 
-        if fee_rate > pool.fee:
-            print("")
-            print(i, j)
-            print("fee_rate", fee_rate / 1e18)
-            # print(amount_in, amount_out)
-            print(in_amount_done / 1e18, out_amount_done / 1e18)
-            print("p_o", p_o / 1e18)
-            print("amm_p", amm_p / 1e18)
-            # print("price_avg", price_avg)
-            print("amm_p after", pool.get_p() / 1e18)
-            print("profit", profit / 1e18)
+    assert approx(pool.get_p(), pool.price_oracle(), 1e-3), "should no price diff at last"
 
-    price = prices.iloc[-1, 0]
-    init_pool_value = sum(init_bands_x.values()) + sum(init_bands_y.values()) * price
-    final_pool_value = sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * price
-    
-    arbitragur_collateral_profit = pool.COLLATERAL_TOKEN.balanceOf[ARBITRAGUR_ADDRESS]  - arbitragur_collateral_balance_before
-    arbitragur_stablecoin_profit = pool.BORROWED_TOKEN.balanceOf[ARBITRAGUR_ADDRESS] - arbitragur_stablecoin_balance_before
-
+    final_pool_value = pool.get_total_xy_up(use_y=False)
 
     print("")
     print("init_pool_value", init_pool_value)
     print("final_pool_value", final_pool_value)
+    print("total_profit", total_profit / 1e18)
+    print((init_pool_value - final_pool_value) / 1e18)
     print("loss {:.4f}%".format((final_pool_value / init_pool_value - 1) * 100))
+    print("profit {:.4f}%".format((total_profit / init_pool_value) * 100))
     print("total_fee_borrowed", total_fee_borrowed / 1e18)
     print("total_fee_collateral", total_fee_collateral / 1e18)
-    print("arbitragur_collateral_balance delta", arbitragur_collateral_profit / 1e18)
-    print("arbitragur_stablecoin_balance delta", arbitragur_stablecoin_profit / 1e18)
 
     assert final_pool_value < init_pool_value
 

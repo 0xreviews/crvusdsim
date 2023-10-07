@@ -132,18 +132,19 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
 
         Parameters
         ----------
-        timestamp : pandas.DataFrame
+        prices : pandas.DataFrame
             The price time_series, price_sampler.prices.
         """
         # Get/set initial prices
-        ts = int(prices.index[0].timestamp())
         initial_price = int(prices.iloc[0, :].tolist()[0] * 10**18)
-        self.prev_p_o_time = ts
-        self.rate_time = ts
+        init_ts = int(prices.index[0].timestamp())
+        
+        self.prev_p_o_time = init_ts
+        self.rate_time = init_ts
         self.price_oracle_contract.set_price(initial_price)
         self.price_oracle_contract._price_oracle = initial_price
-        self.price_oracle_contract._increment_timestamp(timestamp=ts)
-        self.price_oracle_contract.last_prices_timestamp = ts
+        self.price_oracle_contract._increment_timestamp(timestamp=init_ts)
+        self.price_oracle_contract.last_prices_timestamp = init_ts
 
     @property
     @cache
@@ -205,8 +206,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             "y": y,
         }
 
-    def get_band_xy_up(self, index: int, x: int, y: int, use_y: bool):
-        p_o = self.price_oracle()
+    def get_band_xy_up(self, index: int, x: int, y: int, use_y: bool, p_o: int = None):
+        if p_o is None:
+            p_o = self.price_oracle()
 
         # p_o_up: int = self._p_oracle_up(n)
         p_o_up: int = self.p_oracle_up(index)

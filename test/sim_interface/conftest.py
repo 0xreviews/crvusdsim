@@ -29,14 +29,17 @@ def create_sim_pool():
 
     return pool
 
-
 @pytest.fixture(scope="module")
-def local_prices():
+def assets():
     assets = SimAssets(
         symbols=["wstETH", "crvUSD"],
         addresses=[wstETH_address, crvUSD_address],
         chain="mainnet",
     )
+    return assets
+
+@pytest.fixture(scope="module")
+def local_prices(assets):
     price_samplers = PriceVolume(
         assets,
         data_dir="data",

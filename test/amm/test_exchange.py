@@ -1,3 +1,4 @@
+from random import random
 import pytest
 from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
@@ -25,10 +26,11 @@ def _valid_band_equation(band_index, y0, pool):
 
 @given(
     amount=st.integers(min_value=10**16, max_value=10**6 * 10**18),
+    frac=st.floats(min_value=0.1, max_value=0.9),
     ns=st.integers(min_value=1, max_value=20),
     dns=st.integers(min_value=0, max_value=20),
 )
-def test_exchange_dxdy(accounts, amount, ns, dns):
+def test_exchange_dxdy(accounts, amount, ns, dns, frac):
     user = accounts[0]
     n1 = ns
     N = dns + 1
@@ -51,7 +53,8 @@ def test_exchange_dxdy(accounts, amount, ns, dns):
     for i in range(n1, n2 + 1):
         _valid_band_equation(i, per_y, amm)
 
-    dx1, dy1 = amm.get_dydx(0, 1, per_y / 2)
+    amount_out = int(amount * frac)
+    dx1, dy1 = amm.get_dydx(0, 1, amount_out)
     amm.exchange(0, 1, dx1)
 
     for i in range(n1, n2 + 1):
