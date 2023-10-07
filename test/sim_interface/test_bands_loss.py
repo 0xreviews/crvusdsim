@@ -129,17 +129,25 @@ def test_bands_loss(assets, local_prices):
 
     final_pool_value = pool.get_total_xy_up(use_y=False)
 
+    price = pool.price_oracle() / 1e18
+    bench_pool_value = pool.bench_x + pool.bench_y * price
+    pool_value = sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * price
+
     print("")
-    print("init_pool_value", init_pool_value)
-    print("final_pool_value", final_pool_value)
+    print("init_pool_value", init_pool_value / 1e18)
+    print("final_pool_value", final_pool_value / 1e18)
     print("total_profit", total_profit / 1e18)
     print((init_pool_value - final_pool_value) / 1e18)
     print("loss {:.4f}%".format((final_pool_value / init_pool_value - 1) * 100))
-    print("profit {:.4f}%".format((total_profit / init_pool_value) * 100))
+    print("profit {:.4f}%".format((total_profit / init_pool_value)  * 100))
+    print(bench_pool_value / 1e18)
+    print(pool_value / 1e18)
+    print("bech loss {:.4f}%".format((pool_value / bench_pool_value - 1)  * 100), (bench_pool_value - pool_value) / 1e18)
     print("total_fee_borrowed", total_fee_borrowed / 1e18)
     print("total_fee_collateral", total_fee_collateral / 1e18)
 
-    assert final_pool_value < init_pool_value
+    # assert final_pool_value < init_pool_value
+    assert pool_value < bench_pool_value
 
     # test bands_delta_snapshot
     for ts in pool.bands_delta_snapshot:

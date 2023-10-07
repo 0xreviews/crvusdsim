@@ -28,6 +28,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.bands_x_snapshot_tmp = None
         self.bands_y_snapshot_tmp = None
 
+        self.bench_x = 0
+        self.bench_y = 0
+
         self.bands_delta_snapshot = {}
 
     @property
@@ -104,6 +107,15 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
 
         in_amount_done, out_amount_done = self.exchange(i, j, size, min_amount=0)
 
+        # bench x,y
+        p_o = self.price_oracle()
+        if i == 0:
+            self.bench_x += in_amount_done
+            self.bench_y -= in_amount_done * 10**18 // p_o
+        else:
+            self.bench_x -= in_amount_done * p_o // 10**18
+            self.bench_y += in_amount_done
+
         self._after_exchange()
 
         return in_amount_done, out_amount_done
@@ -145,6 +157,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.price_oracle_contract._price_oracle = initial_price
         self.price_oracle_contract._increment_timestamp(timestamp=init_ts)
         self.price_oracle_contract.last_prices_timestamp = init_ts
+
+        self.bench_x = sum(self.bands_x.values())
+        self.bench_y = sum(self.bands_y.values())
 
     @property
     @cache

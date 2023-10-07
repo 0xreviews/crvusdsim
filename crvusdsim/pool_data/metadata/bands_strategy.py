@@ -113,3 +113,5 @@ def simple_bands_strategy(
         pool.BORROWED_TOKEN._mint(pool.address, sum(pool.bands_x.values()))
     if sum(pool.bands_y.values()) > 0:
         pool.COLLATERAL_TOKEN._mint(pool.address, sum(pool.bands_y.values()))
+
+    pool.prepare_for_run(prices)
