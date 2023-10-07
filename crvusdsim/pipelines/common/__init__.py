@@ -39,22 +39,23 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
 
     trades = []
 
-    pool_max_price = pool.p_oracle_up(pool.min_band)
-    pool_min_price = pool.p_oracle_down(pool.max_band)
-
     for pair in prices:
         i, j = pair
         p_o = int(prices[pair] * 10**18)
 
-        target_price = p_o
-        target_price = min(pool_max_price, target_price)
-        target_price = max(pool_min_price, target_price)
+        target_price = pool.price_oracle()
         
-        pool.price_oracle_contract.set_price(p_o)
-        amount, pump = pool.get_amount_for_price(p_o)
+        amount, pump = pool.get_amount_for_price(target_price)
 
-        amount_in, amount_out = pool.get_dxdy(i, j, amount)
-
+        if pump:
+            price = prices[pair]
+            coin_in, coin_out = i, j
+            amount_in, amount_out = pool.get_dxdy(0, 1, amount)
+        else:
+            price = 1 / prices[pair]
+            coin_in, coin_out = j, i
+            amount_in, amount_out = pool.get_dxdy(1, 0, amount)
+        
         if pump:
             if amount_in < trade_threshold:
                 continue
@@ -62,22 +63,16 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
             if amount_out < trade_threshold:
                 continue
 
-        price_avg = amount_in / amount_out if pump else amount_out / amount_in
-
         if pump:
-            if price_avg * 1e18 > p_o:
-                continue
+            profit = amount_out * p_o / 10**18 - amount_in
         else:
-            if price_avg * 1e18 < p_o:
-                continue
+            profit = amount_out - amount_in * p_o / 10**18
 
-        if pump:
-            price = prices[pair]
-            coin_in, coin_out = i, j
-        else:
-            price = 1 / prices[pair]
-            coin_in, coin_out = j, i
-        
+        # do exchange if profit enough, except for last round
+        # (we need amm p to approximate p_out in order to calculate loss)
+        if profit < profit_threshold:
+            continue
+
         # exchange
         in_amount_done, out_amount_done = pool.trade(i, j, amount_in)
 

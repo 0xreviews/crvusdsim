@@ -37,6 +37,14 @@ class MarketMetaData(PoolMetaDataBase):
         
         peg_keepers_kwargs = data["peg_keepers_params"]
 
+        # convert key from str to int
+        bands_x = {}
+        bands_y = {}
+        for b in data["llamma_params"]["bands_x"]:
+            bands_x[int(b)] = int(data["llamma_params"]["bands_x"][b])
+        for b in data["llamma_params"]["bands_y"]:
+            bands_y[int(b)] = int(data["llamma_params"]["bands_y"][b])
+
         pool_kwargs = {
             "address": data["llamma_params"]["address"],
             "A": int(data["llamma_params"]["A"]),
@@ -48,8 +56,8 @@ class MarketMetaData(PoolMetaDataBase):
             "max_band": int(data["llamma_params"]["max_band"]),
             "collateral": collateral_token,
             "price_oracle_contract": price_oracle_contract,
-            "bands_x": data["llamma_params"]["bands_x"],
-            "bands_y": data["llamma_params"]["bands_y"],
+            "bands_x": bands_x,
+            "bands_y": bands_y,
         }
 
         controller_kwargs = {

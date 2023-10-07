@@ -24,6 +24,7 @@ def pipeline(  # pylint: disable=too-many-locals
     chain="mainnet",
     variable_params=None,
     fixed_params=None,
+    bands_strategy=None,
     test=False,
     end_ts=None,
     days=60,
@@ -128,6 +129,10 @@ def pipeline(  # pylint: disable=too-many-locals
     param_sampler = ParameterizedPoolIterator(
         pool, variable_params, fixed_params, pool_map=CRVUSD_POOL_MAP
     )
+
+    # if bands_strategy is not None:
+
+    #     bands_strategy(pool, price_sampler.prices, init)
 
     _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
     strategy = SimpleStrategy(_metrics)

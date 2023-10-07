@@ -363,7 +363,7 @@ async def market_snapshot(llamma_address, end_ts=None):
     for b in r["bands"]:
         bands_x[int(b["index"])] = int(float(b["stableCoin"]) * 1e18)
         bands_y[int(b["index"])] = int(float(b["collateral"]) * 1e18)
-
+    
     # peg_keepers_params
     peg_keepers_params = [
         {

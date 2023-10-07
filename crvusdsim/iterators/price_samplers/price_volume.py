@@ -149,9 +149,9 @@ class PriceVolume(PriceSampler):
             volumes.append(_volume)
 
         self.prices = pd.DataFrame(
-            prices, index=ts_list, columns=[self.assets.symbol_pairs]
+            prices, index=ts_list, columns=self.assets.symbol_pairs
         )
         self.volumes = pd.DataFrame(
-            volumes, index=ts_list, columns=[self.assets.symbol_pairs]
+            volumes, index=ts_list, columns=self.assets.symbol_pairs
         )
 

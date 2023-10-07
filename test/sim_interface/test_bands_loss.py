@@ -87,9 +87,6 @@ def test_bands_loss(assets, local_prices):
 
         amount_in, pump = pool.get_amount_for_price(int(target_price))
 
-        if amount_in == 0:
-            continue
-
         if pump:
             i, j = 0, 1
         else:
