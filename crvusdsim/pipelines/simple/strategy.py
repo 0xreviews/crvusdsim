@@ -1,8 +1,8 @@
 from curvesim.logging import get_logger
-from curvesim.templates import Strategy
 
-from crvusdsim.pipelines.simple.trader import SimpleArbitrageur
-from crvusdsim.metrics.state_log import StateLog
+from ...templates.Strategy import Strategy
+from .trader import SimpleArbitrageur
+from ...metrics.state_log import StateLog
 
 
 logger = get_logger(__name__)

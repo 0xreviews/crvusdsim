@@ -55,7 +55,7 @@ def test_exchange_dxdy(accounts, amount, ns, dns, frac):
 
     fees_rate = amm.dynamic_fee()
     amount_out = int(amount * frac)
-    dx1, dy1 = amm.get_dydx(0, 1, amount_out)
+    dx1, dy1, fees1 = amm.get_dydx(0, 1, amount_out)
     amm.exchange(0, 1, dx1)
 
     bands_fees_x = sum(amm.bands_fees_x.values())
@@ -87,24 +87,24 @@ def test_dxdy_limits(amounts, accounts, ns, dns):
         amm.deposit_range(user, amount, n1, n2)
 
     # Swap 0
-    dx, dy = amm.get_dxdy(0, 1, 0)
+    dx, dy, fees = amm.get_dxdy(0, 1, 0)
     assert dx == 0 and dy == 0
-    dx, dy = amm.get_dxdy(1, 0, 0)
+    dx, dy, fees = amm.get_dxdy(1, 0, 0)
     assert dx == dy == 0
 
     # Small swap
-    dx, dy = amm.get_dxdy(0, 1, 10 ** (18 - 4))  # $0.0001
+    dx, dy, fees = amm.get_dxdy(0, 1, 10 ** (18 - 4))  # $0.0001
     assert dx == 10 ** (18 - 4)
     assert approx(dy, dx * 10**18 / INIT_PRICE, 4e-2 + 2 * min(ns) / amm.A)
-    dx, dy = amm.get_dxdy(1, 0, 10**16)  # No liquidity
+    dx, dy, fees = amm.get_dxdy(1, 0, 10**16)  # No liquidity
     assert dx == 0
     assert dy == 0  # Rounded down
 
     # Huge swap
-    dx, dy = amm.get_dxdy(0, 1, 10**12 * 10**18)
+    dx, dy, fees = amm.get_dxdy(0, 1, 10**12 * 10**18)
     assert dx < 10**12 * 10**18  # Less than all is spent
     assert abs(dy - sum(amounts)) <= 1000  # but everything is bought
-    dx, dy = amm.get_dxdy(1, 0, 10**12 * 10**18)
+    dx, dy, fees = amm.get_dxdy(1, 0, 10**12 * 10**18)
     assert dx == 0
     assert dy == 0  # Rounded down
 
@@ -132,9 +132,9 @@ def test_exchange_down_up(amounts, accounts, ns, dns, amount):
         else:
             amm.deposit_range(user, amount, n1, n2)
 
-    dx, dy = amm.get_dxdy(0, 1, amount)
+    dx, dy, fees = amm.get_dxdy(0, 1, amount)
     assert dx <= amount
-    dx2, dy2 = amm.get_dxdy(0, 1, dx)
+    dx2, dy2, fees2 = amm.get_dxdy(0, 1, dx)
     assert dx == dx2
     assert approx(dy, dy2, 10 ** (18 - 6))
     amm.exchange(0, 1, dx2, 0)
@@ -142,7 +142,7 @@ def test_exchange_down_up(amounts, accounts, ns, dns, amount):
     in_amount = int(dy2 / 0.98)  # two trades charge 1% twice
     expected_out_amount = dx2
 
-    dx, dy = amm.get_dxdy(1, 0, in_amount)
+    dx, dy, fees = amm.get_dxdy(1, 0, in_amount)
     assert approx(
         dx, in_amount, 5 * 10 ** (18 - 4)
     )  # Not precise because fee is charged on different directions

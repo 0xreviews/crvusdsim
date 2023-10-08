@@ -78,7 +78,7 @@ def simple_bands_strategy(
     else:
         i, j = 1, 0
 
-    amount_in, amount_out = pool.get_dxdy(i, j, amount)
+    amount_in, amount_out, fees = pool.get_dxdy(i, j, amount)
     amount_in = amount_in * unsafe_sub(10**18, fee_rate) // 10**18  # (without fee)
 
     if pump:

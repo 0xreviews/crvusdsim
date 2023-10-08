@@ -105,7 +105,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         else:
             self.COLLATERAL_TOKEN._mint(ARBITRAGUR_ADDRESS, size)
 
-        in_amount_done, out_amount_done = self.exchange(i, j, size, min_amount=0)
+        in_amount_done, out_amount_done, fees = self.exchange(i, j, size, min_amount=0)
 
         # bench x,y
         p_o = self.price_oracle()
@@ -118,7 +118,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
 
         self._after_exchange()
 
-        return in_amount_done, out_amount_done
+        return in_amount_done, out_amount_done, fees
 
     def prepare_for_trades(self, timestamp):
         """

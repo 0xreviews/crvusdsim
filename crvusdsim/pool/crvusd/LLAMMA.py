@@ -1160,6 +1160,10 @@ class LLAMMAPool(
                     _tick = x
                 out.ticks_in.append(_tick)
 
+                # SIM_DEV: fees
+                out.fees.append(0)
+
+
             # Need this to break if price is too far
             p_ratio: int = unsafe_div(p_o_up * 10**18, p_o[0])
 
@@ -1176,9 +1180,11 @@ class LLAMMAPool(
                             out.last_tick_j = min(
                                 Inv // (f + (x + x_dest)) - g + 1, y
                             )  # Should be always >= 0
+
                             # SIM_DEV: fees
                             fees = unsafe_sub(in_amount_left, x_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
+                            
                             x_dest = unsafe_div(
                                 fees * admin_fee, 10**18
                             )  # abs admin fee now
@@ -1196,7 +1202,7 @@ class LLAMMAPool(
                             
                             # SIM_DEV: fees
                             fees = unsafe_sub(dx, x_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
 
                             x_dest = unsafe_div(
                                 fees * admin_fee, 10**18
@@ -1232,7 +1238,7 @@ class LLAMMAPool(
 
                             # SIM_DEV: fees
                             fees = unsafe_sub(in_amount_left, y_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
 
                             y_dest = unsafe_div(
                                 fees * admin_fee, 10**18
@@ -1250,7 +1256,7 @@ class LLAMMAPool(
 
                             # SIM_DEV: fees
                             fees = unsafe_sub(dy, y_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
 
                             y_dest = unsafe_div(
                                 fees * admin_fee, 10**18
@@ -1373,7 +1379,7 @@ class LLAMMAPool(
             A tuple with in_amount used and out_amount returned
         """
         out: DetailedTrade = self._get_dxdy(i, j, in_amount, True)
-        return (out.in_amount, out.out_amount)
+        return (out.in_amount, out.out_amount, sum(out.fees))
 
     def _exchange(
         self,
@@ -1404,8 +1410,8 @@ class LLAMMAPool(
 
         Returns
         -------
-        [in_amount_done, out_amount_done] : [int, int]
-            Amount of coins given in and out
+        [in_amount_done, out_amount_done, fees] : [int, int, int]
+            Amount of coins given in and out, fees (coin_in)
         """
         assert (i == 0 and j == 1) or (i == 1 and j == 0), "Wrong index"
         p_o: List[
@@ -1473,7 +1479,7 @@ class LLAMMAPool(
             if i == 0:
                 self.bands_fees_x[n] += out.fees[k]
             else:
-                self.bands_fees_y[n] += out.fees[k]
+                self.bands_fees_y[n] += out.fees[unsafe_sub(n_diff, k)]
 
             if lm is not None and lm.address is not None:
                 s: int = 0
@@ -1494,7 +1500,7 @@ class LLAMMAPool(
         assert in_coin.transferFrom(_receiver, self.address, in_amount_done)
         assert out_coin.transfer(self.address, _receiver, out_amount_done)
 
-        return [in_amount_done, out_amount_done]
+        return [in_amount_done, out_amount_done, sum(out.fees)]
 
     def calc_swap_in(
         self,
@@ -1564,6 +1570,9 @@ class LLAMMAPool(
                     _tick = x
                 out.ticks_in.append(_tick)
 
+                # DEV_SIM: fees
+                out.fees.append(0)
+
             # Need this to break if price is too far
             p_ratio: int = unsafe_div(p_o_up * 10**18, p_o[0])
 
@@ -1582,7 +1591,7 @@ class LLAMMAPool(
 
                             # SIM_DEV: fees
                             fees = unsafe_sub(dx, x_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
 
                             x_dest = unsafe_div(
                                 fees * admin_fee, 10**18
@@ -1601,7 +1610,7 @@ class LLAMMAPool(
 
                             # SIM_DEV: fees
                             fees = unsafe_sub(dx, x_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
                             
                             x_dest = unsafe_div(
                                 fees * admin_fee, 10**18
@@ -1637,7 +1646,7 @@ class LLAMMAPool(
 
                             # SIM_DEV: fees
                             fees = unsafe_sub(dy, y_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
 
                             y_dest = unsafe_div(
                                 fees * admin_fee, 10**18
@@ -1656,7 +1665,7 @@ class LLAMMAPool(
 
                             # SIM_DEV: fees
                             fees = unsafe_sub(dy, y_dest)
-                            out.fees.append(fees)
+                            out.fees[j] = fees
 
                             y_dest = unsafe_div(
                                 fees * admin_fee, 10**18
@@ -1738,7 +1747,7 @@ class LLAMMAPool(
         # i = 0: borrowable (USD) in, collateral (ETH) out; going up
         # i = 1: collateral (ETH) in, borrowable (USD) out; going down
         out: DetailedTrade = self._get_dxdy(i, j, out_amount, False)
-        return (out.out_amount, out.in_amount)
+        return (out.out_amount, out.in_amount, sum(out.fees))
 
     def exchange(
         self,

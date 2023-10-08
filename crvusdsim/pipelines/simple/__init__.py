@@ -30,6 +30,7 @@ def pipeline(  # pylint: disable=too-many-locals
     days=60,
     src="coingecko",
     data_dir="data",
+    prices_max_interval= 5 * 60,
     ncpu=None,
 ):
     """
@@ -123,16 +124,16 @@ def pipeline(  # pylint: disable=too-many-locals
 
     sim_assets = pool.assets
     price_sampler = PriceVolume(
-        sim_assets, days=days, end=end_ts, data_dir=data_dir, src=src
-    )
-
-    param_sampler = ParameterizedPoolIterator(
-        pool, variable_params, fixed_params, pool_map=CRVUSD_POOL_MAP
+        sim_assets, days=days, end=end_ts, data_dir=data_dir, src=src, max_interval=prices_max_interval,
     )
 
     if bands_strategy is not None:
         init_y = pool.get_total_xy_up(use_y=True)
         bands_strategy(pool, price_sampler.prices, total_y=init_y)
+
+    param_sampler = ParameterizedPoolIterator(
+        pool, variable_params, fixed_params, pool_map=CRVUSD_POOL_MAP
+    )
 
     _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
     strategy = SimpleStrategy(_metrics)

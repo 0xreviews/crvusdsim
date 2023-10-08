@@ -41,7 +41,7 @@ class StateLog:
 
         times = [state["price_sample"].timestamp for state in self.state_per_trade]
         state_per_trade = {col: DataFrame(df[col].to_list(), index=times) for col in df}
-
+        
         return {
             "pool_parameters": DataFrame(self.state_per_run, index=[0]),
             **state_per_trade,

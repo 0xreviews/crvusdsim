@@ -50,11 +50,11 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
         if pump:
             price = prices[pair]
             coin_in, coin_out = i, j
-            amount_in, amount_out = pool.get_dxdy(0, 1, amount)
+            amount_in, amount_out, fees = pool.get_dxdy(0, 1, amount)
         else:
             price = 1 / prices[pair]
             coin_in, coin_out = j, i
-            amount_in, amount_out = pool.get_dxdy(1, 0, amount)
+            amount_in, amount_out, fees = pool.get_dxdy(1, 0, amount)
         
         if pump:
             if amount_in < trade_threshold:
@@ -67,14 +67,12 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
             profit = amount_out * p_o / 10**18 - amount_in
         else:
             profit = amount_out - amount_in * p_o / 10**18
+        
 
         # do exchange if profit enough, except for last round
         # (we need amm p to approximate p_out in order to calculate loss)
         if profit < profit_threshold:
             continue
-
-        # exchange
-        in_amount_done, out_amount_done = pool.trade(i, j, amount_in)
 
         # simply calc profit
         amm_p = pool.price(i, j)
@@ -83,6 +81,6 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
             trades.append((0, pair, prices[pair]))
             continue
 
-        trades.append((in_amount_done, out_amount_done, (coin_in, coin_out), price))
+        trades.append((amount_in, amount_out, (coin_in, coin_out), price))
 
     return trades

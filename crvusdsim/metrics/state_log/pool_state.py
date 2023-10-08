@@ -26,11 +26,15 @@ def get_llamma_pool_state(pool):
         "max_band": pool.max_band,
         "rate": pool.rate,
         "rate_mul": pool.rate_mul,
-        "fee": pool.fee,
-        "admin_fee": pool.admin_fee,
+        "fee_rate": pool.fee,
+        "admin_fee_rate": pool.admin_fee,
         "oracle_price": pool.price_oracle_contract.price(),
         "bands_x_sum": sum(pool.bands_x.values()),
         "bands_y_sum": sum(pool.bands_y.values()),
+        "fees_x": sum(pool.bands_fees_x.values()),
+        "fees_y": sum(pool.bands_fees_y.values()),
+        "admin_fees_x": pool.admin_fees_x,
+        "admin_fees_y": pool.admin_fees_y,
     }
 
 

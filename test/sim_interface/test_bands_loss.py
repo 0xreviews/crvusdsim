@@ -92,7 +92,7 @@ def test_bands_loss(assets, local_prices):
         else:
             i, j = 1, 0
 
-        amount_in, amount_out = pool.get_dxdy(i, j, amount_in)
+        amount_in, amount_out, fees = pool.get_dxdy(i, j, amount_in)
 
         if pump:
             if amount_in < trade_threshold:

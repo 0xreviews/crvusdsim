@@ -113,7 +113,7 @@ class StatefulExchange(RuleBasedStateMachine):
         to_swap = self.total_deposited * 10 // self.collateral_mul
         left_in_amm = sum(self.amm.bands_y[n] for n in range(42))
         if n < 50:
-            dx, dy = self.amm.get_dxdy(1, 0, to_swap)
+            dx, dy, fees = self.amm.get_dxdy(1, 0, to_swap)
             assert (
                 dx * self.collateral_mul >= self.total_deposited - left_in_amm
             )  # With fees, AMM will have more
@@ -126,7 +126,7 @@ class StatefulExchange(RuleBasedStateMachine):
         n = self.amm.active_band
         to_swap = self.total_deposited * 10 // self.collateral_mul
         if n < 50:
-            _, dy = self.amm.get_dxdy(1, 0, to_swap)
+            _, dy, fees = self.amm.get_dxdy(1, 0, to_swap)
             if dy > 0:
                 self.collateral_token._mint(u, to_swap)
                 self.amm.exchange(1, 0, to_swap, 0, _receiver=u)

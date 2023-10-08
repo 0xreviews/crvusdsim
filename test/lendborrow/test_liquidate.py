@@ -33,7 +33,7 @@ def controller_for_liquidation(accounts):
         health_0 = controller.health(user)
         # We put mostly USD into AMM, and its quantity remains constant while
         # interest is accruing. Therefore, we will be at liquidation at some point
-        dx, dy = market_amm.exchange(0, 1, debt, 0, _receiver=user)
+        dx, dy, fees = market_amm.exchange(0, 1, debt, 0, _receiver=user)
         health_1 = controller.health(user)
 
         assert approx(health_0, health_1, 1e-6)

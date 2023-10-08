@@ -24,24 +24,24 @@ def test_dydx_limits(amounts, accounts, ns, dns):
         amm.deposit_range(user, amount, n1, n2)
 
     # Swap 0
-    dx, dy = amm.get_dydx(0, 1, 0)
+    dx, dy, fees = amm.get_dydx(0, 1, 0)
     assert dx == 0 and dy == 0
-    dx, dy = amm.get_dydx(1, 0, 0)
+    dx, dy, fees = amm.get_dydx(1, 0, 0)
     assert dx == dy == 0
 
     # Small swap
-    dy, dx = amm.get_dydx(0, 1, 10 ** (18 - 6))  # 0.000001 ETH
+    dy, dx, fees = amm.get_dydx(0, 1, 10 ** (18 - 6))  # 0.000001 ETH
     assert dy == 10**12
     assert approx(dx, dy * INIT_PRICE / 10**18, 4e-2 + 2 * min(ns) / amm.A)
-    dy, dx = amm.get_dydx(1, 0, 10 ** (18 - 4))  # No liquidity
+    dy, dx, fees = amm.get_dydx(1, 0, 10 ** (18 - 4))  # No liquidity
     assert dx == 0
     assert dy == 0  # Rounded down
 
     # Huge swap
-    dy, dx = amm.get_dydx(0, 1, 10**12 * 10**18)
+    dy, dx, fees = amm.get_dydx(0, 1, 10**12 * 10**18)
     assert dy < 10**12 * 10**18  # Less than desired amount
     assert abs(dy - sum(amounts)) <= 1000  # but everything is bought
-    dy, dx = amm.get_dydx(1, 0, 10**12 * 10**18)
+    dy, dx, fees = amm.get_dydx(1, 0, 10**12 * 10**18)
     assert dx == 0
     assert dy == 0  # Rounded down
 
@@ -62,43 +62,43 @@ def test_dydx_compare_to_dxdy(amounts, accounts, ns, dns):
         amm.deposit_range(user, amount, n1, n2)
 
     # Swap 0
-    dy, dx = amm.get_dydx(0, 1, 0)
+    dy, dx, fees = amm.get_dydx(0, 1, 0)
     assert dx == dy == 0
-    dy, dx = amm.get_dydx(1, 0, 0)
+    dy, dx, fees = amm.get_dydx(1, 0, 0)
     assert dx == dy == 0
 
     # Small swap
-    dy1, dx1 = amm.get_dydx(0, 1, 10 ** (18 - 2))
-    dx2, dy2 = amm.get_dxdy(0, 1, dx1)
+    dy1, dx1, fees1 = amm.get_dydx(0, 1, 10 ** (18 - 2))
+    dx2, dy2, fees2 = amm.get_dxdy(0, 1, dx1)
     assert dx1 == dx2
     assert abs(dy1 - dy2) <= 10**(18-4)
 
-    dx1, dy1 = amm.get_dxdy(0, 1, 10 ** (18 - 2))
-    dy2, dx2 = amm.get_dydx(0, 1, dy1)
+    dx1, dy1, fees1 = amm.get_dxdy(0, 1, 10 ** (18 - 2))
+    dy2, dx2, fees2 = amm.get_dydx(0, 1, dy1)
     assert abs(dx1 - dx2) <= 10**(18-4)
     assert dy1 == dy2
 
-    dy, dx = amm.get_dydx(1, 0, 10 ** (18 - 2))  # No liquidity
+    dy, dx, fees = amm.get_dydx(1, 0, 10 ** (18 - 2))  # No liquidity
     assert dx == 0
     assert dy == 0  # Rounded down
 
     # Huge swap
-    dy1, dx1 = amm.get_dydx(0, 1, 10**12 * 10**18)
-    dx2, dy2 = amm.get_dxdy(0, 1, dx1)
+    dy1, dx1, fees1 = amm.get_dydx(0, 1, 10**12 * 10**18)
+    dx2, dy2, fees2 = amm.get_dxdy(0, 1, dx1)
     assert dy1 < 10**12 * 10**18  # Less than all is desired
     assert abs(dy1 - sum(amounts)) <= 1000  # but everything is bought
     assert dx1 == dx2
     assert dy2 <= dy1  # We might get less because AMM rounds in its favor
     assert abs(dy1 - dy2) <= 1
 
-    dx1, dy1 = amm.get_dxdy(0, 1, 10**12 * 10**18)
-    dy2, dx2 = amm.get_dydx(0, 1, dy1)
+    dx1, dy1, fees1 = amm.get_dxdy(0, 1, 10**12 * 10**18)
+    dy2, dx2, fees = amm.get_dydx(0, 1, dy1)
     assert dx1 < 10**12 * 10**18  # Less than all is spent
     assert abs(dy1 - sum(amounts)) <= 1000  # but everything is bought
     assert dx1 == dx2
     assert dy1 == dy2
 
-    dy, dx = amm.get_dydx(1, 0, 10**12 * 10**18)  # No liquidity
+    dy, dx, fees = amm.get_dydx(1, 0, 10**12 * 10**18)  # No liquidity
     assert dx == 0
     assert dy == 0  # Rounded down
 
@@ -125,9 +125,9 @@ def test_exchange_dy_down_up(amounts, accounts, ns, dns, amount):
             amm.deposit_range(user, amount, n1, n2)
 
     # crvUSD --> ETH (dx - crvUSD, dy - ETH)
-    dy, dx = amm.get_dydx(0, 1, amount)
+    dy, dx, fees = amm.get_dydx(0, 1, amount)
     assert dy <= amount
-    dy2, dx2 = amm.get_dydx(0, 1, dy)
+    dy2, dx2, fees2 = amm.get_dydx(0, 1, dy)
     assert dy == dy2
     assert approx(dx, dx2, 1e-6)
     with pytest.raises(AssertionError, match="Slippage"):
@@ -139,7 +139,7 @@ def test_exchange_dy_down_up(amounts, accounts, ns, dns, amount):
     expected_in_amount = int(dy2 / 0.98)  # two trades charge 1% twice
     out_amount = dx2
 
-    dy, dx = amm.get_dydx(1, 0, out_amount)
+    dy, dx, fees = amm.get_dydx(1, 0, out_amount)
     assert approx(
         dx, expected_in_amount, 2e-2
     )  # Not precise because fee is charged on different directions
