@@ -38,8 +38,8 @@ class MarketMetaData(PoolMetaDataBase):
         peg_keepers_kwargs = data["peg_keepers_params"]
 
         # convert key from str to int
-        bands_x = {}
-        bands_y = {}
+        bands_x = defaultdict(int)
+        bands_y = defaultdict(int)
         for b in data["llamma_params"]["bands_x"]:
             bands_x[int(b)] = int(data["llamma_params"]["bands_x"][b])
         for b in data["llamma_params"]["bands_y"]:

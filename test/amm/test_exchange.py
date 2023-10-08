@@ -53,9 +53,16 @@ def test_exchange_dxdy(accounts, amount, ns, dns, frac):
     for i in range(n1, n2 + 1):
         _valid_band_equation(i, per_y, amm)
 
+    fees_rate = amm.dynamic_fee()
     amount_out = int(amount * frac)
     dx1, dy1 = amm.get_dydx(0, 1, amount_out)
     amm.exchange(0, 1, dx1)
+
+    bands_fees_x = sum(amm.bands_fees_x.values())
+    admin_fees_x = amm.admin_fees_x
+
+    assert approx(bands_fees_x * 10**18 // fees_rate, dx1, 1e-3)
+    assert approx(bands_fees_x * amm.admin_fee // 10**18, admin_fees_x, 1e-3)
 
     for i in range(n1, n2 + 1):
         _valid_band_equation(i, per_y, amm)

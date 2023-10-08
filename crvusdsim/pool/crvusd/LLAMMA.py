@@ -47,6 +47,8 @@ class DetailedTrade:
         self.ticks_in: List[int] = []
         self.last_tick_j: int = 0
         self.admin_fee: int = 0
+        # SIM_DEV: fees
+        self.fees: List[int] = []
 
 
 class LLAMMAPool(
@@ -172,6 +174,11 @@ class LLAMMAPool(
             self.bands_y = defaultdict(int)
         else:
             self.bands_y = bands_y
+        
+        # SIM_DEV: fees
+        self.bands_fees_x = defaultdict(int)
+        self.bands_fees_y = defaultdict(int)
+            
 
         self.total_shares = defaultdict(int)
         self.user_shares = defaultdict(_default_user_shares)
@@ -1169,8 +1176,11 @@ class LLAMMAPool(
                             out.last_tick_j = min(
                                 Inv // (f + (x + x_dest)) - g + 1, y
                             )  # Should be always >= 0
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(in_amount_left, x_dest)
+                            out.fees.append(fees)
                             x_dest = unsafe_div(
-                                unsafe_sub(in_amount_left, x_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             x += in_amount_left  # x is precise after this
                             # Round down the output
@@ -1183,8 +1193,13 @@ class LLAMMAPool(
                         else:
                             # We go into the next band
                             dx = max(dx, 1)  # Prevents from leaving dust in the band
+                            
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(dx, x_dest)
+                            out.fees.append(fees)
+
                             x_dest = unsafe_div(
-                                unsafe_sub(dx, x_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             in_amount_left -= dx
                             out.ticks_in[j] = x + dx - x_dest
@@ -1214,8 +1229,13 @@ class LLAMMAPool(
                             # This is the last band
                             y_dest = unsafe_div(in_amount_left * 10**18, antifee)
                             out.last_tick_j = min(Inv // (g + (y + y_dest)) - f + 1, x)
+
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(in_amount_left, y_dest)
+                            out.fees.append(fees)
+
                             y_dest = unsafe_div(
-                                unsafe_sub(in_amount_left, y_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             y += in_amount_left
                             out.out_amount += x - out.last_tick_j
@@ -1227,8 +1247,13 @@ class LLAMMAPool(
                         else:
                             # We go into the next band
                             dy = max(dy, 1)  # Prevents from leaving dust in the band
+
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(dy, y_dest)
+                            out.fees.append(fees)
+
                             y_dest = unsafe_div(
-                                unsafe_sub(dy, y_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             in_amount_left -= dy
                             out.ticks_in[j] = y + dy - y_dest
@@ -1443,14 +1468,23 @@ class LLAMMAPool(
                     x = out.last_tick_j
             self.bands_x[n] = x
             self.bands_y[n] = y
+
+            # SIM_DEV: fees
+            if i == 0:
+                self.bands_fees_x[n] += out.fees[k]
+            else:
+                self.bands_fees_y[n] += out.fees[k]
+
             if lm is not None and lm.address is not None:
                 s: int = 0
                 if y > 0:
                     s = unsafe_div(y * 10**18, self.total_shares[n])
                 collateral_shares.append(s)
+                
             if k == n_diff:
                 break
             n = unsafe_add(n, 1)
+
 
         self.active_band = out.n2
 
@@ -1545,8 +1579,13 @@ class LLAMMAPool(
                             )  # MORE than x_dest
                             out.out_amount = out_amount  # We successfully found liquidity for all the out_amount
                             out.in_amount += dx
+
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(dx, x_dest)
+                            out.fees.append(fees)
+
                             x_dest = unsafe_div(
-                                unsafe_sub(dx, x_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             out.ticks_in[j] = x + dx - x_dest
                             out.admin_fee = unsafe_add(out.admin_fee, x_dest)
@@ -1559,8 +1598,13 @@ class LLAMMAPool(
                             out_amount_left -= y
                             out.in_amount += dx
                             out.out_amount += y
+
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(dx, x_dest)
+                            out.fees.append(fees)
+                            
                             x_dest = unsafe_div(
-                                unsafe_sub(dx, x_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             out.ticks_in[j] = x + dx - x_dest
                             out.admin_fee = unsafe_add(out.admin_fee, x_dest)
@@ -1590,8 +1634,13 @@ class LLAMMAPool(
                             )  # MORE than y_dest
                             out.out_amount = out_amount
                             out.in_amount += dy
+
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(dy, y_dest)
+                            out.fees.append(fees)
+
                             y_dest = unsafe_div(
-                                unsafe_sub(dy, y_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             out.ticks_in[j] = y + dy - y_dest
                             out.admin_fee = unsafe_add(out.admin_fee, y_dest)
@@ -1604,8 +1653,13 @@ class LLAMMAPool(
                             out_amount_left -= x
                             out.in_amount += dy
                             out.out_amount += x
+
+                            # SIM_DEV: fees
+                            fees = unsafe_sub(dy, y_dest)
+                            out.fees.append(fees)
+
                             y_dest = unsafe_div(
-                                unsafe_sub(dy, y_dest) * admin_fee, 10**18
+                                fees * admin_fee, 10**18
                             )  # abs admin fee now
                             out.ticks_in[j] = y + dy - y_dest
                             out.admin_fee = unsafe_add(out.admin_fee, y_dest)

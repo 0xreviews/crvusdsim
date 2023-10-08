@@ -130,9 +130,9 @@ def pipeline(  # pylint: disable=too-many-locals
         pool, variable_params, fixed_params, pool_map=CRVUSD_POOL_MAP
     )
 
-    # if bands_strategy is not None:
-
-    #     bands_strategy(pool, price_sampler.prices, init)
+    if bands_strategy is not None:
+        init_y = pool.get_total_xy_up(use_y=True)
+        bands_strategy(pool, price_sampler.prices, total_y=init_y)
 
     _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
     strategy = SimpleStrategy(_metrics)
