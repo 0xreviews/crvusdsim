@@ -16,7 +16,9 @@ DEFAULT_PARAMS = {"A": [100], "fee": [6 * 10**15], "admin_fee": [0]}
 TEST_PARAMS = {"A": [100], "fee": [6 * 10**15], "admin_fee": [0]}
 
 
-def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=50 * 10**18):
+def get_arb_trades(
+    pool, prices, trade_threshold=100 * 10**18, profit_threshold=50 * 10**18
+):
     """
     Parameters
     ----------
@@ -40,22 +42,23 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
     trades = []
 
     for pair in prices:
-        i, j = pair
+        i, j = pool.asset_names
+
         p_o = int(prices[pair] * 10**18)
 
         target_price = pool.price_oracle()
-        
+
         amount, pump = pool.get_amount_for_price(target_price)
 
         if pump:
-            price = prices[pair]
+            price = 1 / prices[pair]
             coin_in, coin_out = i, j
             amount_in, amount_out, fees = pool.get_dxdy(0, 1, amount)
         else:
-            price = 1 / prices[pair]
+            price = prices[pair]
             coin_in, coin_out = j, i
             amount_in, amount_out, fees = pool.get_dxdy(1, 0, amount)
-        
+
         if pump:
             if amount_in < trade_threshold:
                 continue
@@ -67,7 +70,6 @@ def get_arb_trades(pool, prices, trade_threshold=100 * 10**18, profit_threshold=
             profit = amount_out * p_o / 10**18 - amount_in
         else:
             profit = amount_out - amount_in * p_o / 10**18
-        
 
         # do exchange if profit enough, except for last round
         # (we need amm p to approximate p_out in order to calculate loss)

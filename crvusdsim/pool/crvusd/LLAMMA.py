@@ -91,6 +91,12 @@ class LLAMMAPool(
         "COLLATERAL_PRECISION",
         "BASE_PRICE",
         "admin",  # admin address
+        # SIM_DEV
+        "bands_fees_x",
+        "bands_fees_y",
+        "bands_x_benchmark",    # bands x benchmark to calc loss
+        "bands_y_benchmark",    # bands y benchmark to calc loss
+        "bands_delta_snapshot",
     )
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
@@ -174,11 +180,6 @@ class LLAMMAPool(
             self.bands_y = defaultdict(int)
         else:
             self.bands_y = bands_y
-        
-        # SIM_DEV: fees
-        self.bands_fees_x = defaultdict(int)
-        self.bands_fees_y = defaultdict(int)
-            
 
         self.total_shares = defaultdict(int)
         self.user_shares = defaultdict(_default_user_shares)
@@ -190,6 +191,17 @@ class LLAMMAPool(
             self.BORROWED_TOKEN._mint(self.address, sum(self.bands_x.values()))
         if sum(self.bands_y.values()) > 0:
             self.COLLATERAL_TOKEN._mint(self.address, sum(self.bands_y.values()))
+
+        # SIM_DEV: fees
+        self.bands_fees_x = defaultdict(int)
+        self.bands_fees_y = defaultdict(int)
+
+        # SIM_DEV: loss
+        # @todo init benchmark with defaultdict(int)
+        self.bands_x_benchmark = 0
+        self.bands_y_benchmark = 0
+
+        self.bands_delta_snapshot = {}
 
     def limit_p_o(self, p: int) -> List[int]:
         """
@@ -1163,7 +1175,6 @@ class LLAMMAPool(
                 # SIM_DEV: fees
                 out.fees.append(0)
 
-
             # Need this to break if price is too far
             p_ratio: int = unsafe_div(p_o_up * 10**18, p_o[0])
 
@@ -1184,7 +1195,7 @@ class LLAMMAPool(
                             # SIM_DEV: fees
                             fees = unsafe_sub(in_amount_left, x_dest)
                             out.fees[j] = fees
-                            
+
                             x_dest = unsafe_div(
                                 fees * admin_fee, 10**18
                             )  # abs admin fee now
@@ -1199,7 +1210,7 @@ class LLAMMAPool(
                         else:
                             # We go into the next band
                             dx = max(dx, 1)  # Prevents from leaving dust in the band
-                            
+
                             # SIM_DEV: fees
                             fees = unsafe_sub(dx, x_dest)
                             out.fees[j] = fees
@@ -1486,11 +1497,10 @@ class LLAMMAPool(
                 if y > 0:
                     s = unsafe_div(y * 10**18, self.total_shares[n])
                 collateral_shares.append(s)
-                
+
             if k == n_diff:
                 break
             n = unsafe_add(n, 1)
-
 
         self.active_band = out.n2
 
@@ -1611,7 +1621,7 @@ class LLAMMAPool(
                             # SIM_DEV: fees
                             fees = unsafe_sub(dx, x_dest)
                             out.fees[j] = fees
-                            
+
                             x_dest = unsafe_div(
                                 fees * admin_fee, 10**18
                             )  # abs admin fee now
@@ -1855,7 +1865,9 @@ class LLAMMAPool(
             if p <= p_up:
                 if p >= p_down:
                     if not_empty:
-                        ynew: int = unsafe_sub(max(isqrt(int(Inv * 10**18 // p)), g), g)
+                        ynew: int = unsafe_sub(
+                            max(isqrt(int(Inv * 10**18 // p)), g), g
+                        )
                         xnew: int = unsafe_sub(max(Inv // (g + ynew), f), f)
                         if pump:
                             amount += unsafe_sub(max(xnew, x), x)

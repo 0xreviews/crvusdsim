@@ -94,7 +94,6 @@ class Trader(ABC):
         trade_results = []
         for trade in trades:
             dx, dy, fee = self.pool.trade(trade.coin_in, trade.coin_out, trade.amount_in)
-
             trade_results.append(TradeResult.from_trade(trade, amount_out=dy, fee=fee))
 
         return trade_results

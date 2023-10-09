@@ -28,10 +28,6 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.bands_x_snapshot_tmp = None
         self.bands_y_snapshot_tmp = None
 
-        self.bench_x = 0
-        self.bench_y = 0
-
-        self.bands_delta_snapshot = {}
 
     @property
     @cache
@@ -70,7 +66,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             Price of `coin_in` quoted in `coin_out`
         """
         p = self.get_p()
-        if coin_in == 0:
+        if coin_in == 0 or coin_in == "crvUSD":
             return p
         else:
             return 10**36 // p
@@ -110,11 +106,11 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         # bench x,y
         p_o = self.price_oracle()
         if i == 0:
-            self.bench_x += in_amount_done
-            self.bench_y -= in_amount_done * 10**18 // p_o
+            self.bands_x_benchmark += in_amount_done
+            self.bands_y_benchmark -= in_amount_done * 10**18 // p_o
         else:
-            self.bench_x -= in_amount_done * p_o // 10**18
-            self.bench_y += in_amount_done
+            self.bands_x_benchmark -= in_amount_done * p_o // 10**18
+            self.bands_y_benchmark += in_amount_done
 
         self._after_exchange()
 
@@ -158,8 +154,8 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.price_oracle_contract._increment_timestamp(timestamp=init_ts)
         self.price_oracle_contract.last_prices_timestamp = init_ts
 
-        self.bench_x = sum(self.bands_x.values())
-        self.bench_y = sum(self.bands_y.values())
+        self.bands_x_benchmark = sum(self.bands_x.values())
+        self.bands_y_benchmark = sum(self.bands_y.values())
 
     @property
     @cache

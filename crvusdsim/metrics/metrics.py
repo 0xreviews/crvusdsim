@@ -285,7 +285,7 @@ class PoolValue(PoolPricingMetric):
         Used for non-meta pools.
         """
         reserves = pool_state[["bands_x_sum", "bands_y_sum"]].set_axis(
-            [self.coin_names[1], self.coin_names[0]], axis=1
+            [self.coin_names[0], self.coin_names[1]], axis=1
         )
 
         prices = DataFrame(price_sample.prices.to_list(), index=price_sample.index)

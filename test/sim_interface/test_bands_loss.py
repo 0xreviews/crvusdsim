@@ -127,7 +127,7 @@ def test_bands_loss(assets, local_prices):
     final_pool_value = pool.get_total_xy_up(use_y=False)
 
     price = pool.price_oracle() / 1e18
-    bench_pool_value = pool.bench_x + pool.bench_y * price
+    bench_pool_value = pool.bands_x_benchmark + pool.bands_y_benchmark * price
     pool_value = sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * price
 
     print("")
