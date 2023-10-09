@@ -103,15 +103,6 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
 
         in_amount_done, out_amount_done, fees = self.exchange(i, j, size, min_amount=0)
 
-        # bench x,y
-        p_o = self.price_oracle()
-        if i == 0:
-            self.bands_x_benchmark += in_amount_done
-            self.bands_y_benchmark -= in_amount_done * 10**18 // p_o
-        else:
-            self.bands_x_benchmark -= in_amount_done * p_o // 10**18
-            self.bands_y_benchmark += in_amount_done
-
         self._after_exchange()
 
         return in_amount_done, out_amount_done, fees
@@ -154,8 +145,8 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.price_oracle_contract._increment_timestamp(timestamp=init_ts)
         self.price_oracle_contract.last_prices_timestamp = init_ts
 
-        self.bands_x_benchmark = sum(self.bands_x.values())
-        self.bands_y_benchmark = sum(self.bands_y.values())
+        self.bands_x_benchmark = self.bands_x.copy()
+        self.bands_y_benchmark = self.bands_y.copy()
 
     @property
     @cache

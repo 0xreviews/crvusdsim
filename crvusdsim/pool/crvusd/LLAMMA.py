@@ -47,7 +47,7 @@ class DetailedTrade:
         self.ticks_in: List[int] = []
         self.last_tick_j: int = 0
         self.admin_fee: int = 0
-        # SIM_DEV: fees
+        # SIM_INTERFACE: fees
         self.fees: List[int] = []
 
 
@@ -91,7 +91,7 @@ class LLAMMAPool(
         "COLLATERAL_PRECISION",
         "BASE_PRICE",
         "admin",  # admin address
-        # SIM_DEV
+        # SIM_INTERFACE
         "bands_fees_x",
         "bands_fees_y",
         "bands_x_benchmark",    # bands x benchmark to calc loss
@@ -192,14 +192,13 @@ class LLAMMAPool(
         if sum(self.bands_y.values()) > 0:
             self.COLLATERAL_TOKEN._mint(self.address, sum(self.bands_y.values()))
 
-        # SIM_DEV: fees
+        # SIM_INTERFACE: fees
         self.bands_fees_x = defaultdict(int)
         self.bands_fees_y = defaultdict(int)
 
-        # SIM_DEV: loss
-        # @todo init benchmark with defaultdict(int)
-        self.bands_x_benchmark = 0
-        self.bands_y_benchmark = 0
+        # SIM_INTERFACE: loss
+        self.bands_x_benchmark = defaultdict(int)
+        self.bands_y_benchmark = defaultdict(int)
 
         self.bands_delta_snapshot = {}
 
@@ -1172,7 +1171,7 @@ class LLAMMAPool(
                     _tick = x
                 out.ticks_in.append(_tick)
 
-                # SIM_DEV: fees
+                # SIM_INTERFACE: fees
                 out.fees.append(0)
 
             # Need this to break if price is too far
@@ -1192,7 +1191,7 @@ class LLAMMAPool(
                                 Inv // (f + (x + x_dest)) - g + 1, y
                             )  # Should be always >= 0
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(in_amount_left, x_dest)
                             out.fees[j] = fees
 
@@ -1211,7 +1210,7 @@ class LLAMMAPool(
                             # We go into the next band
                             dx = max(dx, 1)  # Prevents from leaving dust in the band
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(dx, x_dest)
                             out.fees[j] = fees
 
@@ -1247,7 +1246,7 @@ class LLAMMAPool(
                             y_dest = unsafe_div(in_amount_left * 10**18, antifee)
                             out.last_tick_j = min(Inv // (g + (y + y_dest)) - f + 1, x)
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(in_amount_left, y_dest)
                             out.fees[j] = fees
 
@@ -1265,7 +1264,7 @@ class LLAMMAPool(
                             # We go into the next band
                             dy = max(dy, 1)  # Prevents from leaving dust in the band
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(dy, y_dest)
                             out.fees[j] = fees
 
@@ -1483,14 +1482,26 @@ class LLAMMAPool(
                 y = out.ticks_in[unsafe_sub(n_diff, k)]
                 if n == out.n2:
                     x = out.last_tick_j
-            self.bands_x[n] = x
-            self.bands_y[n] = y
 
-            # SIM_DEV: fees
+            # SIM_INTERFACE: fees
             if i == 0:
                 self.bands_fees_x[n] += out.fees[k]
             else:
                 self.bands_fees_y[n] += out.fees[unsafe_sub(n_diff, k)]
+
+            # SIM_INTERFACE: loss
+            _price_last = self.price_oracle_contract._price_last
+            if i == 0:
+                band_in_amount = x - self.bands_x[n]
+                self.bands_x_benchmark[n] += band_in_amount
+                self.bands_y_benchmark[n] -= band_in_amount * 10**18 // _price_last
+            else:
+                band_in_amount = y - self.bands_y[n]
+                self.bands_x_benchmark[n] -= band_in_amount * _price_last // 10**18
+                self.bands_y_benchmark[n] += band_in_amount
+
+            self.bands_x[n] = x
+            self.bands_y[n] = y
 
             if lm is not None and lm.address is not None:
                 s: int = 0
@@ -1599,7 +1610,7 @@ class LLAMMAPool(
                             out.out_amount = out_amount  # We successfully found liquidity for all the out_amount
                             out.in_amount += dx
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(dx, x_dest)
                             out.fees[j] = fees
 
@@ -1618,7 +1629,7 @@ class LLAMMAPool(
                             out.in_amount += dx
                             out.out_amount += y
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(dx, x_dest)
                             out.fees[j] = fees
 
@@ -1654,7 +1665,7 @@ class LLAMMAPool(
                             out.out_amount = out_amount
                             out.in_amount += dy
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(dy, y_dest)
                             out.fees[j] = fees
 
@@ -1673,7 +1684,7 @@ class LLAMMAPool(
                             out.in_amount += dy
                             out.out_amount += x
 
-                            # SIM_DEV: fees
+                            # SIM_INTERFACE: fees
                             fees = unsafe_sub(dy, y_dest)
                             out.fees[j] = fees
 

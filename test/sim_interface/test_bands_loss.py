@@ -35,7 +35,16 @@ def test_bands_snapshot(assets):
         total_y=total_y,
     )
 
+    bands_x_sum = sum(pool.bands_x.values())
+    bands_y_sum = sum(pool.bands_y.values())
+    benchmark_x_sum = sum(pool.bands_x_benchmark.values())
+    benchmark_y_sum = sum(pool.bands_y_benchmark.values())
+
+    # pump
     for i in range(pool.min_band, pool.max_band + 1):
+        bands_x_before = pool.bands_x.copy()
+        bands_y_before = pool.bands_y.copy()
+
         p_o = pool.p_oracle_down(i)
         ts += 30 * 60
         pool.price_oracle_contract.set_price(p_o)
@@ -43,19 +52,56 @@ def test_bands_snapshot(assets):
         pool.price_oracle_contract._increment_timestamp(ts)
         amount_out = pool.bands_y[i]
         amount_in = pool.get_dx(0, 1, amount_out)
-        amount_in_done, amount_out_done = pool.trade(0, 1, amount_in)
+        amount_in_done, amount_out_done, fees = pool.trade(0, 1, amount_in)
 
-    for i in range(pool.min_band, pool.max_band + 1):
-        assert pool.get_band_snapshot(i, ts_begin)["y"] == total_y // (
-            pool.max_band + 1 - pool.min_band
-        )
+        benchmark_x_sum += amount_in_done
+        benchmark_y_sum -= amount_in_done * 10**18 // p_o
+
+        for n in range(pool.min_band, pool.max_band + 1):
+            delta_x = pool.bands_x[n] - bands_x_before[n]
+            delta_y = pool.bands_y[n] - bands_y_before[n]
+            if delta_x == 0 and delta_y == 0:
+                continue
+            assert pool.bands_delta_snapshot[ts][n]["x"] == delta_x
+            assert pool.bands_delta_snapshot[ts][n]["y"] == delta_y
+
+    assert approx(sum(pool.bands_x_benchmark.values()), benchmark_x_sum, 1e-3)
+    assert approx(sum(pool.bands_y_benchmark.values()), benchmark_y_sum, 1e-3)
+
+    # dump
+    for i in range(pool.max_band, pool.min_band+1):
+        bands_x_before = pool.bands_x.copy()
+        bands_y_before = pool.bands_y.copy()
+
+        p_o = pool.p_oracle_up(i)
+        ts += 30 * 60
+        pool.price_oracle_contract.set_price(p_o)
+        pool._increment_timestamp(ts)
+        pool.price_oracle_contract._increment_timestamp(ts)
+        amount_out = pool.bands_y[i]
+        amount_in = pool.get_dx(0, 1, amount_out)
+        amount_in_done, amount_out_done, fees = pool.trade(0, 1, amount_in)
+
+        benchmark_x_sum += amount_in_done
+        benchmark_y_sum -= amount_in_done * 10**18 // p_o
+
+        for n in range(pool.min_band, pool.max_band + 1):
+            delta_x = pool.bands_x[n] - bands_x_before[n]
+            delta_y = pool.bands_y[n] - bands_y_before[n]
+            if delta_x == 0 and delta_y == 0:
+                continue
+            assert pool.bands_delta_snapshot[ts][n]["x"] == delta_x
+            assert pool.bands_delta_snapshot[ts][n]["y"] == delta_y
+
+    assert approx(sum(pool.bands_x_benchmark.values()), benchmark_x_sum, 1e-3)
+    assert approx(sum(pool.bands_y_benchmark.values()), benchmark_y_sum, 1e-3)
+
 
 
 def test_bands_loss(assets, local_prices):
     pool = create_sim_pool()
 
     prices, volumes = local_prices
-    prices = prices[:]
 
     # Populate inverse price data, bringing it back to the initial price
     # time_duration = prices.index[-1] - prices.index[0]
@@ -112,7 +158,7 @@ def test_bands_loss(assets, local_prices):
             continue
 
         # exchange
-        in_amount_done, out_amount_done = pool.trade(i, j, amount_in)
+        in_amount_done, out_amount_done, fees = pool.trade(i, j, amount_in)
 
         total_profit += profit
 
@@ -127,7 +173,7 @@ def test_bands_loss(assets, local_prices):
     final_pool_value = pool.get_total_xy_up(use_y=False)
 
     price = pool.price_oracle() / 1e18
-    bench_pool_value = pool.bands_x_benchmark + pool.bands_y_benchmark * price
+    bench_pool_value = sum(pool.bands_x_benchmark.values()) + sum(pool.bands_y_benchmark.values()) * price
     pool_value = sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * price
 
     print("")

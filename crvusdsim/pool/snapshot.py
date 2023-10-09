@@ -77,8 +77,8 @@ class LLAMMASnapshot(Snapshot):
         bands_fees_x = pool.bands_fees_x.copy()
         bands_fees_y = pool.bands_fees_y.copy()
 
-        bands_x_benchmark = pool.bands_x_benchmark
-        bands_y_benchmark = pool.bands_y_benchmark
+        bands_x_benchmark = pool.bands_x_benchmark.copy()
+        bands_y_benchmark = pool.bands_y_benchmark.copy()
 
         bands_delta_snapshot = pool.bands_delta_snapshot.copy()
 
@@ -127,7 +127,7 @@ class LLAMMASnapshot(Snapshot):
         pool.bands_fees_x = self.bands_fees_x.copy()
         pool.bands_fees_y = self.bands_fees_y.copy()
         
-        pool.bands_x_benchmark = self.bands_x_benchmark
-        pool.bands_y_benchmark = self.bands_y_benchmark
+        pool.bands_x_benchmark = self.bands_x_benchmark.copy()
+        pool.bands_y_benchmark = self.bands_y_benchmark.copy()
         
         pool.bands_delta_snapshot = self.bands_delta_snapshot.copy()
