@@ -101,9 +101,11 @@ def test_dxdy_limits(amounts, accounts, ns, dns):
     assert dy == 0  # Rounded down
 
     # Huge swap
+    fee_rate = amm.dynamic_fee() / 1e18
     dx, dy, fees = amm.get_dxdy(0, 1, 10**12 * 10**18)
     assert dx < 10**12 * 10**18  # Less than all is spent
     assert abs(dy - sum(amounts)) <= 1000  # but everything is bought
+    assert approx(dx * fee_rate, fees, 1e-3), "fees calc wrong"
     dx, dy, fees = amm.get_dxdy(1, 0, 10**12 * 10**18)
     assert dx == 0
     assert dy == 0  # Rounded down
@@ -142,10 +144,12 @@ def test_exchange_down_up(amounts, accounts, ns, dns, amount):
     in_amount = int(dy2 / 0.98)  # two trades charge 1% twice
     expected_out_amount = dx2
 
+    fee_rate = amm.dynamic_fee() / 1e18
     dx, dy, fees = amm.get_dxdy(1, 0, in_amount)
     assert approx(
         dx, in_amount, 5 * 10 ** (18 - 4)
     )  # Not precise because fee is charged on different directions
     assert abs(dy - expected_out_amount) <= 1
+    assert approx(dx * fee_rate, fees, 1e-3), "fees calc wrong"
 
     amm.exchange(1, 0, in_amount, 0)

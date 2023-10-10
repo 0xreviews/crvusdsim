@@ -126,11 +126,13 @@ class ArbMetrics(PricingMetric):
                 if trade.coin_out != numeraire:
                     price = prices.iloc[0]
                     arb *= price
+                if trade.coin_in != numeraire:
                     fee *= price
 
                 arb_profit += arb
                 pool_profit += fee
 
+            
             profit.append(
                 {
                     "timestamp": timestamp,
