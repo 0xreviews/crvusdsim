@@ -39,6 +39,7 @@ def test_bands_snapshot(assets):
     bands_y_sum = sum(pool.bands_y.values())
     benchmark_x_sum = sum(pool.bands_x_benchmark.values())
     benchmark_y_sum = sum(pool.bands_y_benchmark.values())
+    slippage_mul = (10**18 - pool.benchmark_slippage_rate) / 1e18
 
     # pump
     for i in range(pool.min_band, pool.max_band + 1):
@@ -83,7 +84,7 @@ def test_bands_snapshot(assets):
         amount_in_done, amount_out_done, fees = pool.trade(0, 1, amount_in)
 
         benchmark_x_sum += amount_in_done
-        benchmark_y_sum -= amount_in_done * 10**18 // p_o
+        benchmark_y_sum -= amount_in_done * slippage_mul * p_o // 10**18
 
         for n in range(pool.min_band, pool.max_band + 1):
             delta_x = pool.bands_x[n] - bands_x_before[n]
@@ -98,10 +99,11 @@ def test_bands_snapshot(assets):
 
 
 
-def test_bands_loss(assets, local_prices):
+def test_bands_loss_with_benchmark(assets, local_prices):
     pool = create_sim_pool()
 
     prices, volumes = local_prices
+    # prices = prices[:1000]
 
     # Populate inverse price data, bringing it back to the initial price
     # time_duration = prices.index[-1] - prices.index[0]
@@ -167,7 +169,9 @@ def test_bands_loss(assets, local_prices):
             total_fee_borrowed += in_amount_done * fee_rate / 1e18
         else:
             total_fee_collateral += in_amount_done * fee_rate / 1e18
-
+    
+    print("p_o", prices.iloc[0,0])
+    print("p_o", prices.iloc[-1,0])
     assert approx(pool.get_p(), pool.price_oracle(), 1e-3), "should no price diff at last"
 
     final_pool_value = pool.get_total_xy_up(use_y=False)

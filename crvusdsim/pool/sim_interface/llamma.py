@@ -160,8 +160,8 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             SimAssets object that stores the properties of the pool's assets.
         """
         return SimAssets(
-            list(reversed(self.coin_names)),
-            list(reversed(self.coin_addresses)),
+            list(self.coin_names),
+            list(self.coin_addresses),
             self.chain,
         )
 

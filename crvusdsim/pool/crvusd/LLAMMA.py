@@ -94,8 +94,9 @@ class LLAMMAPool(
         # SIM_INTERFACE
         "bands_fees_x",
         "bands_fees_y",
-        "bands_x_benchmark",    # bands x benchmark to calc loss
-        "bands_y_benchmark",    # bands y benchmark to calc loss
+        "benchmark_slippage_rate",
+        "bands_x_benchmark",  # bands x benchmark to calc loss
+        "bands_y_benchmark",  # bands y benchmark to calc loss
         "bands_delta_snapshot",
     )
 
@@ -118,6 +119,7 @@ class LLAMMAPool(
         admin=None,
         address: str = None,
         borrowed_token: StableCoin = None,
+        benchmark_slippage_rate: int = 0
     ):
         """
         Parameters
@@ -197,6 +199,7 @@ class LLAMMAPool(
         self.bands_fees_y = defaultdict(int)
 
         # SIM_INTERFACE: loss
+        self.benchmark_slippage_rate = benchmark_slippage_rate
         self.bands_x_benchmark = defaultdict(int)
         self.bands_y_benchmark = defaultdict(int)
 
@@ -1491,12 +1494,15 @@ class LLAMMAPool(
 
             # SIM_INTERFACE: loss
             _price_last = self.price_oracle_contract._price_last
+            _benchmark_slippage_mul = unsafe_sub(10**18, self.benchmark_slippage_rate)
             if i == 0:
-                band_in_amount = x - self.bands_x[n]
+                band_in_amount = (
+                    (x - self.bands_x[n]) * _benchmark_slippage_mul // 10**18
+                )
                 self.bands_x_benchmark[n] += band_in_amount
                 self.bands_y_benchmark[n] -= band_in_amount * 10**18 // _price_last
             else:
-                band_in_amount = y - self.bands_y[n]
+                band_in_amount = (y - self.bands_y[n]) * _benchmark_slippage_mul // 10**18
                 self.bands_x_benchmark[n] -= band_in_amount * _price_last // 10**18
                 self.bands_y_benchmark[n] += band_in_amount
 

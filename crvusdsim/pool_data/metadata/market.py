@@ -13,6 +13,11 @@ class MarketMetaData(PoolMetaDataBase):
     """Specific implementation of the `PoolMetaDataInterface` for LLAMMA."""
 
     def init_kwargs(self, bands=False):
+        _coins_name = self._dict["coins"]["names"]
+        if _coins_name[0] != "crvUSD":
+             self._dict["coins"]["names"].reverse()
+             self._dict["coins"]["addresses"].reverse()
+
         data = self._dict
 
         collateral_token = ERC20(

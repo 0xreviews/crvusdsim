@@ -116,14 +116,15 @@ class ArbMetrics(PricingMetric):
             pool_profit = 0
 
             for trade in trade_row:
-                market_price = self.get_market_price(
-                    trade.coin_in, trade.coin_out, prices
-                )
+                market_price = prices.iloc[0]
+                if trade.coin_in == numeraire:
+                    market_price = 1 / market_price
+
                 arb = trade.amount_out - trade.amount_in * market_price
                 fee = trade.fee
 
                 if trade.coin_out != numeraire:
-                    price = self.get_market_price(trade.coin_out, numeraire, prices)
+                    price = prices.iloc[0]
                     arb *= price
                     fee *= price
 
@@ -214,43 +215,40 @@ class PoolValue(PoolPricingMetric):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.numeraire = self.coin_names[1]
+        self.numeraire = self.coin_names[0]
 
     @property
     @cache
     def pool_config(self):
         plot = {
             "metrics": {
-                "pool_value_virtual": {
-                    "title": "Pool Value (Virtual)",
-                    "style": "time_series",
-                    "resample": "last",
-                },
                 "pool_value": {
                     "title": f"Pool Value (in {self.numeraire})",
                     "style": "time_series",
                     "resample": "last",
                 },
+                "benchmark_pool_value": {
+                    "title": f"Benchmark Pool Value (in {self.numeraire})",
+                    "style": "time_series",
+                    "resample": "last",
+                },
             },
             "summary": {
-                "pool_value_virtual": {
-                    "title": "Annualized Returns (Virtual)",
-                    "style": "point_line",
-                    "encoding": {"y": {"axis": Axis(format="%")}},
-                },
                 "pool_value": {
                     "title": f"Annualized Returns (in {self.numeraire})",
                     "style": "point_line",
-                    "encoding": {"y": {"axis": Axis(format="%")}},
+                    # "encoding": {"y": {"axis": Axis(format="%")}},
+                },
+                "benchmark_pool_value": {
+                    "title": f"Annualized Returns (in {self.numeraire})",
+                    "style": "point_line",
                 },
             },
         }
 
         summary_fns = {
-            "pool_value_virtual": {
-                "annualized_returns": self.compute_annualized_returns
-            },
             "pool_value": {"annualized_returns": self.compute_annualized_returns},
+            "benchmark_pool_value": {"annualized_returns": self.compute_annualized_returns},
         }
 
         base = {
@@ -284,31 +282,11 @@ class PoolValue(PoolPricingMetric):
         Computes all metrics for each timestamp in an individual run.
         Used for non-meta pools.
         """
-        reserves = pool_state[["bands_x_sum", "bands_y_sum"]].set_axis(
-            [self.coin_names[0], self.coin_names[1]], axis=1
+        results = pool_state[["pool_value", "benchmark_value"]].set_axis(
+            ["pool_value", "benchmark_pool_value"], axis=1
         )
-
-        prices = DataFrame(price_sample.prices.to_list(), index=price_sample.index)
-
-        pool_value = self._get_value_from_prices(reserves / 10**18, prices)
-
-        # @todo
-        results = concat([pool_value, pool_value], axis=1)
         results.columns = list(self.config["plot"]["metrics"])
         return results.astype("float64")
-
-    def _get_value_from_prices(self, reserves, prices):
-        """
-        Computes pool value in the chosen numeraire, `self.numeraire`.
-        Can be used for any pool type.
-        """
-        get_price = self.get_market_price
-        numeraire = self.numeraire
-
-        value = 0
-        for coin_name in reserves.columns:
-            value += reserves[coin_name] * get_price(coin_name, numeraire, prices)
-        return value
 
     def compute_annualized_returns(self, data):
         """Computes annualized returns from a series of pool values."""

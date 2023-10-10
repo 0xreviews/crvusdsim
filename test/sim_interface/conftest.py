@@ -32,8 +32,8 @@ def create_sim_pool():
 @pytest.fixture(scope="module")
 def assets():
     assets = SimAssets(
-        symbols=["wstETH", "crvUSD"],
-        addresses=[wstETH_address, crvUSD_address],
+        symbols=["crvUSD", "wstETH"],
+        addresses=[crvUSD_address, wstETH_address],
         chain="mainnet",
     )
     return assets
