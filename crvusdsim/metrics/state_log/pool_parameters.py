@@ -26,6 +26,7 @@ def get_llamma_pool_params(pool):
     """Returns pool parameters for cryptoswap non-meta pools."""
     params = {
         "A": pool.A,
+        "Fee": pool.fee / 1e18,
     }
     return params
 

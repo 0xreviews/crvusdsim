@@ -12,7 +12,7 @@ DEFAULT_METRICS = [
     Metrics.ArbMetrics,
 ]
 
-DEFAULT_PARAMS = {"A": [100], "fee": [6 * 10**15], "admin_fee": [0]}
+DEFAULT_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,], "admin_fee": [0]}
 TEST_PARAMS = {"A": [100], "fee": [6 * 10**15], "admin_fee": [0]}
 
 
@@ -80,7 +80,7 @@ def get_arb_trades(
         amm_p = pool.price(i, j)
         profit = amount_in * (amm_p - p_o) / 10**18
         if abs(profit) < profit_threshold:
-            trades.append((0, pair, prices[pair]))
+            trades.append((0, 0, pair, prices[pair]))
             continue
 
         trades.append((amount_in, amount_out, (coin_in, coin_out), price))

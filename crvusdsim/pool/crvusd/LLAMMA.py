@@ -14,7 +14,7 @@ from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
-from .clac import ln_int
+from .clac import exp, ln_int
 from .vyper_func import (
     pow_mod256,
     shift,
@@ -119,7 +119,7 @@ class LLAMMAPool(
         admin=None,
         address: str = None,
         borrowed_token: StableCoin = None,
-        benchmark_slippage_rate: int = 0
+        benchmark_slippage_rate: int = 0,
     ):
         """
         Parameters
@@ -143,6 +143,14 @@ class LLAMMAPool(
         self.Aminus1 = A - 1
         self.A2 = A**2
         self.Aminus12 = (A - 1) ** 2
+        
+        A_ratio = 10**18 * A // (A - 1)
+        self.SQRT_BAND_RATIO = isqrt(A_ratio * 10**18)
+        self.LOG_A_RATIO = ln_int(A_ratio)
+        # (A / (A - 1)) ** 50
+        self.MAX_ORACLE_DN_POW = (
+            int(A**25 * 10**18 // (self.Aminus1**25)) ** 2 // 10**18
+        )
 
         self.fee = fee
         self.admin_fee = admin_fee
@@ -159,14 +167,6 @@ class LLAMMAPool(
         self.rate = 0 if rate is None else rate
         self.rate_time = self._block_timestamp
         self.rate_mul = 10**18 if rate_mul is None else rate_mul
-
-        A_ratio = 10**18 * A // (A - 1)
-        self.SQRT_BAND_RATIO = isqrt(A_ratio * 10**18)
-        self.LOG_A_RATIO = ln_int(A_ratio)
-        # (A / (A - 1)) ** 50
-        self.MAX_ORACLE_DN_POW = (
-            int(A**25 * 10**18 // (self.Aminus1**25)) ** 2 // 10**18
-        )
 
         self.active_band = 0 if active_band is None else active_band
         self.min_band = 0 if min_band is None else min_band
@@ -346,39 +346,9 @@ class LLAMMAPool(
         """
         # p_oracle_up(n) = p_base * ((A - 1) / A) ** n
         # p_oracle_down(n) = p_base * ((A - 1) / A) ** (n + 1) = p_oracle_up(n+1)
-        # return unsafe_div(self._base_price() * self.exp_int(-n * LOG_A_RATIO), 10**18)
 
-        power: int = int(-n * self.LOG_A_RATIO)
-
-        # ((A - 1) / A) ** n = exp(-n * A / (A - 1)) = exp(-n * LOG_A_RATIO)
-        ## Exp implementation based on solmate's
-        assert power > -42139678854452767551
-        assert power < 135305999368893231589
-
-        x: int = (power * 2**96) // 10**18
-
-        k: int = ((x * 2**96) // 54916777467707473351141471128 + 2**95) // 2**96
-        x = x - k * 54916777467707473351141471128
-
-        y: int = x + 1346386616545796478920950773328
-        y = y * x // 2**96 + 57155421227552351082224309758442
-        p: int = y + x - 94201549194550492254356042504812
-        p = p * y // 2**96 + 28719021644029726153956944680412240
-        p = p * x + (4385272521454847904659076985693276 * 2**96)
-
-        q: int = x - 2855989394907223263936484059900
-        q = ((q * x) // 2**96) + 50020603652535783019961831881945
-        q = ((q * x) // 2**96) - 533845033583426703283633433725380
-        q = ((q * x) // 2**96) + 3604857256930695427073651918091429
-        q = ((q * x) // 2**96) - 14423608567350463180887372962807573
-        q = ((q * x) // 2**96) + 26449188498355588339934803723976023
-
-        exp_result: int = shift(
-            (p // q) * 3822833074963236453042738258902158003155416615667, (k - 195)
-        )
-        ## End exp
-        assert exp_result > 1000, "limit precision of the multiplier"
-        return self._base_price() * exp_result // 10**18
+        # Because the A is a variable, so we don't use vyper optimization algorithm.
+        return int(self._base_price() * ((self.A-1) / self.A)**n)
 
     def _p_current_band(self, n: int) -> int:
         """
@@ -1502,7 +1472,9 @@ class LLAMMAPool(
                 self.bands_x_benchmark[n] += band_in_amount
                 self.bands_y_benchmark[n] -= band_in_amount * 10**18 // _price_last
             else:
-                band_in_amount = (y - self.bands_y[n]) * _benchmark_slippage_mul // 10**18
+                band_in_amount = (
+                    (y - self.bands_y[n]) * _benchmark_slippage_mul // 10**18
+                )
                 self.bands_x_benchmark[n] -= band_in_amount * _price_last // 10**18
                 self.bands_y_benchmark[n] += band_in_amount
 

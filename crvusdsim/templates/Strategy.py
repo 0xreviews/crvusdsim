@@ -29,7 +29,7 @@ class Strategy(ABC):
     trader_class = None
     state_log_class = None
 
-    def __init__(self, metrics):
+    def __init__(self, metrics, bands_strategy=None):
         """
         Parameters
         ----------
@@ -37,6 +37,7 @@ class Strategy(ABC):
             A list of metrics used to evaluate the performance of the strategy.
         """
         self.metrics = metrics
+        self.bands_strategy = bands_strategy
 
     def __call__(self, pool, parameters, price_sampler):
         """
@@ -66,6 +67,10 @@ class Strategy(ABC):
         state_log = self.state_log_class(pool, self.metrics)
 
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
+
+        if self.bands_strategy is not None:
+            init_y = int(sum(pool.bands_x.values()) / price_sampler.prices.iloc[0,0]) + sum(pool.bands_y.values())
+            self.bands_strategy(pool, price_sampler.prices, total_y=init_y)
 
         pool.prepare_for_run(price_sampler.prices)
 

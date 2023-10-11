@@ -1,4 +1,6 @@
+from math import isqrt
 import os
+from copy import deepcopy
 
 from curvesim.iterators.param_samplers import ParameterizedPoolIterator
 from curvesim.metrics.results import make_results
@@ -11,6 +13,7 @@ from crvusdsim.iterators.params_samplers.pool_mixins import LLAMMAPoolMixin
 from crvusdsim.pipelines.common import DEFAULT_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
 from crvusdsim.pool import get_sim_market
+from crvusdsim.pool.crvusd.clac import ln_int
 from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 from crvusdsim.iterators.price_samplers import PriceVolume
 from crvusdsim.pool_data.cache import PoolDataCache
@@ -127,16 +130,12 @@ def pipeline(  # pylint: disable=too-many-locals
         sim_assets, days=days, end=end_ts, data_dir=data_dir, src=src, max_interval=prices_max_interval,
     )
 
-    if bands_strategy is not None:
-        init_y = pool.get_total_xy_up(use_y=True)
-        bands_strategy(pool, price_sampler.prices, total_y=init_y)
-
-    param_sampler = ParameterizedPoolIterator(
+    param_sampler = ParameterizedLLAMMAPoolIterator(
         pool, variable_params, fixed_params, pool_map=CRVUSD_POOL_MAP
     )
 
     _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
-    strategy = SimpleStrategy(_metrics)
+    strategy = SimpleStrategy(_metrics, bands_strategy=bands_strategy)
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
     results = make_results(*output, _metrics)
@@ -148,6 +147,34 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin, ParameterizedPoolIterator
     :class:`ParameterizedPoolIterator` parameter sampler specialized
     for Curve pools.
     """
+
+    def __iter__(self):
+        """
+        Yields
+        -------
+        pool : :class:`~curvesim.templates.SimPool`
+            A pool object with the current variable parameters set.
+
+        params : dict
+            A dictionary of the pool parameters set on this iteration.
+        """
+        for params in self.parameter_sequence:
+            pool = deepcopy(self.pool_template)
+            if params["A"] is not None:
+                A = params["A"]
+                params["Aminus1"] = A - 1
+                params["A2"] = A**2
+                params["Aminus12"] = (A - 1) ** 2
+                
+                A_ratio = 10**18 * A // (A - 1)
+                params["SQRT_BAND_RATIO"] = isqrt(A_ratio * 10**18)
+                params["LOG_A_RATIO"] = ln_int(A_ratio)
+                # (A / (A - 1)) ** 50
+                params["MAX_ORACLE_DN_POW"] = (
+                    int(A**25 * 10**18 // (params["Aminus1"]**25)) ** 2 // 10**18
+                )
+            self.set_pool_attributes(pool, params)
+            yield pool, params
 
 
 CRVUSD_POOL_MAP = {SimLLAMMAPool: ParameterizedLLAMMAPoolIterator}

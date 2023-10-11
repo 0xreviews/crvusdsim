@@ -123,8 +123,8 @@ class ArbMetrics(PricingMetric):
                 arb = trade.amount_out - trade.amount_in * market_price
                 fee = trade.fee
 
+                price = prices.iloc[0]
                 if trade.coin_out != numeraire:
-                    price = prices.iloc[0]
                     arb *= price
                 if trade.coin_in != numeraire:
                     fee *= price
@@ -239,11 +239,12 @@ class PoolValue(PoolPricingMetric):
                 "pool_value": {
                     "title": f"Annualized Returns (in {self.numeraire})",
                     "style": "point_line",
-                    # "encoding": {"y": {"axis": Axis(format="%")}},
+                    "encoding": {"y": {"axis": Axis(format="%")}},
                 },
                 "benchmark_pool_value": {
                     "title": f"Annualized Returns (in {self.numeraire})",
                     "style": "point_line",
+                    "encoding": {"y": {"axis": Axis(format="%")}},
                 },
             },
         }
