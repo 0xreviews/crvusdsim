@@ -1,11 +1,12 @@
 from math import isqrt
 import os
 from copy import deepcopy
+from typing import overload
 
 from curvesim.iterators.param_samplers import ParameterizedPoolIterator
 from curvesim.metrics.results import make_results
 from curvesim.pipelines import run_pipeline
-from curvesim.pool.cryptoswap.pool import CurveCryptoPool
+from curvesim.utils import override
 
 from crvusdsim.metrics import init_metrics
 from crvusdsim.pipelines.common import DEFAULT_METRICS
@@ -160,21 +161,27 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin, ParameterizedPoolIterator
         """
         for params in self.parameter_sequence:
             pool = deepcopy(self.pool_template)
-            if params["A"] is not None:
-                A = params["A"]
-                params["Aminus1"] = A - 1
-                params["A2"] = A**2
-                params["Aminus12"] = (A - 1) ** 2
-                
-                A_ratio = 10**18 * A // (A - 1)
-                params["SQRT_BAND_RATIO"] = isqrt(A_ratio * 10**18)
-                params["LOG_A_RATIO"] = ln_int(A_ratio)
-                # (A / (A - 1)) ** 50
-                params["MAX_ORACLE_DN_POW"] = (
-                    int(A**25 * 10**18 // (params["Aminus1"]**25)) ** 2 // 10**18
-                )
             self.set_pool_attributes(pool, params)
             yield pool, params
+    
+    @override
+    def set_pool_attributes(self, pool, attribute_dict):
+        super().set_pool_attributes(pool, attribute_dict)
+        if "A" in attribute_dict:
+            A = attribute_dict["A"]
+            params_A = {}
+            params_A["Aminus1"] = A - 1
+            params_A["A2"] = A**2
+            params_A["Aminus12"] = (A - 1) ** 2
+            
+            A_ratio = 10**18 * A // (A - 1)
+            params_A["SQRT_BAND_RATIO"] = isqrt(A_ratio * 10**18)
+            params_A["LOG_A_RATIO"] = ln_int(A_ratio)
+            # (A / (A - 1)) ** 50
+            params_A["MAX_ORACLE_DN_POW"] = (
+                int(A**25 * 10**18 // (params_A["Aminus1"]**25)) ** 2 // 10**18
+            )
+            super().set_pool_attributes(pool, params_A)
 
 
 CRVUSD_POOL_MAP = {SimLLAMMAPool: ParameterizedLLAMMAPoolIterator}

@@ -143,7 +143,7 @@ class LLAMMAPool(
         self.Aminus1 = A - 1
         self.A2 = A**2
         self.Aminus12 = (A - 1) ** 2
-        
+
         A_ratio = 10**18 * A // (A - 1)
         self.SQRT_BAND_RATIO = isqrt(A_ratio * 10**18)
         self.LOG_A_RATIO = ln_int(A_ratio)
@@ -348,7 +348,8 @@ class LLAMMAPool(
         # p_oracle_down(n) = p_base * ((A - 1) / A) ** (n + 1) = p_oracle_up(n+1)
 
         # Because the A is a variable, so we don't use vyper optimization algorithm.
-        return int(self._base_price() * ((self.A-1) / self.A)**n)
+        return int(self._base_price() * (self.Aminus1 / self.A) ** n)
+
 
     def _p_current_band(self, n: int) -> int:
         """

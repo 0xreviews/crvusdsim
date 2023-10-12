@@ -362,7 +362,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         # Should be correct unless price changes suddenly by MAX_P_BASE_BANDS+ bands
         n1: int = (
             unsafe_div(
-                log2(self.AMM.get_base_price() * 10**18 / p_oracle),
+                log2(self.AMM.get_base_price() * 10**18 // p_oracle),
                 self.LOG2_A_RATIO,
             )
             + MAX_P_BASE_BANDS
@@ -376,7 +376,10 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
                 break
             p_base_prev: int = p_base
             p_base = unsafe_div(p_base * self.A, self.Aminus1)
-            if p_base > p_oracle:
+
+            # @note A little price is subtracted here to offset the error caused by 
+            # not using the same algorithm as the vyper code in _p_oracle_up
+            if p_base > p_oracle - 10**6:
                 return p_base_prev
 
         return p_base

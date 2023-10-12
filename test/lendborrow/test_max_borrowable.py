@@ -11,9 +11,10 @@ DEAD_SHARES = 1000
     collateral_amount=st.integers(min_value=10**6, max_value=10**20),
     n=st.integers(min_value=5, max_value=50),
 )
-@settings(max_examples=10)
+@settings(max_examples=100)
 def test_max_borrowable(controller_and_amm, collateral_amount, n):
     controller, pool = controller_and_amm
+
     max_borrowable = controller.max_borrowable(collateral_amount, n)
     with pytest.raises(AssertionError, match="Debt too high"):
         controller.calculate_debt_n1(

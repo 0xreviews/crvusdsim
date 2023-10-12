@@ -34,7 +34,7 @@ def test_pegkeepers_update(
     for i in range(len(stableswaps)):
         pool = stableswaps[i]
         pk = pegkeepers[i]
-        dx, dy, fees = pool.exchange(0, 1, buy_amount, _receiver=ARBITRAGUR_ADDRESS)
+        pool.exchange(0, 1, buy_amount, _receiver=ARBITRAGUR_ADDRESS)
 
     aggregator._increment_timestamp(timedelta=time_delta)
 
