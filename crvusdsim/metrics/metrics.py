@@ -14,8 +14,8 @@ __all__ = [
 
 from copy import deepcopy
 
-from altair import Axis, Scale
-from numpy import array, exp, log, timedelta64
+from altair import Axis, Scale, X, Y
+from numpy import where, exp, log, timedelta64
 from pandas import DataFrame, concat
 
 from curvesim.utils import cache, get_pairs
@@ -132,7 +132,6 @@ class ArbMetrics(PricingMetric):
                 arb_profit += arb
                 pool_profit += fee
 
-            
             profit.append(
                 {
                     "timestamp": timestamp,
@@ -229,8 +228,8 @@ class PoolValue(PoolPricingMetric):
                     "style": "time_series",
                     "resample": "last",
                 },
-                "benchmark_pool_value": {
-                    "title": f"Benchmark Pool Value (in {self.numeraire})",
+                "loss_percent": {
+                    "title": f"Loss Value (in {self.numeraire})",
                     "style": "time_series",
                     "resample": "last",
                 },
@@ -241,8 +240,8 @@ class PoolValue(PoolPricingMetric):
                     "style": "point_line",
                     "encoding": {"y": {"axis": Axis(format="%")}},
                 },
-                "benchmark_pool_value": {
-                    "title": f"Annualized Returns (in {self.numeraire})",
+                "loss_percent": {
+                    "title": f"Annualized loss percent",
                     "style": "point_line",
                     "encoding": {"y": {"axis": Axis(format="%")}},
                 },
@@ -251,7 +250,7 @@ class PoolValue(PoolPricingMetric):
 
         summary_fns = {
             "pool_value": {"annualized_returns": self.compute_annualized_returns},
-            "benchmark_pool_value": {"annualized_returns": self.compute_annualized_returns},
+            "loss_percent": {"annualized_loss": self.compute_annualized_loss},
         }
 
         base = {
@@ -275,24 +274,29 @@ class PoolValue(PoolPricingMetric):
         Computes all metrics for each timestamp in an individual run.
         Used for non-meta stableswap pools.
         """
-        return self._get_pool_value(
-            kwargs["pool_state"],
-            kwargs["price_sample"],
-        )
+        return self._get_pool_value(kwargs["pool_state"])
 
-    def _get_pool_value(self, pool_state, price_sample):
+    def _get_pool_value(self, pool_state):
         """
         Computes all metrics for each timestamp in an individual run.
         Used for non-meta pools.
         """
-        results = pool_state[["pool_value", "benchmark_value"]].set_axis(
-            ["pool_value", "benchmark_pool_value"], axis=1
+        results = pool_state[["pool_value", "loss_percent"]].set_axis(
+            ["pool_value", "loss_value"], axis=1
         )
         results.columns = list(self.config["plot"]["metrics"])
         return results.astype("float64")
 
     def compute_annualized_returns(self, data):
         """Computes annualized returns from a series of pool values."""
+        year_multipliers = timedelta64(365, "D") / data.index.to_series().diff()
+        log_returns = log(data).diff()  # pylint: disable=no-member
+
+        return exp((log_returns * year_multipliers).mean()) - 1
+
+    def compute_annualized_loss(self, data):
+        """Computes annualized loss from a series of loss percent."""
+        data = 1 - data
         year_multipliers = timedelta64(365, "D") / data.index.to_series().diff()
         log_returns = log(data).diff()  # pylint: disable=no-member
 

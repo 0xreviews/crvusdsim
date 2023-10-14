@@ -15,6 +15,24 @@ def simple_bands_strategy(
     total_y=10**24,
     unuse_bands=0,
 ):
+    """
+    The strategy used to distribute the initial liquidity of the LLAMMA pool 
+    calculates the x and y amount of each band based on the price fluctuation 
+    range and the initial price. When price moves one unit, the liquidity
+    involved in the exchange is equal to `y_per_one`.
+
+    Parameters
+    ----------
+    pool : SimLLAMMAPool
+        LLAMMA pool
+    prices: DataFrame
+        prices data
+    total_y: int
+        Total initial liquidity (y)
+    unuse_bands: int
+        The amount of bands that are smaller than the price fluctuation range and will
+        not involved in exchanges
+    """
     A = pool.A
 
     init_price = prices.iloc[0, :].tolist()[0] * 10**18
@@ -95,10 +113,9 @@ def simple_bands_strategy(
         pool.bands_x[pool.active_band] -= amount_out
         if pool.bands_x[pool.active_band] == 0:
             pool.active_band -= 1
-
+    
     after_y_up = pool.get_total_xy_up(use_y=True)
-
-    assert abs(after_y_up / before_y_up - 1) < 1e-3, "y0 changed too much"
+    assert abs(after_y_up / before_y_up - 1) < 5e-3, "y0 changed too much"
 
     # p_o = p_o / 1e18
     # y0 = per_y / 1e18

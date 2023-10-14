@@ -69,13 +69,17 @@ class Strategy(ABC):
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
         if self.bands_strategy is not None:
-            init_y = int(sum(pool.bands_x.values()) / price_sampler.prices.iloc[0,0]) + sum(pool.bands_y.values())
+            init_y = int(
+                sum(pool.bands_x.values()) / price_sampler.prices.iloc[0, 0]
+            ) + sum(pool.bands_y.values())
             self.bands_strategy(pool, price_sampler.prices, total_y=init_y)
 
         pool.prepare_for_run(price_sampler.prices)
 
         for sample in price_sampler:
-            pool.price_oracle_contract.set_price(int(list(sample.prices.values())[0] * 10**18))
+            pool.price_oracle_contract.set_price(
+                int(list(sample.prices.values())[0] * 10**18)
+            )
             pool.prepare_for_trades(sample.timestamp)
             trader_args = self._get_trader_inputs(sample)
             trade_data = trader.process_time_sample(*trader_args)
