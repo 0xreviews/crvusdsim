@@ -58,6 +58,7 @@ class StateLog:
             state_logs["pool_parameters"],
             concat(data_per_trade, axis=1),
             concat(summary_data, axis=1),
+            state_logs["pool_state"],
         )
 
 

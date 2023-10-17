@@ -20,6 +20,7 @@ def get_llamma_pool_state(pool):
     """Returns pool state for llamma pools."""
 
     last_out_price = pool.price_oracle_contract._price_last / 1e18
+    base_price = pool.get_base_price() / 1e18
     bands_x_sum = sum(pool.bands_x.values())
     bands_y_sum = sum(pool.bands_y.values())
     bands_x_benchmark = sum(pool.bands_x_benchmark.values())
@@ -45,6 +46,7 @@ def get_llamma_pool_state(pool):
         "active_band": pool.active_band,
         "min_band": pool.min_band,
         "max_band": pool.max_band,
+        "base_price": base_price,
         "rate": pool.rate,
         "rate_mul": pool.rate_mul / 1e18,
         "fee_rate": pool.fee / 1e18,

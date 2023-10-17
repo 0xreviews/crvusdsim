@@ -12,8 +12,8 @@ DEFAULT_METRICS = [
     Metrics.ArbMetrics,
 ]
 
-DEFAULT_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,], "admin_fee": [0]}
-TEST_PARAMS = {"A": [100], "fee": [6 * 10**15], "admin_fee": [0]}
+DEFAULT_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
+TEST_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
 
 
 def get_arb_trades(

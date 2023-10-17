@@ -4,11 +4,10 @@ from copy import deepcopy
 from typing import overload
 
 from curvesim.iterators.param_samplers import ParameterizedPoolIterator
-from curvesim.metrics.results import make_results
 from curvesim.pipelines import run_pipeline
 from curvesim.utils import override
 
-from crvusdsim.metrics import init_metrics
+from crvusdsim.metrics import init_metrics, make_results
 from crvusdsim.pipelines.common import DEFAULT_METRICS
 from crvusdsim.iterators.params_samplers.pool_mixins import LLAMMAPoolMixin
 from crvusdsim.pipelines.common import DEFAULT_PARAMS, TEST_PARAMS
@@ -20,7 +19,6 @@ from crvusdsim.iterators.price_samplers import PriceVolume
 from crvusdsim.pool_data.cache import PoolDataCache
 
 
-# @todo
 def pipeline(  # pylint: disable=too-many-locals
     pool_metadata,
     pool_data_cache=None,
@@ -139,6 +137,7 @@ def pipeline(  # pylint: disable=too-many-locals
     strategy = SimpleStrategy(_metrics, bands_strategy=bands_strategy)
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
+
     results = make_results(*output, _metrics)
     return results
 

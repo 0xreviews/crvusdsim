@@ -21,7 +21,7 @@ Metrics recorded during simulations. The submodule includes:
 
 __all__ = ["SimResults", "StateLog", "init_metrics", "make_results", "metrics"]
 
-from curvesim.metrics.results import SimResults, make_results
+from crvusdsim.metrics.results import SimResults, make_results
 from . import metrics
 from .state_log import StateLog
 
