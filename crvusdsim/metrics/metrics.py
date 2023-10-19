@@ -38,7 +38,7 @@ class ArbMetrics(PricingMetric):
                 "summary": {
                     "arb_profit": "sum",
                     "pool_fees": "sum",
-                    "price_error": "median",
+                    # "price_error": "median",
                 },
             },
             "plot": {
@@ -53,17 +53,17 @@ class ArbMetrics(PricingMetric):
                         "style": "time_series",
                         "resample": "sum",
                     },
-                    "price_error": {
-                        "title": "Price Error",
-                        "style": "histogram",
-                        "encoding": {
-                            "x": {
-                                "title": "Price Error (binned)",
-                                "shorthand": "price_error",
-                                "scale": Scale(domain=[0, 0.05], clamp=True),
-                            },
-                        },
-                    },
+                    # "price_error": {
+                    #     "title": "Price Error",
+                    #     "style": "histogram",
+                    #     "encoding": {
+                    #         "x": {
+                    #             "title": "Price Error (binned)",
+                    #             "shorthand": "price_error",
+                    #             "scale": Scale(domain=[0, 0.05], clamp=True),
+                    #         },
+                    #     },
+                    # },
                 },
                 "summary": {
                     "arb_profit": {
@@ -74,10 +74,10 @@ class ArbMetrics(PricingMetric):
                         "title": f"Total Pool Fees (in {self.numeraire})",
                         "style": "point_line",
                     },
-                    "price_error": {
-                        "title": "Price Error (median)",
-                        "style": "point_line",
-                    },
+                    # "price_error": {
+                    #     "title": "Price Error (median)",
+                    #     "style": "point_line",
+                    # },
                 },
             },
         }
@@ -93,11 +93,12 @@ class ArbMetrics(PricingMetric):
         prices = DataFrame(price_sample.prices.to_list(), index=price_sample.index)
 
         profits = self._compute_profits(prices, trade_data.trades)
-        price_error = trade_data.price_errors.apply(
-            lambda errors: sum(abs(e) for e in errors)
-        )
+        # price_error = trade_data.price_errors.apply(
+        #     lambda errors: sum(abs(e) for e in errors)
+        # )
 
-        results = concat([profits, price_error], axis=1)
+        # results = concat([profits, price_error], axis=1)
+        results = concat([profits], axis=1)
         results.columns = list(self.config["plot"]["metrics"])
 
         return results

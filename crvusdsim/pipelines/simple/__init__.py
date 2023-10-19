@@ -1,20 +1,15 @@
-from math import isqrt
 import os
-from copy import deepcopy
-from typing import overload
 
-from curvesim.iterators.param_samplers import ParameterizedPoolIterator
-from curvesim.pipelines import run_pipeline
-from curvesim.utils import override
-
+from crvusdsim.iterators.params_samplers import (
+    CRVUSD_POOL_MAP,
+    ParameterizedLLAMMAPoolIterator,
+)
+from crvusdsim.pipelines import run_pipeline
 from crvusdsim.metrics import init_metrics, make_results
 from crvusdsim.pipelines.common import DEFAULT_METRICS
-from crvusdsim.iterators.params_samplers.pool_mixins import LLAMMAPoolMixin
-from crvusdsim.pipelines.common import DEFAULT_PARAMS, TEST_PARAMS
+from crvusdsim.pipelines.common import DEFAULT_POOL_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
 from crvusdsim.pool import get_sim_market
-from crvusdsim.pool.crvusd.clac import ln_int
-from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 from crvusdsim.iterators.price_samplers import PriceVolume
 from crvusdsim.pool_data.cache import PoolDataCache
 
@@ -24,7 +19,8 @@ def pipeline(  # pylint: disable=too-many-locals
     pool_data_cache=None,
     *,
     chain="mainnet",
-    variable_params=None,
+    pool_params=None,
+    controller_params=None,
     fixed_params=None,
     bands_strategy=None,
     test=False,
@@ -32,8 +28,8 @@ def pipeline(  # pylint: disable=too-many-locals
     days=60,
     src="coingecko",
     data_dir="data",
-    prices_max_interval= 5 * 60,
-    profit_threshold=50*10**18,
+    prices_max_interval=5 * 60,
+    profit_threshold=50 * 10**18,
     ncpu=None,
 ):
     """
@@ -59,6 +55,12 @@ def pipeline(  # pylint: disable=too-many-locals
         Example
         --------
         >>> variable_params = {"A": [100], "fee": [6 * 10**15], "admin_fee": [0]}
+    
+    controller_params : dict, defaults to broad range of loan_discount values
+
+        Example
+        --------
+        >>> controller_params = {"loan_discount": [int(0.09 * 10**18)]}
 
     fixed_params : dict, optional
         Pool parameters set before all simulations.
@@ -99,12 +101,12 @@ def pipeline(  # pylint: disable=too-many-locals
     ncpu = ncpu or os.cpu_count()
     fixed_params = fixed_params or {}  # @todo
 
-    default_params = DEFAULT_PARAMS.copy()
-    for key in DEFAULT_PARAMS:
+    default_params = DEFAULT_POOL_PARAMS.copy()
+    for key in DEFAULT_POOL_PARAMS:
         if key in fixed_params:
             del default_params[key]
 
-    variable_params = variable_params or DEFAULT_PARAMS
+    # pool_params = pool_params or DEFAULT_POOL_PARAMS
 
     # if pool_data_cache is None:
     #     pool_data_cache = PoolDataCache(pool_metadata, days=days, end=end_ts)
@@ -112,7 +114,6 @@ def pipeline(  # pylint: disable=too-many-locals
     (
         pool,
         controller,
-        stablecoin,
         collateral_token,
         stablecoin,
         aggregator,
@@ -123,65 +124,36 @@ def pipeline(  # pylint: disable=too-many-locals
 
     if test:
         fixed_params = {}
-        variable_params = TEST_PARAMS
+        pool_params = TEST_PARAMS
 
     sim_assets = pool.assets
     price_sampler = PriceVolume(
-        sim_assets, days=days, end=end_ts, data_dir=data_dir, src=src, max_interval=prices_max_interval,
+        sim_assets,
+        days=days,
+        end=end_ts,
+        data_dir=data_dir,
+        src=src,
+        max_interval=prices_max_interval,
     )
 
     param_sampler = ParameterizedLLAMMAPoolIterator(
-        pool, variable_params, fixed_params, pool_map=CRVUSD_POOL_MAP
+        pool,
+        controller,
+        aggregator,
+        peg_keepers,
+        policy,
+        factory,
+        pool_params=pool_params,
+        controller_params=controller_params,
+        fixed_params=fixed_params,
     )
 
     _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
-    strategy = SimpleStrategy(_metrics, bands_strategy=bands_strategy, profit_threshold=profit_threshold)
+    strategy = SimpleStrategy(
+        _metrics, bands_strategy=bands_strategy, profit_threshold=profit_threshold
+    )
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
 
     results = make_results(*output, _metrics)
     return results
-
-
-class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin, ParameterizedPoolIterator):
-    """
-    :class:`ParameterizedPoolIterator` parameter sampler specialized
-    for Curve pools.
-    """
-
-    def __iter__(self):
-        """
-        Yields
-        -------
-        pool : :class:`~curvesim.templates.SimPool`
-            A pool object with the current variable parameters set.
-
-        params : dict
-            A dictionary of the pool parameters set on this iteration.
-        """
-        for params in self.parameter_sequence:
-            pool = deepcopy(self.pool_template)
-            self.set_pool_attributes(pool, params)
-            yield pool, params
-    
-    @override
-    def set_pool_attributes(self, pool, attribute_dict):
-        super().set_pool_attributes(pool, attribute_dict)
-        if "A" in attribute_dict:
-            A = attribute_dict["A"]
-            params_A = {}
-            params_A["Aminus1"] = A - 1
-            params_A["A2"] = A**2
-            params_A["Aminus12"] = (A - 1) ** 2
-            
-            A_ratio = 10**18 * A // (A - 1)
-            params_A["SQRT_BAND_RATIO"] = isqrt(A_ratio * 10**18)
-            params_A["LOG_A_RATIO"] = ln_int(A_ratio)
-            # (A / (A - 1)) ** 50
-            params_A["MAX_ORACLE_DN_POW"] = (
-                int(A**25 * 10**18 // (params_A["Aminus1"]**25)) ** 2 // 10**18
-            )
-            super().set_pool_attributes(pool, params_A)
-
-
-CRVUSD_POOL_MAP = {SimLLAMMAPool: ParameterizedLLAMMAPoolIterator}

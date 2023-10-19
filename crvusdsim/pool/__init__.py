@@ -120,7 +120,6 @@ def get_sim_market(
     return (
         pool,
         controller,
-        stablecoin,
         collateral_token,
         stablecoin,
         aggregator,

@@ -6,7 +6,7 @@ from pandas import DataFrame, concat
 
 from curvesim.metrics.base import PoolMetric
 
-from .pool_parameters import get_pool_parameters
+from .pool_parameters import get_pool_parameters, get_controller_parameters
 from .pool_state import get_pool_state
 
 
@@ -19,14 +19,16 @@ class StateLog:
     __slots__ = [
         "metrics",
         "pool",
+        "controller",
         "state_per_run",
         "state_per_trade",
     ]
 
-    def __init__(self, pool, metrics):
+    def __init__(self, pool, controller, metrics, log_mode="pool"):
         self.pool = pool
+        self.controller = controller
         self.metrics = prepare_metrics(metrics, pool)
-        self.state_per_run = get_pool_parameters(pool)
+        self.state_per_run = get_parameters_func[log_mode](pool, controller)
         self.state_per_trade = []
 
     def update(self, **kwargs):
@@ -41,9 +43,9 @@ class StateLog:
 
         times = [state["price_sample"].timestamp for state in self.state_per_trade]
         state_per_trade = {col: DataFrame(df[col].to_list(), index=times) for col in df}
-        
+
         return {
-            "pool_parameters": DataFrame(self.state_per_run, index=[0]),
+            "sim_parameters": DataFrame(self.state_per_run, index=[0]),
             **state_per_trade,
         }
 
@@ -55,7 +57,7 @@ class StateLog:
         data_per_trade, summary_data = tuple(zip(*metric_data))  # transpose tuple list
 
         return (
-            state_logs["pool_parameters"],
+            state_logs["sim_parameters"],
             concat(data_per_trade, axis=1),
             concat(summary_data, axis=1),
             state_logs["pool_state"],
@@ -71,3 +73,9 @@ def prepare_metrics(metrics, pool):
         if isinstance(metric, PoolMetric):
             metric.set_pool(pool)
     return metrics
+
+
+get_parameters_func = {
+    "pool": get_pool_parameters,
+    "controller": get_controller_parameters,
+}

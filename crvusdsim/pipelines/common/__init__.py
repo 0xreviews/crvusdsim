@@ -12,7 +12,7 @@ DEFAULT_METRICS = [
     Metrics.ArbMetrics,
 ]
 
-DEFAULT_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
+DEFAULT_POOL_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
 TEST_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
 
 

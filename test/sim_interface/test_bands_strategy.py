@@ -1,10 +1,14 @@
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
+import numpy as np
 
 from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx, generate_prices
+
+from crvusdsim.pipelines.simple import CRVUSD_POOL_MAP, ParameterizedLLAMMAPoolIterator
+from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
 
 
 @given(
@@ -78,3 +82,53 @@ def test_simple_bands_strategy_1(assets, local_prices):
     # assert approx(
     #     pool.get_total_xy_up(use_y=True), init_y, 1e-3
     # ), "init_y changed too much"
+
+
+variable_params={"A": [50 + i * 10 for i in range(16)], "fee": [6 * 10**15,]}
+
+def test_pool_value(assets, local_prices):
+    pool = create_sim_pool()
+    prices, volumes = local_prices
+
+    init_y = int(sum(pool.bands_x.values()) / prices.iloc[0, 0]) + sum(
+        pool.bands_y.values()
+    )
+
+    param_sampler = ParameterizedLLAMMAPoolIterator(
+        pool, variable_params, {}, pool_map=CRVUSD_POOL_MAP
+    )
+
+    pool_values = {}
+
+    for pool, params in param_sampler:
+
+        simple_bands_strategy(
+            pool,
+            prices,
+            total_y=init_y,
+        )
+
+        pool.prepare_for_run(prices)
+
+        last_out_price = pool.price_oracle_contract._price_last / 1e18
+        # base_price = pool.get_base_price() / 1e18
+        (
+            bands_x_sum,
+            bands_y_sum,
+            bands_x_benchmark,
+            bands_y_benchmark,
+        ) = pool.get_sum_within_fluctuation_range()
+        pool_value = bands_x_sum + bands_y_sum * last_out_price
+
+        pool_values[pool.A] = pool_value / 1e18
+
+    mean_value = np.mean(list(pool_values.values()))
+    
+    for A, v in pool_values.items():
+        diff = mean_value - v
+        assert approx(v, mean_value, 1e-3)
+
+        print("")
+        print("A", A)
+        print("diff", round(diff / v * 100, 4), diff)
+        print("pool_value", v)

@@ -4,6 +4,7 @@ Strategies for adjusting band liquidity distribution
 
 from collections import defaultdict
 from math import floor, log
+from crvusdsim.pool.crvusd.controller import Controller
 from crvusdsim.pool.crvusd.vyper_func import unsafe_sub
 
 from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
@@ -11,6 +12,7 @@ from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 
 def simple_bands_strategy(
     pool: SimLLAMMAPool,
+    controller: Controller,
     prices,
     total_y=10**24,
     unuse_bands=0,
@@ -25,6 +27,8 @@ def simple_bands_strategy(
     ----------
     pool : SimLLAMMAPool
         LLAMMA pool
+    controller : Controller
+        LLAMMA Controller
     prices: DataFrame
         prices data
     total_y: int

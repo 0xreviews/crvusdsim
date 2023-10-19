@@ -39,14 +39,16 @@ class Strategy(ABC):
         self.metrics = metrics
         self.bands_strategy = bands_strategy
 
-    def __call__(self, pool, parameters, price_sampler):
+    def __call__(self, pool, controller, parameters, price_sampler):
         """
         Computes and executes trades at each timestep.
 
         Parameters
         ----------
-        pool : :class:`~curvesim.pipelines.templates.SimPool`
+        pool : :class:`~crvusdsim.pipelines.templates.SimPool`
             The pool to be traded against.
+
+        controller : :class `~crvusdsim.pool.Controller`
 
         parameters : dict
             Current pool parameters from the param_sampler (only used for
@@ -64,7 +66,12 @@ class Strategy(ABC):
         """
         # pylint: disable=not-callable
         trader = self.trader_class(pool)
-        state_log = self.state_log_class(pool, self.metrics)
+        state_log = self.state_log_class(
+            pool,
+            controller,
+            self.metrics,
+            log_mode="controller" if "loan_discount" in parameters else "pool",
+        )
 
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
@@ -84,6 +91,8 @@ class Strategy(ABC):
             trader_args = self._get_trader_inputs(sample)
             trade_data = trader.process_time_sample(*trader_args)
             state_log.update(price_sample=sample, trade_data=trade_data)
+
+        # @todo liquidation in Controller
 
         return state_log.compute_metrics()
 
