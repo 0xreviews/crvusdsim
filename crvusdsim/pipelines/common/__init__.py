@@ -1,18 +1,21 @@
 from scipy.optimize import root_scalar
 
 from curvesim.logging import get_logger
-from crvusdsim.metrics import metrics as Metrics
+from crvusdsim.metrics import metrics_pool as Metrics
 from curvesim.templates.trader import Trade, Trader
 
 logger = get_logger(__name__)
-DEFAULT_METRICS = [
+DEFAULT_POOL_METRICS = [
     Metrics.Timestamp,
     Metrics.PoolValue,
     Metrics.PoolVolume,
     Metrics.ArbMetrics,
 ]
+DEFAULT_CONTROLLER_METRICS = []
 
 DEFAULT_POOL_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
+DEFAULT_CONTROLLER_PARAMS = {"loan_discount": [int(0.09 * 10**18), int(0.05 * 10**18)]}
+
 TEST_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
 
 

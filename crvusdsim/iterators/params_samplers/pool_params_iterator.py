@@ -27,8 +27,8 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         peg_keepers,
         policy,
         factory,
-        pool_params=None,
-        controller_params=None,
+        sim_mode="pool",
+        variable_params=None,
         fixed_params=None,
         pool_map=None,
     ):
@@ -71,8 +71,8 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         peg_keepers,
         policy,
         factory,
-        pool_params=None,
-        controller_params=None,
+        sim_mode="pool",
+        variable_params=None,
         *args,
         **kwargs,
     ):
@@ -82,9 +82,8 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         self.peg_keepers_templates = [deepcopy(pk) for pk in peg_keepers]
         self.policy_template = deepcopy(policy)
         self.factory_template = deepcopy(factory)
-
-        self.pool_parameter_sequence = self.make_parameter_sequence(pool_params)
-        self.controller_parameter_sequence = self.make_parameter_sequence(controller_params)
+        self.sim_mode = sim_mode
+        self.parameter_sequence = self.make_parameter_sequence(variable_params)
 
     def __iter__(self):
         """
@@ -96,26 +95,23 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         params : dict
             A dictionary of the pool parameters set on this iteration.
         """
-        if len(self.pool_parameter_sequence) > 0:
-            for params in self.pool_parameter_sequence:
-                pool = deepcopy(self.pool_template)
-                controller = deepcopy(self.controller_template)
+        for params in self.parameter_sequence:
+            pool = deepcopy(self.pool_template)
+            controller = deepcopy(self.controller_template)
+            if self.sim_mode == "pool":
                 self.set_pool_attributes(pool, params)
-                yield pool, controller, params
-        elif len(self.controller_parameter_sequence) > 0:
-            for params in self.controller_parameter_sequence:
-                pool = deepcopy(self.pool_template)
-                controller = deepcopy(self.controller_template)
+            elif self.sim_mode == "pool":
                 self.set_controller_attributes(controller, params)
-                yield pool, controller, params
+            yield pool, controller, params
 
-    def make_parameter_sequence(self, pool_params):
+            
+    def make_parameter_sequence(self, variable_params):
         """
         Returns a list of dicts for each possible combination of the input parameters.
 
         Parameters
         ----------
-        pool_params: dict
+        variable_params: dict
             Pool parameters to vary across simulations.
 
             Keys: pool parameters, Values: iterable of values
@@ -125,10 +121,10 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         List(dict)
             A list of dicts defining the parameters for each iteration.
         """
-        if not pool_params:
+        if not variable_params:
             return []
 
-        keys, values = zip(*pool_params.items())
+        keys, values = zip(*variable_params.items())
         # self._validate_attributes(self.pool_template, keys)
 
         sequence = []

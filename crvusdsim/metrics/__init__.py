@@ -19,11 +19,29 @@ Metrics recorded during simulations. The submodule includes:
         metrics as DataFrames.
 """
 
-__all__ = ["SimResults", "StateLog", "init_metrics", "make_results", "metrics"]
+__all__ = [
+    "SimResults",
+    "StateLog",
+    "init_metrics",
+    "make_results",
+    "metrics_pool",
+    "ArbMetrics",
+    "PoolVolume",
+    "PoolValue",
+    "PriceDepth",
+    "Timestamp",
+]
 
 from crvusdsim.metrics.results import SimResults, make_results
-from . import metrics
+from . import metrics_pool
 from .state_log import StateLog
+from .metrics_pool import (
+    ArbMetrics,
+    PoolVolume,
+    PoolValue,
+    PriceDepth,
+    Timestamp,
+)
 
 
 def init_metrics(metric_classes, **kwargs):

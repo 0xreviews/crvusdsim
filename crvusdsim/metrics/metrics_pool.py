@@ -5,7 +5,6 @@ Specific metric classes for use in simulations.
 
 __all__ = [
     "ArbMetrics",
-    "PoolBalance",
     "PoolVolume",
     "PoolValue",
     "PriceDepth",

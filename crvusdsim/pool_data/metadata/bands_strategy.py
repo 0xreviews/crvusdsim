@@ -12,8 +12,8 @@ from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
 
 def simple_bands_strategy(
     pool: SimLLAMMAPool,
-    controller: Controller,
     prices,
+    controller: Controller = None,
     total_y=10**24,
     unuse_bands=0,
 ):
@@ -27,10 +27,10 @@ def simple_bands_strategy(
     ----------
     pool : SimLLAMMAPool
         LLAMMA pool
-    controller : Controller
-        LLAMMA Controller
     prices: DataFrame
         prices data
+    controller : Controller
+        Controller, default is None
     total_y: int
         Total initial liquidity (y)
     unuse_bands: int
@@ -64,8 +64,12 @@ def simple_bands_strategy(
         price_range = pool.p_oracle_up(band_index) - pool.p_oracle_down(band_index)
         bands_y[band_index] = int(price_range * y_per_price)
 
-    pool.bands_x = bands_x
-    pool.bands_y = bands_y
+    if controller is None:
+        pool.bands_x = bands_x
+        pool.bands_y = bands_y
+    else:
+        # set users' collateral
+        pass
 
     pool.prepare_for_run(prices)
 

@@ -6,7 +6,7 @@ from crvusdsim.iterators.params_samplers import (
 )
 from crvusdsim.pipelines import run_pipeline
 from crvusdsim.metrics import init_metrics, make_results
-from crvusdsim.pipelines.common import DEFAULT_METRICS
+from crvusdsim.pipelines.common import DEFAULT_CONTROLLER_METRICS, DEFAULT_CONTROLLER_PARAMS, DEFAULT_POOL_METRICS
 from crvusdsim.pipelines.common import DEFAULT_POOL_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
 from crvusdsim.pool import get_sim_market
@@ -19,8 +19,8 @@ def pipeline(  # pylint: disable=too-many-locals
     pool_data_cache=None,
     *,
     chain="mainnet",
-    pool_params=None,
-    controller_params=None,
+    sim_mode="pool",
+    variable_params=None,
     fixed_params=None,
     bands_strategy=None,
     test=False,
@@ -47,6 +47,10 @@ def pipeline(  # pylint: disable=too-many-locals
     chain: str
         Identifier for blockchain or layer2.  Supported values are:
         "mainnet"
+    
+    sim_mode: str
+        For different modes, the comparison dimensions are different. 
+        Supported values are: "pool", "controller"
 
     variable_params : dict, defaults to broad range of A/fee values
         Pool parameters to vary across simulations.
@@ -106,7 +110,11 @@ def pipeline(  # pylint: disable=too-many-locals
         if key in fixed_params:
             del default_params[key]
 
-    # pool_params = pool_params or DEFAULT_POOL_PARAMS
+    if not variable_params:
+        if sim_mode == "pool":
+            variable_params = DEFAULT_POOL_PARAMS
+        elif sim_mode == "controller":
+            variable_params = DEFAULT_CONTROLLER_PARAMS
 
     # if pool_data_cache is None:
     #     pool_data_cache = PoolDataCache(pool_metadata, days=days, end=end_ts)
@@ -143,12 +151,17 @@ def pipeline(  # pylint: disable=too-many-locals
         peg_keepers,
         policy,
         factory,
-        pool_params=pool_params,
-        controller_params=controller_params,
+        sim_mode=sim_mode,
+        variable_params=variable_params,
         fixed_params=fixed_params,
     )
 
-    _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
+    if sim_mode == "pool":
+        default_metrics = DEFAULT_POOL_METRICS
+    elif sim_mode == "controller":
+        default_metrics = DEFAULT_CONTROLLER_METRICS
+
+    _metrics = init_metrics(default_metrics, pool=pool, controller=controller)
     strategy = SimpleStrategy(
         _metrics, bands_strategy=bands_strategy, profit_threshold=profit_threshold
     )
