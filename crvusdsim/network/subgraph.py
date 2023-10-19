@@ -148,7 +148,9 @@ async def get_debt_ceiling(address):
     return ceiling
 
 
-async def _market_snapshot(llamma_address, end_ts=None):
+async def _market_snapshot(
+    llamma_address, end_ts, use_band_snapshot, use_user_snapshot
+):
     if not end_ts:
         end_date = datetime.now(timezone.utc)
         end_ts = int(end_date.timestamp())
@@ -161,9 +163,10 @@ async def _market_snapshot(llamma_address, end_ts=None):
                 orderDirection: desc,
                 first: 1,
                 where: {
-                    llamma: "%s"
-                    timestamp_lte: %d
-                    bandSnapshot: true
+                    llamma: "%(llamma_address)s"
+                    timestamp_lte: %(end_ts)d
+                    bandSnapshot: %(use_band_snapshot)s
+                    userStateSnapshot: %(use_user_snapshot)s
                 }
             ) {
                 id
@@ -279,10 +282,12 @@ async def _market_snapshot(llamma_address, end_ts=None):
 
             }
         }
-    """ % (
-        llamma_address.lower(),
-        end_ts,
-    )
+    """ % {
+        "llamma_address": llamma_address.lower(),
+        "end_ts": end_ts,
+        "use_band_snapshot": "true" if use_band_snapshot else "false",
+        "use_user_snapshot": "true" if use_user_snapshot else "false",
+    }
 
     r = await convex_crvusd(q)
     try:
@@ -330,7 +335,9 @@ async def _stableswap_snapshot(pool_addresses):
     return pools_params
 
 
-async def market_snapshot(llamma_address, end_ts=None):
+async def market_snapshot(
+    llamma_address, end_ts=None, use_band_snapshot=False, use_user_snapshot=False
+):
     """
     Async function to pull Market state and metadata from daily snapshots.
 
@@ -345,7 +352,9 @@ async def market_snapshot(llamma_address, end_ts=None):
         A formatted dict of Market state/metadata information.
 
     """
-    r = await _market_snapshot(llamma_address, end_ts)
+    r = await _market_snapshot(
+        llamma_address, end_ts, use_band_snapshot, use_user_snapshot
+    )
     logger.debug("Market snapshot: %s", r)
 
     # Coins
@@ -363,7 +372,7 @@ async def market_snapshot(llamma_address, end_ts=None):
     for b in r["bands"]:
         bands_x[int(b["index"])] = int(float(b["stableCoin"]) * 1e18)
         bands_y[int(b["index"])] = int(float(b["collateral"]) * 1e18)
-    
+
     # peg_keepers_params
     peg_keepers_params = [
         {
