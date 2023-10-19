@@ -1,3 +1,4 @@
+from time import time
 from test.conftest import create_amm
 from test.utils import approx
 

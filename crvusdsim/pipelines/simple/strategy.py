@@ -21,5 +21,9 @@ class SimpleStrategy(Strategy):  # pylint: disable=too-few-public-methods
     trader_class = SimpleArbitrageur
     state_log_class = StateLog
 
+    def __init__(self, metrics, profit_threshold=50*10**18, **kwargs):
+        super().__init__(metrics, **kwargs)
+        self.profit_threshold = profit_threshold
+
     def _get_trader_inputs(self, sample):
-        return (sample.prices,)
+        return (sample.prices, self.profit_threshold)

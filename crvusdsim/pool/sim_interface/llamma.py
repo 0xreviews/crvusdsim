@@ -28,6 +28,12 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.bands_x_snapshot_tmp = None
         self.bands_y_snapshot_tmp = None
 
+        # The band liquidity ratio at both ends of the ending. Used to 
+        # accurately calculate the PoolValue within the price fluctuation range.
+        # will set in band_strategy
+        self.min_band_liquidity_scale = 1
+        self.max_band_liquidity_scale = 1
+
 
     @property
     @cache
@@ -294,3 +300,23 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             y = self.bands_y[i]
             XY += self.get_band_xy_up(i, x, y, use_y)
         return XY
+
+    def get_sum_within_fluctuation_range(self):
+        bands_x_sum = sum(self.bands_x.values())
+        bands_y_sum = sum(self.bands_y.values())
+        bands_x_benchmark = sum(self.bands_x_benchmark.values())
+        bands_y_benchmark = sum(self.bands_y_benchmark.values())
+
+        bands_x_sum -= self.bands_x[self.min_band] * (1 - self.min_band_liquidity_scale)
+        bands_x_sum -= self.bands_x[self.max_band] * (1 - self.max_band_liquidity_scale)
+
+        bands_y_sum -= self.bands_y[self.min_band] * (1 - self.min_band_liquidity_scale)
+        bands_y_sum -= self.bands_y[self.max_band] * (1 - self.max_band_liquidity_scale)
+
+        bands_x_benchmark -= self.bands_x_benchmark[self.min_band] * (1 - self.min_band_liquidity_scale)
+        bands_x_benchmark -= self.bands_x_benchmark[self.max_band] * (1 - self.max_band_liquidity_scale)
+
+        bands_y_benchmark -= self.bands_y_benchmark[self.min_band] * (1 - self.min_band_liquidity_scale)
+        bands_y_benchmark -= self.bands_y_benchmark[self.max_band] * (1 - self.max_band_liquidity_scale)
+
+        return bands_x_sum, bands_y_sum, bands_x_benchmark, bands_y_benchmark

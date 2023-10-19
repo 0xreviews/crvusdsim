@@ -21,10 +21,12 @@ def get_llamma_pool_state(pool):
 
     last_out_price = pool.price_oracle_contract._price_last / 1e18
     base_price = pool.get_base_price() / 1e18
-    bands_x_sum = sum(pool.bands_x.values())
-    bands_y_sum = sum(pool.bands_y.values())
-    bands_x_benchmark = sum(pool.bands_x_benchmark.values())
-    bands_y_benchmark = sum(pool.bands_y_benchmark.values())
+    (
+        bands_x_sum,
+        bands_y_sum,
+        bands_x_benchmark,
+        bands_y_benchmark,
+    ) = pool.get_sum_within_fluctuation_range()
     pool_value = bands_x_sum + bands_y_sum * last_out_price
     benchmark_value = bands_x_benchmark + bands_y_benchmark * last_out_price
     loss = benchmark_value - pool_value

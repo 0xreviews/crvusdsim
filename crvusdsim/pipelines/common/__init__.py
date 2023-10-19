@@ -17,7 +17,7 @@ TEST_PARAMS = {"A": [50, 100, 150, 200], "fee": [6 * 10**15, 10 * 10**15,]}
 
 
 def get_arb_trades(
-    pool, prices, trade_threshold=100 * 10**18, profit_threshold=50 * 10**18
+    pool, prices, trade_threshold=1 * 10**18, profit_threshold=50 * 10**18
 ):
     """
     Parameters

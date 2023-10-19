@@ -33,6 +33,7 @@ def pipeline(  # pylint: disable=too-many-locals
     src="coingecko",
     data_dir="data",
     prices_max_interval= 5 * 60,
+    profit_threshold=50*10**18,
     ncpu=None,
 ):
     """
@@ -134,7 +135,7 @@ def pipeline(  # pylint: disable=too-many-locals
     )
 
     _metrics = init_metrics(DEFAULT_METRICS, pool=pool)
-    strategy = SimpleStrategy(_metrics, bands_strategy=bands_strategy)
+    strategy = SimpleStrategy(_metrics, bands_strategy=bands_strategy, profit_threshold=profit_threshold)
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
 

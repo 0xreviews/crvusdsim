@@ -296,7 +296,7 @@ class PoolValue(PoolPricingMetric):
 
     def compute_annualized_loss(self, data):
         """Computes annualized loss from a series of loss percent."""
-        data = 1 - data
+        data = 1 + data
         year_multipliers = timedelta64(365, "D") / data.index.to_series().diff()
         log_returns = log(data).diff()  # pylint: disable=no-member
 
