@@ -9,7 +9,7 @@ from curvesim.exceptions import ParameterSamplerError
 from crvusdsim.pool.crvusd.clac import ln_int
 from curvesim.iterators.param_samplers import ParameterizedPoolIterator
 from crvusdsim.iterators.params_samplers.pool_mixins import LLAMMAPoolMixin
-from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
+from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 
 
 class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):

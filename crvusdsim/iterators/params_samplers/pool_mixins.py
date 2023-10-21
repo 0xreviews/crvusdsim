@@ -1,7 +1,7 @@
 from math import isqrt
 from crvusdsim.pool.crvusd.clac import ln_int, log2
 from crvusdsim.pool.crvusd.vyper_func import unsafe_div, unsafe_sub
-from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
+from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 
 
 class LLAMMAPoolMixin:

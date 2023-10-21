@@ -3,7 +3,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 import numpy as np
 
-from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
+from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy, user_loans_strategy
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx, generate_prices
 
@@ -18,7 +18,7 @@ from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
     trade_count=st.integers(min_value=10, max_value=200),
 )
 def test_simple_bands_strategy(assets, init_y, price_max, dprice, trade_count):
-    pool = create_sim_pool()
+    pool, _ = create_sim_pool()
 
     prices = generate_prices(
         price_max=price_max,
@@ -52,7 +52,7 @@ def test_simple_bands_strategy(assets, init_y, price_max, dprice, trade_count):
 
 
 def test_simple_bands_strategy_1(assets, local_prices):
-    pool = create_sim_pool()
+    pool, _ = create_sim_pool()
 
     init_y = 10000 * 10**18
     prices, volumes = local_prices
@@ -87,7 +87,7 @@ def test_simple_bands_strategy_1(assets, local_prices):
 variable_params={"A": [50 + i * 10 for i in range(16)], "fee": [6 * 10**15,]}
 
 def test_pool_value(assets, local_prices):
-    pool = create_sim_pool()
+    pool, _ = create_sim_pool()
     prices, volumes = local_prices
 
     init_y = int(sum(pool.bands_x.values()) / prices.iloc[0, 0]) + sum(
@@ -132,3 +132,13 @@ def test_pool_value(assets, local_prices):
         print("A", A)
         print("diff", round(diff / v * 100, 4), diff)
         print("pool_value", v)
+
+
+def test_user_loan_strategy(assets, local_prices):
+    pool, controller = create_sim_pool()
+    prices, volumes = local_prices
+
+    init_y = 10000 * 10**18
+
+    user_loans_strategy(pool, prices, controller, total_y=init_y)
+    

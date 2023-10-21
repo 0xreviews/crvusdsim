@@ -98,6 +98,9 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         [in_amount_done, out_amount_done] : [int, int]
             Amount of coins given in/out
         """
+        if size == 0:
+            return 0, 0, 0
+            
         self._before_exchange()
 
         i, j = self.get_asset_indices(coin_in, coin_out)

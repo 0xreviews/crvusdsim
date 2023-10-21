@@ -3,11 +3,12 @@ Strategies for adjusting band liquidity distribution
 """
 
 from collections import defaultdict
-from math import floor, log
+from math import floor, isqrt, log, log2, sqrt
 from crvusdsim.pool.crvusd.controller import Controller
 from crvusdsim.pool.crvusd.vyper_func import unsafe_sub
+from crvusdsim.pool.sim_interface.sim_controller import SimController
 
-from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
+from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 
 
 def simple_bands_strategy(
@@ -40,8 +41,8 @@ def simple_bands_strategy(
     A = pool.A
 
     init_price = prices.iloc[0, :].tolist()[0] * 10**18
-    max_price = int(prices.iloc[0,0] * 10**18)
-    # max_price = int(prices.iloc[:, 0].max() * 10**18)
+    # max_price = int(prices.iloc[0,0] * 10**18)
+    max_price = int(prices.iloc[:, 0].max() * 10**18)
     min_price = int(prices.iloc[:, 0].min() * 10**18)
 
     base_price = pool.get_base_price()
@@ -68,7 +69,7 @@ def simple_bands_strategy(
         pool.bands_x = bands_x
         pool.bands_y = bands_y
     else:
-        # set users' collateral
+        # @todo set users' collateral
         pass
 
     pool.prepare_for_run(prices)
@@ -79,24 +80,6 @@ def simple_bands_strategy(
     # Adjust the x and y in the active band
     # so that the amm quotation is consistent with p out
     p_o = pool.price_oracle()
-
-    # while True:
-    #     amount, pump = pool.get_amount_for_price(p_o)
-    #     if pump:
-    #         i, j = 0, 1
-    #     else:
-    #         i, j = 1, 0
-    #     amount_in, amount_out, fees = pool.get_dxdy(i, j, amount)
-    #     active_index = pool.active_band
-    #     if amount_out < pool.bands_y[active_index]:
-    #         break
-    #     p_o_up = pool.p_oracle_up(active_index)
-    #     p_o_down = pool.p_oracle_down(active_index)
-    #     x_down = int(pool.bands_y[active_index] * (p_o_down + p_o_up) / 2 / 1e18)
-    #     pool.bands_x[active_index] = x_down
-    #     pool.bands_y[active_index] = 0
-    #     pool.active_band += 1
-    #     break
 
     p = pool.p_oracle_up(pool.min_band)
     pool.price_oracle_contract._price_last = p
@@ -116,7 +99,6 @@ def simple_bands_strategy(
             i, j = 1, 0
 
         pool.trade(i, j, amount)
-
 
     p_up = pool.p_oracle_up(pool.active_band)
     p_down = pool.p_oracle_down(pool.active_band)
@@ -167,3 +149,102 @@ def simple_bands_strategy(
     ), "y0 changed too much"
 
     pool.prepare_for_run(prices)
+
+
+def user_loans_strategy(
+    pool: SimLLAMMAPool,
+    prices,
+    controller: SimController = None,
+    total_y=10**24,
+    users_health=[0.01, 0.05, 0.10, 0.20, 0.30],
+    users_count=[10, 20, 30, 40, 50],
+):
+    """
+    The strategy used to distribute the initial liquidity of the LLAMMA pool
+    calculates the x and y amount of each band based on the price fluctuation
+    range and the initial price. When price moves one unit, the liquidity
+    involved in the exchange is equal to `y_per_one`.
+
+    Parameters
+    ----------
+    pool : SimLLAMMAPool
+        LLAMMA pool
+    prices: DataFrame
+        prices data
+    controller : Controller
+        Controller, default is None
+    total_y: int
+        Total initial liquidity (y)
+    users_health: List[float]
+        User health distribution
+    users_count: List[int]
+        Distribution of users of different health
+    """
+
+    assert len(users_health) == len(users_count)
+
+    # init pool state
+    # set active_band greater than max_price
+    A = pool.A
+
+    init_price = prices.iloc[0, :].tolist()[0] * 10**18
+    max_price = int(prices.iloc[:, 0].max() * 10**18)
+    min_price = int(prices.iloc[:, 0].min() * 10**18)
+
+    base_price = pool.get_base_price()
+    min_index = floor(log(max_price / base_price, (A - 1) / A))
+    max_index = floor(log(min_price / base_price, (A - 1) / A))
+
+    pool.active_band = min_index - 2
+
+    p = pool.get_p()
+    pool.price_oracle_contract._price_last = p
+    pool.price_oracle_contract._price_oracle = p
+
+    # set users' loan
+    total_users = sum(users_count)
+    y_per_user = total_y / total_users
+    count = 0
+    N = max_index - min_index + 1
+    for i in range(len(users_health)):
+        collateral_amount = int(y_per_user)
+        debt = controller.calc_debt_by_health(collateral_amount, min_index, max_index, int(users_health[i] * 10**18))
+        # debt = int(debt * 1.6745)
+        print("\n_calculate_debt_n1", controller._calculate_debt_n1(collateral_amount, debt, N))
+
+        for j in range(users_count[i]):
+            address = "user_%d_health_%.2f" %(count, users_health[i])
+            pool.COLLATERAL_TOKEN.mint(address, collateral_amount)
+            controller.create_loan(address, collateral_amount, debt, N)
+            
+            print("\naddress", address)
+            print(controller.AMM.read_user_tick_numbers(address))
+            print(controller.health(address) / 1e18, users_health[i], debt / 1e18, collateral_amount * p / 1e36)
+            assert abs(controller.health(address) / 1e18 / users_health[i]) < 1e-3
+
+            count += 1
+            break
+        
+        break
+
+    
+
+    while p > init_price:
+        p -= 10**18
+        p = int(max(init_price, p))
+        pool.price_oracle_contract._price_last = p
+        pool.price_oracle_contract._price_oracle = p
+
+        amount, pump = pool.get_amount_for_price(p)
+
+        if pump:
+            i, j = 0, 1
+        else:
+            i, j = 1, 0
+
+        pool.trade(i, j, amount)
+
+    p_up = pool.p_oracle_up(pool.active_band)
+    p_down = pool.p_oracle_down(pool.active_band)
+
+    assert init_price <= p_up and init_price >= p_down

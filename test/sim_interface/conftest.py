@@ -18,7 +18,6 @@ def create_sim_pool():
     (
         pool,
         controller,
-        stablecoin,
         collateral_token,
         stablecoin,
         aggregator,
@@ -27,7 +26,7 @@ def create_sim_pool():
         factory,
     ) = get_sim_market(pool_metadata)
 
-    return pool
+    return pool, controller
 
 @pytest.fixture(scope="module")
 def assets():

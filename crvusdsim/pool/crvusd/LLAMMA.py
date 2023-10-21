@@ -350,7 +350,6 @@ class LLAMMAPool(
         # Because the A is a variable, so we don't use vyper optimization algorithm.
         return int(self._base_price() * (self.Aminus1 / self.A) ** n)
 
-
     def _p_current_band(self, n: int) -> int:
         """
         Lowest possible price of the band at current oracle price
@@ -467,7 +466,9 @@ class LLAMMAPool(
             b += unsafe_div(self.A * p_o**2 // p_o_up * y, 10**18)
         if x > 0 and y > 0:
             D: int = b**2 + unsafe_div(((4 * self.A) * p_o) * y, 10**18) * x
-            return unsafe_div(int((b + isqrt(D)) * 10**18), unsafe_mul(2 * self.A, p_o))
+            return unsafe_div(
+                int((b + isqrt(D)) * 10**18), unsafe_mul(2 * self.A, p_o)
+            )
         else:
             return unsafe_div(b * 10**18, unsafe_mul(self.A, p_o))
 
@@ -823,6 +824,10 @@ class LLAMMAPool(
         """
         ns: List[int] = self._read_user_tick_numbers(user)
         ticks: List[int] = self._read_user_ticks(user, ns)
+
+        return self._get_xy_up_by_ticks(ns, ticks, use_y)
+
+    def _get_xy_up_by_ticks(self, ns: List[int], ticks: List[int], use_y: bool) -> int:
         if ticks[0] == 0:  # Even dynamic array will have 0th element set here
             return 0
         p_o: int = self._price_oracle_ro()[0]

@@ -15,7 +15,8 @@ from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
-from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
+from crvusdsim.pool.sim_interface.sim_controller import SimController
+from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 from crvusdsim.pool_data import get_metadata
 from curvesim.pool_data.metadata import PoolMetaDataInterface
 from crvusdsim.pool_data.metadata.market import MarketMetaData
@@ -87,12 +88,12 @@ def get_sim_market(
     peg_keepers = [
         PegKeeper(
             _pool=stableswap_pools[i],
-            _index=PEG_KEEPER_CONF["index"],
-            _caller_share=PEG_KEEPER_CONF["caller_share"],
+            _index=int(PEG_KEEPER_CONF["index"]),
+            _caller_share=int(PEG_KEEPER_CONF["caller_share"]),
             _factory=factory,
             _aggregator=aggregator,
             _address=peg_keepers_kwargs[i]["address"],
-            debt=peg_keepers_kwargs[i]["debt"],
+            debt=int(peg_keepers_kwargs[i]["debt"]),
         )
         for i in range(len(peg_keepers_kwargs))
     ]
@@ -104,7 +105,7 @@ def get_sim_market(
         sigma=monetary_policy_kwargs["sigma"],
         target_debt_fraction=monetary_policy_kwargs["fraction"],
     )
-    controller = Controller(
+    controller = SimController(
         stablecoin=stablecoin,
         factory=factory,
         collateral_token=collateral_token,

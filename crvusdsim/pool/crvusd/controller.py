@@ -1,9 +1,10 @@
 """
 Mainly a module to house the `Curve Stablecoin`, a Controller implementation in Python.
 """
+from cmath import sqrt
 from collections import defaultdict
 from typing import Callable, List, Tuple
-from math import isqrt
+from math import floor, isqrt, log as math_log
 
 from curvesim.pool.snapshot import SnapshotMixin
 
@@ -286,6 +287,11 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             )
             // (self.SQRT_BAND_RATIO * N)
         )
+        print("\nd_y_effective01", d_y_effective)
+        d_y_effective = int(collateral / N * ((10**18 - discount)) / isqrt(int(self.A * 10**18 / (self.A - 1))))
+        print("\nd_y_effective02", d_y_effective)
+
+
         y_effective: int = d_y_effective
         for i in range(1, MAX_TICKS_UINT):
             if i == N:
@@ -342,7 +348,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             n1 -= (
                 self.LOG2_A_RATIO - 1
             )  # This is to deal with vyper's rounding of negative numbers
-        n1 //= self.LOG2_A_RATIO
+        n1 = n1 // self.LOG2_A_RATIO
 
         n1 = min(n1, 1024 - N) + n0
         if n1 <= n0:

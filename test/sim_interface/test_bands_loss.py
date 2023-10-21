@@ -14,7 +14,7 @@ profit_threshold = 50 * 10**18
 
 
 def test_bands_snapshot(assets):
-    pool = create_sim_pool()
+    pool, _ = create_sim_pool()
     ts_begin = int(time.time())
     ts = ts_begin
     pool._increment_timestamp(ts)
@@ -100,7 +100,7 @@ def test_bands_snapshot(assets):
 
 
 def test_bands_loss_with_benchmark(assets, local_prices):
-    pool = create_sim_pool()
+    pool, _ = create_sim_pool()
 
     prices, volumes = local_prices
     # prices = prices[:1000]

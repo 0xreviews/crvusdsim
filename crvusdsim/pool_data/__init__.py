@@ -15,7 +15,7 @@ __all__ = [
 import json
 from crvusdsim.pool_data.cache import PoolDataCache
 
-from crvusdsim.pool.sim_interface.llamma import SimLLAMMAPool
+from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 from crvusdsim.pool.crvusd import LLAMMAPool
 from .metadata import MarketMetaData, simple_bands_strategy
 from .queries import from_address
