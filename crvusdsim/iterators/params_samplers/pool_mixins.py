@@ -40,6 +40,7 @@ class LLAMMAPoolMixin:
 
 
 def llamma_A_params(pool, A):
+    pool.A = A
     pool.Aminus1 = A - 1
     pool.A2 = A**2
     pool.Aminus12 = (A - 1) ** 2
@@ -54,6 +55,7 @@ def llamma_A_params(pool, A):
 
 
 def controller_A_params(controller, A):
+    controller.A = A
     controller.Aminus1 = A - 1
     controller.SQRT_BAND_RATIO = isqrt(unsafe_div(10**36 * A, unsafe_sub(A, 1)))
     controller.LOG2_A_RATIO = log2(A * 10**18 // unsafe_sub(A, 1))

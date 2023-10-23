@@ -79,6 +79,8 @@ class Strategy(ABC):
             init_y = int(
                 sum(pool.bands_x.values()) / price_sampler.prices.iloc[0, 0]
             ) + sum(pool.bands_y.values())
+            if init_y < 10**18:
+                init_y = 10**24
             self.bands_strategy(pool, price_sampler.prices, total_y=init_y)
 
         pool.prepare_for_run(price_sampler.prices)

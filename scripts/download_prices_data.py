@@ -36,4 +36,4 @@ def download_prices_data(collateral_address, days=70, data_dir="data"):
 
 
 if __name__ == "__main__":
-    download_prices_data(wstETH_address)
+    download_prices_data(wstETH_address, days=150)

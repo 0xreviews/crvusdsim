@@ -1,6 +1,10 @@
 from curvesim.pool.snapshot import Snapshot
 
-# @todo 
+class Loan:
+    def __init__(self):
+        self.initial_debt = 0
+        self.rate_mul = 0
+
 class LLAMMASnapshot(Snapshot):
     """Snapshot that saves pool bands, oracle price, user shares, etc..."""
 
@@ -52,8 +56,6 @@ class LLAMMASnapshot(Snapshot):
         self.bands_y_benchmark = bands_y_benchmark
 
         self.bands_delta_snapshot = bands_delta_snapshot
-        
-        
 
     @classmethod
     def create(cls, pool):
@@ -82,7 +84,6 @@ class LLAMMASnapshot(Snapshot):
 
         bands_delta_snapshot = pool.bands_delta_snapshot.copy()
 
-       
         return cls(
             active_band,
             min_band,
@@ -126,8 +127,85 @@ class LLAMMASnapshot(Snapshot):
 
         pool.bands_fees_x = self.bands_fees_x.copy()
         pool.bands_fees_y = self.bands_fees_y.copy()
-        
+
         pool.bands_x_benchmark = self.bands_x_benchmark.copy()
         pool.bands_y_benchmark = self.bands_y_benchmark.copy()
-        
+
         pool.bands_delta_snapshot = self.bands_delta_snapshot.copy()
+
+
+class ControllerSnapshot(Snapshot):
+    """Snapshot that saves Controller loans, loan_ix, n_loans, etc..."""
+
+    def __init__(
+        self,
+        loan,
+        liquidation_discounts,
+        _total_debt,
+        loans,
+        loan_ix,
+        n_loans,
+        minted,
+        redeemed,
+        liquidation_discount,
+        loan_discount,
+    ):
+        self.loan = loan
+        self.liquidation_discounts = liquidation_discounts
+        self._total_debt = Loan()
+        self._total_debt.initial_debt = _total_debt.initial_debt
+        self._total_debt.rate_mul = _total_debt.rate_mul
+        self.loans = loans
+        self.loan_ix = loan_ix
+        self.n_loans = n_loans
+
+        self.minted = minted
+        self.redeemed = redeemed
+
+        self.liquidation_discount = liquidation_discount
+        self.loan_discount = loan_discount
+
+    @classmethod
+    def create(cls, controller):
+        loan = controller.loan.copy()
+        liquidation_discounts = controller.liquidation_discounts.copy()
+        _total_debt = Loan()
+        _total_debt.initial_debt = controller._total_debt.initial_debt
+        _total_debt.rate_mul = controller._total_debt.rate_mul
+        loans = controller.loans.copy()
+        loan_ix = controller.loan_ix.copy()
+        n_loans = controller.n_loans
+
+        minted = controller.minted
+        redeemed = controller.redeemed
+
+        liquidation_discount = controller.liquidation_discount
+        loan_discount = controller.loan_discount
+
+        return cls(
+            loan,
+            liquidation_discounts,
+            _total_debt,
+            loans,
+            loan_ix,
+            n_loans,
+            minted,
+            redeemed,
+            liquidation_discount,
+            loan_discount,
+        )
+
+    def restore(self, controller):
+        controller.loan = self.loan
+        controller.liquidation_discounts = self.liquidation_discounts.copy()
+        controller._total_debt.initial_debt = self._total_debt.initial_debt
+        controller._total_debt.rate_mul = self._total_debt.rate_mul
+        controller.loans = self.loans.copy()
+        controller.loan_ix = self.loan_ix.copy()
+        controller.n_loans = self.n_loans
+
+        controller.minted = self.minted
+        controller.redeemed = self.redeemed
+
+        controller.liquidation_discount = self.liquidation_discount
+        controller.loan_discount = self.loan_discount

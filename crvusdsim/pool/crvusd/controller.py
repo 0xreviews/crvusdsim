@@ -1,14 +1,14 @@
 """
 Mainly a module to house the `Curve Stablecoin`, a Controller implementation in Python.
 """
-from cmath import sqrt
 from collections import defaultdict
 from typing import Callable, List, Tuple
-from math import floor, isqrt, log as math_log
+from math import floor, sqrt, isqrt, log as math_log
 
 from curvesim.pool.snapshot import SnapshotMixin
 
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
+from crvusdsim.pool.snapshot import ControllerSnapshot
 
 from .LLAMMA import LLAMMAPool
 from .clac import ln_int, log2
@@ -60,7 +60,7 @@ class CallbackData:
 class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
     """Controller implementation in Python."""
 
-    snapshot_class = None
+    snapshot_class = ControllerSnapshot
 
     __slots__ = (
         "address",
@@ -159,9 +159,9 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self.COLLATERAL_TOKEN: str = self.AMM.COLLATERAL_TOKEN
         self.COLLATERAL_PRECISION: int = self.AMM.COLLATERAL_PRECISION
 
-        # @todo set debt ceiling
-        # if debt_ceiling > 0:
-        #     self.STABLECOIN._mint(self.address, debt_ceiling)
+        # set debt ceiling
+        if debt_ceiling > 0:
+            self.STABLECOIN._mint(self.address, debt_ceiling)
 
     def _rate_mul_w(self) -> int:
         """
@@ -287,10 +287,6 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             )
             // (self.SQRT_BAND_RATIO * N)
         )
-        print("\nd_y_effective01", d_y_effective)
-        d_y_effective = int(collateral / N * ((10**18 - discount)) / isqrt(int(self.A * 10**18 / (self.A - 1))))
-        print("\nd_y_effective02", d_y_effective)
-
 
         y_effective: int = d_y_effective
         for i in range(1, MAX_TICKS_UINT):

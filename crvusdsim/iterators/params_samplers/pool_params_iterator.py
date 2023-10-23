@@ -100,7 +100,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
             controller = deepcopy(self.controller_template)
             if self.sim_mode == "pool":
                 self.set_pool_attributes(pool, params)
-            elif self.sim_mode == "pool":
+            elif self.sim_mode == "controller":
                 self.set_controller_attributes(controller, params)
             yield pool, controller, params
 
@@ -199,6 +199,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         else:
             pool_attr = (pool, attr)
             setattr(*pool_attr, value)
+
 
     def _set_controller_attribute(self, controller, attr, value):
         if attr in self.controller_setters:
