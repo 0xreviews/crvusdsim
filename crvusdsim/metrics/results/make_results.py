@@ -3,7 +3,7 @@ from pandas import concat
 from .sim_results import SimResults
 
 
-def make_results(data_per_run, data_per_trade, summary_data, pool_state, metrics):
+def make_results(data_per_run, data_per_trade, summary_data, state_data, metrics):
     """Initializes a results object from the output of a simulation pipeline."""
 
     for run_n, data in enumerate(data_per_trade):  # add "run" column
@@ -12,7 +12,7 @@ def make_results(data_per_run, data_per_trade, summary_data, pool_state, metrics
     data_per_run = concat(data_per_run, ignore_index=True)
     data_per_trade = concat(data_per_trade, ignore_index=True)
     summary_data = concat(summary_data, ignore_index=True)
-    # pool_state = concat(pool_state, ignore_index=True)
+    # state_data = concat(state_data, ignore_index=True)
 
     factors = get_factors(data_per_run)
     plot_config = combine_plot_configs(metrics)
@@ -21,7 +21,7 @@ def make_results(data_per_run, data_per_trade, summary_data, pool_state, metrics
         data_per_run=data_per_run,
         data_per_trade=data_per_trade,
         summary_data=summary_data,
-        pool_state=pool_state,
+        state_data=state_data,
         factors=factors,
         plot_config=plot_config,
     )

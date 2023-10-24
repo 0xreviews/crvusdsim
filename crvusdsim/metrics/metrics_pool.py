@@ -274,14 +274,14 @@ class PoolValue(PoolPricingMetric):
         Computes all metrics for each timestamp in an individual run.
         Used for non-meta stableswap pools.
         """
-        return self._get_pool_value(kwargs["pool_state"])
+        return self._get_pool_value(kwargs["state_data"])
 
-    def _get_pool_value(self, pool_state):
+    def _get_pool_value(self, state_data):
         """
         Computes all metrics for each timestamp in an individual run.
         Used for non-meta pools.
         """
-        results = pool_state[["pool_value", "loss_percent"]].set_axis(
+        results = state_data[["pool_value", "loss_percent"]].set_axis(
             ["pool_value", "loss_value"], axis=1
         )
         results.columns = list(self.config["plot"]["metrics"])
@@ -353,20 +353,20 @@ class PriceDepth(PoolMetric):
         Computes liquidity density for each timestamp in an individual run.
         Used for all Curve pools.
         """
-        pool_state = kwargs["pool_state"]
+        state_data = kwargs["state_data"]
 
         coin_pairs = get_pairs(
             self._pool.coin_names
         )  # for metapool, uses only meta assets
-        LD = pool_state.apply(self._get_curve_LD_by_row, axis=1, coin_pairs=coin_pairs)
+        LD = state_data.apply(self._get_curve_LD_by_row, axis=1, coin_pairs=coin_pairs)
         return DataFrame(LD, columns=["liquidity_density"])
 
-    def _get_curve_LD_by_row(self, pool_state_row, coin_pairs):
+    def _get_curve_LD_by_row(self, state_data_row, coin_pairs):
         """
         Computes liquidity density for a single row of data (i.e., a single timestamp).
         Used for all Curve pools.
         """
-        self.set_pool_state(pool_state_row)
+        self.set_pool_state(state_data_row)
 
         LD = []
         for pair in coin_pairs:

@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime, timedelta
 from random import randint
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
-from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
+from crvusdsim.pool_data.metadata.bands_strategy import init_y_bands_strategy
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx, generate_prices
 import time
@@ -29,7 +29,7 @@ def test_bands_snapshot(assets):
     )
 
     total_y = 10000 * 10**18
-    simple_bands_strategy(
+    init_y_bands_strategy(
         pool,
         prices,
         total_y=total_y,
@@ -115,7 +115,7 @@ def test_bands_loss_with_benchmark(assets, local_prices):
     # prices = pd.concat([prices.iloc[:, 0], prices_reverse.iloc[:, 0]])
     # prices = pd.DataFrame(prices, columns=assets.symbol_pairs)
 
-    simple_bands_strategy(pool, prices, total_y=10000 * 10**18, unuse_bands=20)
+    init_y_bands_strategy(pool, prices, total_y=10000 * 10**18, unuse_bands=20)
 
     pool.prepare_for_run(prices=prices)
     init_bands_x = pool.bands_x.copy()

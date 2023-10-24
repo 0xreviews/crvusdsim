@@ -123,7 +123,6 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self.address = (
             address if address is not None else "Controller_%s" % (collateral_token)
         )
-        self.collateral_token = collateral_token
         self.STABLECOIN = stablecoin
         self.FACTORY = factory
 

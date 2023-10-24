@@ -695,6 +695,9 @@ class LLAMMAPool(
             total_y += y
             self.bands_y[band] = total_y
 
+            # SIM_INTERFACE: xy
+            self.bands_y_benchmark[band] += y
+
             if lm is not None and lm.address is not None:
                 # If initial s == 0 - s becomes equal to y which is > 100 => nonzero
                 collateral_shares.append(unsafe_div(total_y * 10**18, s))
@@ -780,6 +783,10 @@ class LLAMMAPool(
             self.bands_y[n] = y
             total_x += dx
             total_y += dy
+
+            # SIM_INTERFACE: xy
+            self.bands_x_benchmark[n] -= dx
+            self.bands_y_benchmark[n] -= dy
 
             if n == ns[1]:
                 break

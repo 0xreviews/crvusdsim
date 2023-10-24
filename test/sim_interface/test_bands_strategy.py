@@ -3,12 +3,12 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 import numpy as np
 
-from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy, user_loans_strategy
+from crvusdsim.pool_data.metadata.bands_strategy import init_y_bands_strategy, user_loans_strategy
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx, generate_prices
 
 from crvusdsim.pipelines.simple import CRVUSD_POOL_MAP, ParameterizedLLAMMAPoolIterator
-from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
+from crvusdsim.pool_data.metadata.bands_strategy import init_y_bands_strategy
 
 
 @given(
@@ -17,7 +17,7 @@ from crvusdsim.pool_data.metadata.bands_strategy import simple_bands_strategy
     dprice=st.integers(min_value=500, max_value=2000),
     trade_count=st.integers(min_value=10, max_value=200),
 )
-def test_simple_bands_strategy(assets, init_y, price_max, dprice, trade_count):
+def test_init_y_bands_strategy(assets, init_y, price_max, dprice, trade_count):
     pool, _ = create_sim_pool()
 
     prices = generate_prices(
@@ -27,7 +27,7 @@ def test_simple_bands_strategy(assets, init_y, price_max, dprice, trade_count):
         columns=assets.symbol_pairs,
     )
 
-    simple_bands_strategy(
+    init_y_bands_strategy(
         pool,
         prices,
         total_y=init_y,
@@ -51,13 +51,13 @@ def test_simple_bands_strategy(assets, init_y, price_max, dprice, trade_count):
     # ), "init_y changed too much"
 
 
-def test_simple_bands_strategy_1(assets, local_prices):
+def test_init_y_bands_strategy_1(assets, local_prices):
     pool, _ = create_sim_pool()
 
     init_y = 10000 * 10**18
     prices, volumes = local_prices
 
-    simple_bands_strategy(
+    init_y_bands_strategy(
         pool,
         prices,
         total_y=init_y,
@@ -102,7 +102,7 @@ def test_pool_value(assets, local_prices):
 
     for pool, params in param_sampler:
 
-        simple_bands_strategy(
+        init_y_bands_strategy(
             pool,
             prices,
             total_y=init_y,

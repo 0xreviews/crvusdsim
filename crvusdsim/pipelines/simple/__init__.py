@@ -6,7 +6,13 @@ from crvusdsim.iterators.params_samplers import (
 )
 from crvusdsim.pipelines import run_pipeline
 from crvusdsim.metrics import init_metrics, make_results
-from crvusdsim.pipelines.common import DEFAULT_CONTROLLER_METRICS, DEFAULT_CONTROLLER_PARAMS, DEFAULT_POOL_METRICS
+from crvusdsim.pipelines.common import (
+    DEFAULT_CONTROLLER_METRICS,
+    DEFAULT_CONTROLLER_PARAMS,
+    DEFAULT_N_METRICS,
+    DEFAULT_N_PARAMS,
+    DEFAULT_POOL_METRICS,
+)
 from crvusdsim.pipelines.common import DEFAULT_POOL_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
 from crvusdsim.pool import get_sim_market
@@ -47,10 +53,10 @@ def pipeline(  # pylint: disable=too-many-locals
     chain: str
         Identifier for blockchain or layer2.  Supported values are:
         "mainnet"
-    
+
     sim_mode: str
-        For different modes, the comparison dimensions are different. 
-        Supported values are: "pool", "controller"
+        For different modes, the comparison dimensions are different.
+        Supported values are: "pool", "controller", "N"
 
     variable_params : dict, defaults to broad range of A/fee values
         Pool parameters to vary across simulations.
@@ -59,7 +65,7 @@ def pipeline(  # pylint: disable=too-many-locals
         Example
         --------
         >>> variable_params = {"A": [100], "fee": [6 * 10**15], "admin_fee": [0]}
-    
+
     controller_params : dict, defaults to broad range of loan_discount values
 
         Example
@@ -115,6 +121,8 @@ def pipeline(  # pylint: disable=too-many-locals
             variable_params = DEFAULT_POOL_PARAMS
         elif sim_mode == "controller":
             variable_params = DEFAULT_CONTROLLER_PARAMS
+        elif sim_mode == "N":
+            variable_params = DEFAULT_N_PARAMS
 
     # if pool_data_cache is None:
     #     pool_data_cache = PoolDataCache(pool_metadata, days=days, end=end_ts)
@@ -160,10 +168,15 @@ def pipeline(  # pylint: disable=too-many-locals
         default_metrics = DEFAULT_POOL_METRICS
     elif sim_mode == "controller":
         default_metrics = DEFAULT_CONTROLLER_METRICS
+    elif sim_mode == "N":
+        default_metrics = DEFAULT_N_METRICS
 
     _metrics = init_metrics(default_metrics, pool=pool, controller=controller)
     strategy = SimpleStrategy(
-        _metrics, bands_strategy=bands_strategy, profit_threshold=profit_threshold
+        _metrics,
+        bands_strategy=bands_strategy,
+        sim_mode=sim_mode,
+        profit_threshold=profit_threshold,
     )
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)

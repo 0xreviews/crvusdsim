@@ -13,7 +13,7 @@ class SimResults(BaseSimResults):
         "data_per_run",
         "data_per_trade",
         "summary_data",
-        "pool_state",
+        "state_data",
         "factors",
         "plot_config",
         "plotter",
@@ -21,11 +21,11 @@ class SimResults(BaseSimResults):
 
     def __init__(
         self,
-        pool_state,
+        state_data,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
-        self.pool_state = pool_state
+        self.state_data = state_data
 

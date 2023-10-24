@@ -29,7 +29,7 @@ class Strategy(ABC):
     trader_class = None
     state_log_class = None
 
-    def __init__(self, metrics, bands_strategy=None):
+    def __init__(self, metrics, sim_mode="pool", bands_strategy=None):
         """
         Parameters
         ----------
@@ -37,6 +37,7 @@ class Strategy(ABC):
             A list of metrics used to evaluate the performance of the strategy.
         """
         self.metrics = metrics
+        self.sim_mode = sim_mode
         self.bands_strategy = bands_strategy
 
     def __call__(self, pool, controller, parameters, price_sampler):
@@ -70,18 +71,19 @@ class Strategy(ABC):
             pool,
             controller,
             self.metrics,
-            log_mode="controller" if "loan_discount" in parameters else "pool",
+            parameters=parameters,
+            sim_mode=self.sim_mode,
         )
 
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
         if self.bands_strategy is not None:
-            init_y = int(
-                sum(pool.bands_x.values()) / price_sampler.prices.iloc[0, 0]
-            ) + sum(pool.bands_y.values())
-            if init_y < 10**18:
-                init_y = 10**24
-            self.bands_strategy(pool, price_sampler.prices, total_y=init_y)
+            self.bands_strategy(
+                pool,
+                price_sampler.prices,
+                controller,
+                parameters,
+            )
 
         pool.prepare_for_run(price_sampler.prices)
 
