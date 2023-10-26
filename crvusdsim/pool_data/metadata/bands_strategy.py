@@ -12,6 +12,7 @@ from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 
 DEFAULT_USER_ADDRESS = "default_user_address"
 
+
 def simple_bands_strategy(
     pool: SimLLAMMAPool,
     prices,
@@ -55,6 +56,10 @@ def simple_bands_strategy(
     p_down = pool.p_oracle_down(pool.active_band)
     assert init_price <= p_up and init_price >= p_down
 
+    pool.price_oracle_contract._price_last = init_price
+    pool.price_oracle_contract._price_oracle = init_price
+    pool.prepare_for_run(prices)
+
 
 def one_user_bands_strategy(
     pool: SimLLAMMAPool,
@@ -77,14 +82,22 @@ def one_user_bands_strategy(
     """
     simple_bands_strategy(pool, prices, controller, parameters)
 
+    pool.min_band = pool.active_band
+
+    init_price = prices.iloc[0, :].tolist()[0]
     N = parameters["N"]
     user_address: str = DEFAULT_USER_ADDRESS
-    collateral: int = 100*10**18
-    debt_ratio: float = 1.10
-    debt = int(collateral / debt_ratio)
+    collateral: int = 100 * 10**18
+    # debt_ratio: float = 1.40
+    # debt = int(collateral * init_price / debt_ratio)
+    debt = controller.max_borrowable(collateral, N, 0)
 
     controller.COLLATERAL_TOKEN._mint(user_address, collateral)
     controller.create_loan(user_address, collateral, debt, N)
+
+    assert (
+        pool.COLLATERAL_TOKEN.balanceOf[pool.address] == collateral
+    ), "deposit collateral faild."
 
 
 def init_y_bands_strategy(

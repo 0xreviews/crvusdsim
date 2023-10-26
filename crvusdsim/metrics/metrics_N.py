@@ -16,7 +16,7 @@ class RangeNReturns(Metric):
     Records annualized returns for different range N.
     """
 
-    def __init__(self, pool, controller,  *args, **kwargs):
+    def __init__(self, pool, controller, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._pool = pool
         self._controller = controller
@@ -27,19 +27,24 @@ class RangeNReturns(Metric):
     def config(self):
         config = {
             "functions": {
-                "summary": {"annualized_returns": "sum"},
-                "metrics": {"annualized_returns": self.compute_annualized_returns},
+                "summary": {
+                    "user_value": {
+                        "annualized_returns": self.compute_annualized_returns
+                    }
+                },
+                "metrics": self.get_user_value,
             },
             "plot": {
                 "metrics": {
-                    "pool_value": {
-                        "title": f"Pool Value (in {self.numeraire})",
+                    "user_value": {
+                        "title": f"User Value (in {self.numeraire})",
                         "style": "time_series",
                         "resample": "last",
+                        "encoding": {"y": {"axis": Axis(format="%")}},
                     },
                 },
                 "summary": {
-                    "pool_value": {
+                    "user_value": {
                         "title": f"Annualized Returns (in {self.numeraire})",
                         "style": "point_line",
                         "encoding": {"y": {"axis": Axis(format="%")}},
@@ -50,9 +55,22 @@ class RangeNReturns(Metric):
 
         return config
 
+    def get_user_value(self, **kwargs):
+        """
+        Computes all metrics for each timestamp in an individual run.
+        Used for non-meta users.
+        """
+        state_data = kwargs["state_data"]
+        first_value = state_data["users_x"].iloc[0][0]
+        results = DataFrame(
+            [row[0] / first_value for row in state_data["users_x"]],
+            index=state_data["users_x"].index,
+        )
+        results.columns = list(self.config["plot"]["metrics"])
+        return results.astype("float64")
+
     def compute_annualized_returns(self, data):
         """Computes annualized returns from a series of pool values."""
         year_multipliers = timedelta64(365, "D") / data.index.to_series().diff()
         log_returns = log(data).diff()  # pylint: disable=no-member
-
         return exp((log_returns * year_multipliers).mean()) - 1

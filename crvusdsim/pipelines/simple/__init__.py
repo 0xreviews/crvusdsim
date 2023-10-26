@@ -178,6 +178,7 @@ def pipeline(  # pylint: disable=too-many-locals
         sim_mode=sim_mode,
         profit_threshold=profit_threshold,
     )
+    
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
 

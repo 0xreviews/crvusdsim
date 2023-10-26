@@ -395,7 +395,7 @@ async def market_snapshot(
     # Output
     data = {
         "llamma_params": {
-            "address": r["market"]["id"],
+            "address": r["market"]["amm"]["id"],
             "A": r["A"],
             "fee": r["fee"],
             "admin_fee": r["adminFee"],

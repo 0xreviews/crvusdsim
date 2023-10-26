@@ -98,6 +98,11 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         for params in self.parameter_sequence:
             pool = deepcopy(self.pool_template)
             controller = deepcopy(self.controller_template)
+            
+            # should rebind the AMM and token in the controller
+            # so that they point to the new copy.
+            controller._rebind_pool(pool)
+            
             if self.sim_mode == "pool":
                 self.set_pool_attributes(pool, params)
             elif self.sim_mode == "controller":

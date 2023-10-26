@@ -66,6 +66,10 @@ class Strategy(ABC):
 
         """
         # pylint: disable=not-callable
+        assert pool == controller.AMM, "`controller.AMM` is not `pool`"
+        assert pool.BORROWED_TOKEN == controller.STABLECOIN
+        assert pool.COLLATERAL_TOKEN == controller.COLLATERAL_TOKEN
+
         trader = self.trader_class(pool)
         state_log = self.state_log_class(
             pool,
@@ -84,7 +88,7 @@ class Strategy(ABC):
                 controller,
                 parameters,
             )
-
+        
         pool.prepare_for_run(price_sampler.prices)
 
         for sample in price_sampler:

@@ -348,7 +348,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         n1 = min(n1, 1024 - N) + n0
         if n1 <= n0:
             assert self.AMM.can_skip_bands(n1 - 1), "Debt too high"
-
+        
         # Let's not rely on active_band corresponding to price_oracle:
         # this will be not correct if we are in the area of empty bands
         assert self.AMM.p_oracle_up(n1) < self.AMM.price_oracle(), "Debt too high"

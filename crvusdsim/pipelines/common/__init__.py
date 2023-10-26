@@ -14,7 +14,10 @@ DEFAULT_POOL_METRICS = [
     PoolMetrics.ArbMetrics,
 ]
 DEFAULT_CONTROLLER_METRICS = []
-DEFAULT_N_METRICS = [RangeNMetrics.RangeNReturns]
+DEFAULT_N_METRICS = [
+    PoolMetrics.Timestamp,
+    RangeNMetrics.RangeNReturns
+]
 
 DEFAULT_POOL_PARAMS = {
     "A": [50, 100, 150, 200],

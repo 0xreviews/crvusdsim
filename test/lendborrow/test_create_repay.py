@@ -39,7 +39,7 @@ def test_create_loan(accounts):
 
     assert stablecoin.balanceOf[user] - old_balance_user == l_amount
     assert l_amount == old_balance_controller - stablecoin.balanceOf[controller.address]
-    # assert collateral_token.balanceOf(user) == initial_amount - c_amount
+    # assert market_amm.COLLATERAL_TOKEN.balanceOf[user] == initial_amount - c_amount
 
     assert controller.total_debt() == l_amount
     assert controller.debt(user) == l_amount

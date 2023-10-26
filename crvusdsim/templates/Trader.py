@@ -60,6 +60,7 @@ class Trader(ABC):
         """
         self.pool = pool
 
+
     @abstractmethod
     def compute_trades(self, *args):
         """

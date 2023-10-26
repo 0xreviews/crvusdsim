@@ -10,6 +10,7 @@ def get_user_state(pool, controller):
     users_x = []
     users_y = []
     users_health = []
+    users_value = []
     for user_address in users:
         users_debt.append(controller.debt(user_address))
         users_x.append(pool.get_xy_up(user_address, use_y=False) / 1e18)

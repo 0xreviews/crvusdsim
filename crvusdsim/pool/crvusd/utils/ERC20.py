@@ -49,7 +49,8 @@ class ERC20:
         """
         assert (
             self.balanceOf[_from] - _value >= 0
-        ), "%s insufficient balance: balanceOf %d, amount %d" % (
+        ), "%s: %s insufficient balance: balanceOf %d, amount %d" % (
+            self.symbol,
             _from,
             self.balanceOf[_from],
             _value,
