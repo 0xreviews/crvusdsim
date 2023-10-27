@@ -13,7 +13,9 @@ DEFAULT_POOL_METRICS = [
     PoolMetrics.PoolVolume,
     PoolMetrics.ArbMetrics,
 ]
-DEFAULT_CONTROLLER_METRICS = []
+DEFAULT_CONTROLLER_METRICS = [
+    PoolMetrics.Timestamp,
+]
 DEFAULT_N_METRICS = [
     PoolMetrics.Timestamp,
     RangeNMetrics.RangeNReturns

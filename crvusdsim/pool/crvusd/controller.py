@@ -8,6 +8,7 @@ from math import floor, sqrt, isqrt, log as math_log
 from curvesim.pool.snapshot import SnapshotMixin
 
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
+from crvusdsim.pool.crvusd.utils import BlocktimestampMixins
 from crvusdsim.pool.snapshot import ControllerSnapshot
 
 from .LLAMMA import LLAMMAPool
@@ -39,6 +40,9 @@ class Loan:
     def __init__(self):
         self.initial_debt = 0
         self.rate_mul = 0
+        # SIM_INTERFACE
+        self.initial_collateral = 0
+        self.timestamp = 0
 
 
 class Position:
@@ -57,7 +61,9 @@ class CallbackData:
         self.collateral = 0
 
 
-class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
+class Controller(
+    SnapshotMixin, BlocktimestampMixins
+):  # pylint: disable=too-many-instance-attributes
     """Controller implementation in Python."""
 
     snapshot_class = ControllerSnapshot
@@ -119,6 +125,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             LLAMMA - crvUSD AMM
 
         """
+        super().__init__()
 
         self.address = (
             address if address is not None else "Controller_%s" % (collateral_token)
@@ -348,7 +355,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         n1 = min(n1, 1024 - N) + n0
         if n1 <= n0:
             assert self.AMM.can_skip_bands(n1 - 1), "Debt too high"
-        
+
         # Let's not rely on active_band corresponding to price_oracle:
         # this will be not correct if we are in the area of empty bands
         assert self.AMM.p_oracle_up(n1) < self.AMM.price_oracle(), "Debt too high"
@@ -378,7 +385,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
             p_base_prev: int = p_base
             p_base = unsafe_div(p_base * self.A, self.Aminus1)
 
-            # @note A little price is subtracted here to offset the error caused by 
+            # @note A little price is subtracted here to offset the error caused by
             # not using the same algorithm as the vyper code in _p_oracle_up
             if p_base > p_oracle - 10**6:
                 return p_base_prev
@@ -490,7 +497,7 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
 
     def _withdraw_collateral(self, amount: int, _receiver: str):
         assert self.COLLATERAL_TOKEN.transferFrom(self.AMM.address, _receiver, amount)
-    
+
     def _transfer_stablecoin(self, _to: str, amount: int):
         if self.STABLECOIN.balanceOf[self.address] < amount:
             self.STABLECOIN._mint(self.address, amount)
@@ -542,6 +549,11 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         rate_mul: int = self._rate_mul_w()
         self.loan[user].initial_debt = debt
         self.loan[user].rate_mul = rate_mul
+
+        # SIM_INTERFACE
+        self.loan[user].initial_collateral = collateral
+        self.loan[user].timestamp = self._block_timestamp
+
         liquidation_discount: int = self.liquidation_discount
         self.liquidation_discounts[user] = liquidation_discount
 
@@ -659,6 +671,13 @@ class Controller(SnapshotMixin):  # pylint: disable=too-many-instance-attributes
         self.AMM.deposit_range(_for, xy[1], n1, n2)
         self.loan[_for].initial_debt = debt
         self.loan[_for].rate_mul = rate_mul
+
+        # SIM_INTERFACE
+        self.loan[_for].initial_collateral += (
+            d_collateral if remove_collateral else -(d_collateral)
+        )
+        self.loan[_for].timestamp = self._block_timestamp
+
         liquidation_discount: int = self.liquidation_discount
         self.liquidation_discounts[_for] = liquidation_discount
 

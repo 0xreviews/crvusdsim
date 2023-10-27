@@ -20,7 +20,6 @@ class RangeNReturns(Metric):
         super().__init__(*args, **kwargs)
         self._pool = pool
         self._controller = controller
-        self.numeraire = pool.coin_names[0]
 
     @property
     @cache
@@ -37,7 +36,7 @@ class RangeNReturns(Metric):
             "plot": {
                 "metrics": {
                     "user_value": {
-                        "title": f"User Value (in {self.numeraire})",
+                        "title": f"User Value",
                         "style": "time_series",
                         "resample": "last",
                         "encoding": {"y": {"axis": Axis(format="%")}},
@@ -45,7 +44,7 @@ class RangeNReturns(Metric):
                 },
                 "summary": {
                     "user_value": {
-                        "title": f"Annualized Returns (in {self.numeraire})",
+                        "title": f"Annualized Returns",
                         "style": "point_line",
                         "encoding": {"y": {"axis": Axis(format="%")}},
                     },
@@ -61,10 +60,10 @@ class RangeNReturns(Metric):
         Used for non-meta users.
         """
         state_data = kwargs["state_data"]
-        first_value = state_data["users_x"].iloc[0][0]
+        first_value = state_data["users_init_y"].iloc[0][0]
         results = DataFrame(
-            [row[0] / first_value for row in state_data["users_x"]],
-            index=state_data["users_x"].index,
+            [row[0] / first_value for row in state_data["users_y"]],
+            index=state_data["users_y"].index,
         )
         results.columns = list(self.config["plot"]["metrics"])
         return results.astype("float64")

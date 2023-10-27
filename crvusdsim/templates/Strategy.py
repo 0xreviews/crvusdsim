@@ -90,12 +90,14 @@ class Strategy(ABC):
             )
         
         pool.prepare_for_run(price_sampler.prices)
+        controller.prepare_for_run(price_sampler.prices)
 
         for sample in price_sampler:
             pool.price_oracle_contract.set_price(
                 int(list(sample.prices.values())[0] * 10**18)
             )
             pool.prepare_for_trades(sample.timestamp)
+            controller.prepare_for_trades(sample.timestamp)
             trader_args = self._get_trader_inputs(sample)
             trade_data = trader.process_time_sample(*trader_args)
             state_log.update(price_sample=sample, trade_data=trade_data)

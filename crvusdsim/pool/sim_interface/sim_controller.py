@@ -40,7 +40,34 @@ class SimController(Controller):
         self.COLLATERAL_TOKEN: str = new_pool.COLLATERAL_TOKEN
         self.COLLATERAL_PRECISION: int = new_pool.COLLATERAL_PRECISION
 
+    def prepare_for_trades(self, timestamp):
+        """
+        Updates the controller's _block_timestamp attribute to current sim time.
 
+        Parameters
+        ----------
+        timestamp : datetime.datetime
+            The current timestamp in the simulation.
+        """
+
+        if isinstance(timestamp, float):
+            timestamp = int(timestamp)
+        if not isinstance(timestamp, int):
+            timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
+        self._increment_timestamp(timestamp=timestamp)
+
+    def prepare_for_run(self, prices):
+        """
+        Sets init _block_timestamp attribute to current sim time.
+
+        Parameters
+        ----------
+        prices : pandas.DataFrame
+            The price time_series, price_sampler.prices.
+        """
+        # Get/set initial prices
+        init_ts = int(prices.index[0].timestamp())
+        self._increment_timestamp(timestamp=init_ts)
 
     def calc_debt_by_health(
         self, collateral_amount: int, n1: int, n2: int, health: int

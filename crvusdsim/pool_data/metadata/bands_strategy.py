@@ -88,15 +88,18 @@ def one_user_bands_strategy(
     N = parameters["N"]
     user_address: str = DEFAULT_USER_ADDRESS
     collateral: int = 100 * 10**18
-    # debt_ratio: float = 1.40
-    # debt = int(collateral * init_price / debt_ratio)
-    debt = controller.max_borrowable(collateral, N, 0)
+    max_debt = controller.max_borrowable(collateral, N, 0)
+    count = 100
 
-    controller.COLLATERAL_TOKEN._mint(user_address, collateral)
-    controller.create_loan(user_address, collateral, debt, N)
+    for i in range(count):
+        user_address = "%s_%d" % (DEFAULT_USER_ADDRESS, i)
+        debt = int(max_debt * (1 - 0.005 * i))
+
+        controller.COLLATERAL_TOKEN._mint(user_address, collateral)
+        controller.create_loan(user_address, collateral, debt, N)
 
     assert (
-        pool.COLLATERAL_TOKEN.balanceOf[pool.address] == collateral
+        pool.COLLATERAL_TOKEN.balanceOf[pool.address] == collateral * count
     ), "deposit collateral faild."
 
 
