@@ -13,8 +13,6 @@ def get_llamma_bands_loss(pool_state):
     min_price = base_price * ((A - 1) / A) ** (last_run.iloc[-1]["max_band"] + 1)
     max_price = base_price * ((A - 1) / A) ** (last_run.iloc[-1]["min_band"] - 1)
     price_ranges = [p for p in range(int(min_price), int(max_price), PRICE_INTERVAL)]
-    print("\nprice_ranges")
-    print(price_ranges)
 
     x = []
     y = []
@@ -37,7 +35,7 @@ def get_llamma_bands_loss(pool_state):
                 _p = price_ranges[j]
                 if p_down <= _p and _p <= p_up:
                     _xs.append(_p)
-                    _zs.append(loss_per_p * min(p_up - _p, PRICE_INTERVAL))
+                    _zs.append(loss_per_p * min(p_up - _p, PRICE_INTERVAL) * 100)
                 else:
                     pass
 
@@ -47,27 +45,35 @@ def get_llamma_bands_loss(pool_state):
 
     return DataFrame(
         {
-            "A": x,
-            "price": y,
-            "loss percent": z,
+            "x": x,
+            "y": y,
+            "z": z,
         }
     )
 
 
 def make_bands_loss_plot(results):
     source = get_llamma_bands_loss(results.state_data)
-    print("\nsource")
-    print(source)
     chart = (
         alt.Chart(source)
         .mark_rect()
         .encode(
-            alt.X("A:O"), alt.Y("price:O").scale(reverse=True), color="loss percent:Q"
+            alt.X("x:O").title("A"),
+            alt.Y("y:O").scale(reverse=True).title("Price($)"),
+            alt.Color("z:Q", scale=alt.Scale(scheme="greenblue")).title(
+                "Bands Returns(%)"
+            ),
         )
-        # .encode(
-        #     alt.X("A:Q", bin=alt.Bin(maxbins=20)),
-        #     alt.Y("price:Q", bin=alt.Bin(maxbins=40)),
-        #     alt.Color("loss percent:Q", scale=alt.Scale(scheme="greenblue")),
-        # )
+        .properties(
+            title=alt.TitleParams(
+                text="Bands Returns(%)",
+                fontSize=16,
+                align="left",
+                anchor="start",
+                offset=16,
+            )
+        )
     )
-    chart.save("bands_loss.html")
+
+    # chart.save("bands_loss.html")
+    return chart

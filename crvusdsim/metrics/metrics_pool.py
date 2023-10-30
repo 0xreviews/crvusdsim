@@ -18,7 +18,7 @@ from numpy import where, exp, log, timedelta64
 from pandas import DataFrame, concat
 
 from curvesim.utils import cache, get_pairs
-from curvesim.metrics.base import Metric, PoolMetric, PoolPricingMetric, PricingMetric
+from curvesim.metrics.base import Metric, PoolMetric, PoolPricingMetric, PricingMetric, summarize_data
 
 from crvusdsim.pool.sim_interface import SimLLAMMAPool
 
