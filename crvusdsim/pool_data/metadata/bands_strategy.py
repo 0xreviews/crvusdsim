@@ -291,9 +291,12 @@ def user_loans_strategy(
     N = max_index - min_index + 1
     for i in range(len(users_health)):
         collateral_amount = int(y_per_user)
-        debt = controller.calc_debt_by_health(
-            collateral_amount, min_index, max_index, int(users_health[i] * 10**18)
-        )
+        # debt = controller.calc_debt_by_health(
+        #     collateral_amount, min_index, max_index, int(users_health[i] * 10**18)
+        # )
+        max_debt = controller.max_borrowable(collateral_amount, N, 0)
+        debt_ratio = 1 + users_health[i] - 0.013
+        debt = int(max_debt / debt_ratio)
 
         for j in range(users_count[i]):
             address = "user_%d_health_%.2f" % (count, users_health[i])
@@ -301,9 +304,10 @@ def user_loans_strategy(
             controller.create_loan(address, collateral_amount, debt, N)
 
             print("\naddress", address)
-            print(
-                controller.AMM.read_user_tick_numbers(address), [min_index, max_index]
-            )
+            print("debt_ratio", debt_ratio)
+            # print(
+            #     controller.AMM.read_user_tick_numbers(address), [min_index, max_index]
+            # )
             print(
                 controller.health(address) / 1e18,
                 users_health[i],

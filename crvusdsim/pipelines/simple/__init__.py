@@ -4,6 +4,7 @@ from crvusdsim.iterators.params_samplers import (
     CRVUSD_POOL_MAP,
     ParameterizedLLAMMAPoolIterator,
 )
+from crvusdsim.metrics.results.sim_results import SimResults
 from crvusdsim.pipelines import run_pipeline
 from crvusdsim.metrics import init_metrics, make_results
 from crvusdsim.pipelines.common import (
@@ -37,7 +38,7 @@ def pipeline(  # pylint: disable=too-many-locals
     prices_max_interval=5 * 60,
     profit_threshold=50 * 10**18,
     ncpu=None,
-):
+) -> SimResults:
     """
     Implements the simple arbitrage pipeline.  This is a very simplified version
     of :func:`curvesim.pipelines.vol_limited_arb.pipeline`.
@@ -181,5 +182,6 @@ def pipeline(  # pylint: disable=too-many-locals
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
 
-    results = make_results(*output, _metrics)
+    results = make_results(*output, _metrics, prices=price_sampler.prices)
+
     return results

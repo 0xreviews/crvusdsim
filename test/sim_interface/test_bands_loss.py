@@ -99,7 +99,7 @@ def test_bands_snapshot(assets):
 
 
 
-def test_bands_loss_with_benchmark(assets, local_prices):
+def test_bands_arb_profits_with_benchmark(assets, local_prices):
     pool, _ = create_sim_pool()
 
     prices, volumes = local_prices
