@@ -29,6 +29,7 @@ __all__ = [
 
 logger = get_logger(__name__)
 
+MARKET_DEBT_CEILING = 10**7 * 10**18  # 10M
 
 def get_sim_market(
     pool_metadata,
@@ -113,6 +114,8 @@ def get_sim_market(
         amm=pool,
         **controller_kwargs,
     )
+    # set debt ceil
+    factory.set_debt_ceiling(controller.address, MARKET_DEBT_CEILING)
 
     pool.metadata = pool_metadata._dict  # pylint: disable=protected-access
     pool.metadata["address"] = pool_metadata._dict["llamma_params"]["address"]

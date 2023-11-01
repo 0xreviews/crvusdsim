@@ -3,7 +3,9 @@ from scipy.optimize import root_scalar
 from curvesim.logging import get_logger
 from crvusdsim.metrics import metrics_pool as PoolMetrics
 from crvusdsim.metrics import metrics_N as RangeNMetrics
+from crvusdsim.metrics import metrics_controller as ControllerMetric
 from curvesim.templates.trader import Trade, Trader
+
 
 
 logger = get_logger(__name__)
@@ -15,6 +17,7 @@ DEFAULT_POOL_METRICS = [
 ]
 DEFAULT_CONTROLLER_METRICS = [
     PoolMetrics.Timestamp,
+    ControllerMetric.UsersHealth,
 ]
 DEFAULT_N_METRICS = [
     PoolMetrics.Timestamp,

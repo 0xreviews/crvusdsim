@@ -102,8 +102,6 @@ class Strategy(ABC):
             trade_data = trader.process_time_sample(*trader_args)
             state_log.update(price_sample=sample, trade_data=trade_data)
 
-        # @todo liquidation in Controller
-
         return state_log.compute_metrics()
 
     @abstractmethod

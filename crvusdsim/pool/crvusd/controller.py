@@ -495,8 +495,8 @@ class Controller(
         """
         assert self.COLLATERAL_TOKEN.transferFrom(_receiver, self.AMM.address, amount)
 
-    def _withdraw_collateral(self, amount: int, _receiver: str):
-        assert self.COLLATERAL_TOKEN.transferFrom(self.AMM.address, _receiver, amount)
+    def _withdraw_collateral(self, _for: str, amount: int):
+        assert self.COLLATERAL_TOKEN.transferFrom(self.AMM.address, _for, amount)
 
     def _transfer_stablecoin(self, _to: str, amount: int):
         if self.STABLECOIN.balanceOf[self.address] < amount:
@@ -720,7 +720,7 @@ class Controller(
         if collateral == 0:
             return
         self._add_collateral_borrow(collateral, 0, user, True)
-        self._withdraw_collateral(collateral, user)
+        self._withdraw_collateral(user, collateral)
 
     def borrow_more(self, user: str, collateral: int, debt: int):
         """
@@ -794,7 +794,7 @@ class Controller(
                 self.STABLECOIN.transferFrom(self.AMM.address, _for, xy[0])
 
             if xy[1] > 0:
-                self._withdraw_collateral(xy[1], _for)
+                self._withdraw_collateral(_for, xy[1])
             self._remove_from_list(_for)
 
         else:
@@ -1119,7 +1119,7 @@ class Controller(
 
             if callback is None:
                 # Withdraw collateral if no callback is present
-                self._withdraw_collateral(xy[1], user)
+                self._withdraw_collateral(liquidator, xy[1])
                 # Request what's left from user
                 self.STABLECOIN.transferFrom(liquidator, self.AMM.address, to_repay)
             else:
@@ -1141,11 +1141,11 @@ class Controller(
 
         else:
             # Withdraw collateral
-            self._withdraw_collateral(xy[1], user)
+            self._withdraw_collateral(liquidator, xy[1])
             # Return what's left to user
             if xy[0] > debt:
                 self.STABLECOIN.transferFrom(
-                    self.AMM.address, user, unsafe_sub(xy[0], debt)
+                    self.AMM.address, liquidator, unsafe_sub(xy[0], debt)
                 )
 
         self.redeemed += debt

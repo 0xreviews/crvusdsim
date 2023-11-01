@@ -238,9 +238,9 @@ def user_loans_strategy(
     prices,
     controller: SimController,
     parameters,
-    total_y=10**24,
+    total_y=10**22,
     users_health=[0.05, 0.10, 0.20, 0.30],
-    users_count=[20, 30, 40, 50],
+    users_count=[2, 3, 4, 5],
 ):
     """
     The strategy used to distribute the initial liquidity of the LLAMMA pool
@@ -276,7 +276,7 @@ def user_loans_strategy(
 
     base_price = pool.get_base_price()
     min_index = floor(log(max_price / base_price, (A - 1) / A))
-    max_index = floor(log(min_price / base_price, (A - 1) / A))
+    max_index = floor(log(min_price / base_price, (A - 1) / A)) + 1
 
     pool.active_band = min_index - 2
 
@@ -289,37 +289,35 @@ def user_loans_strategy(
     y_per_user = total_y / total_users
     count = 0
     N = max_index - min_index + 1
+    
     for i in range(len(users_health)):
         collateral_amount = int(y_per_user)
-        # debt = controller.calc_debt_by_health(
-        #     collateral_amount, min_index, max_index, int(users_health[i] * 10**18)
-        # )
         max_debt = controller.max_borrowable(collateral_amount, N, 0)
-        debt_ratio = 1 + users_health[i] - 0.013
-        debt = int(max_debt / debt_ratio)
 
         for j in range(users_count[i]):
             address = "user_%d_health_%.2f" % (count, users_health[i])
             pool.COLLATERAL_TOKEN.mint(address, collateral_amount)
-            controller.create_loan(address, collateral_amount, debt, N)
+            controller.create_loan(address, collateral_amount, max_debt, N)
+            collateral_value = pool.get_x_down(address)
+            debt_value = controller.debt(address)
 
-            print("\naddress", address)
-            print("debt_ratio", debt_ratio)
-            # print(
-            #     controller.AMM.read_user_tick_numbers(address), [min_index, max_index]
-            # )
-            print(
-                controller.health(address) / 1e18,
-                users_health[i],
-                debt / 1e18,
-                collateral_amount * p / 1e36,
+            target_debt = int(
+                collateral_value
+                * (10**18 - controller.liquidation_discount)
+                / (users_health[i] * 10**18 + 10**18)
             )
-            assert abs(controller.health(address) / 1e18 / users_health[i]) < 1e-3
+
+            # change user's debt directly
+            # (user's range will change if use `repay` or `borrow_more`)
+            controller.loan[address].initial_debt = target_debt
+            if debt_value > target_debt:
+                controller.STABLECOIN.transferFrom(address, controller.address, (debt_value - target_debt))
+            else:
+                controller.STABLECOIN.transferFrom(controller.address, address, (target_debt - debt_value))
+
+            assert abs(controller.health(address) / 1e18 / users_health[i] - 1) < 1e-3
 
             count += 1
-            break
-
-        break
 
     while p > init_price:
         p -= 10**18

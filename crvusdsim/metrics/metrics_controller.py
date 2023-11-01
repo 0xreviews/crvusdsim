@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from pandas import DataFrame, MultiIndex, Series
+from numpy import timedelta64, log, exp, mean
+from altair import Axis
 
 from curvesim.exceptions import MetricError
 from curvesim.utils import cache, override
@@ -62,6 +64,62 @@ class ControllerMetric(Metric):
                 f"Pool type {controller_type} not found in {metric_type} controller_config.)"
             ) from e
 
+class UsersHealth(ControllerMetric):
+    """
+    Records annualized returns for different range N.
+    """
+
+    def __init__(self, pool, controller, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._pool = pool
+        self._controller = controller
+
+    @property
+    @cache
+    def config(self):
+        config = {
+            "functions": {
+                "summary": {
+                    "averange_user_health": "mean",
+                },
+                "metrics": self.averange_user_health,
+            },
+            "plot": {
+                "metrics": {
+                    "averange_user_health": {
+                        "title": f"Averange Users Health",
+                        "style": "time_series",
+                        "resample": "last",
+                        "encoding": {"y": {"axis": Axis(format="%")}},
+                    },
+                },
+                "summary": {
+                    "averange_user_health": {
+                        "title": f"Averange Users Health",
+                        "style": "point_line",
+                        "encoding": {"y": {"axis": Axis(format="%")}},
+                    },
+                },
+            },
+        }
+
+        return config
+
+    def averange_user_health(self, **kwargs):
+        """
+        Computes all metrics for each timestamp in an individual run.
+        Used for non-meta users.
+        """
+        state_data = kwargs["state_data"]
+        results = DataFrame(
+            [mean(row) for row in state_data["users_health"]],
+            index=state_data["users_health"].index,
+        )
+        results.columns = list(self.config["plot"]["metrics"])
+        return results.astype("float64")
+
+
+
 class LiquidationVolume(ControllerMetric):
     """
     Records total trade volume for each timestamp.
@@ -94,6 +152,7 @@ class LiquidationVolume(ControllerMetric):
 
         return config
 
+    # @todo
     def get_llamma_liquidation_volume(self, **kwargs):
         """
         Records trade volume for stableswap non-meta-pools.

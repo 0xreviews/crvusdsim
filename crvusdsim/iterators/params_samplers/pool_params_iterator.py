@@ -168,7 +168,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
 
     def set_controller_attributes(self, controller, attribute_dict):
         """
-        @todo
+        Sets the controller attributes defined in attribute_dict.
         """
         if attribute_dict is None:
             return

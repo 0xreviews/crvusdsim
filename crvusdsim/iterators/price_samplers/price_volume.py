@@ -71,6 +71,9 @@ class PriceVolume(PriceSampler):
             end=end,
         )
 
+        # @remind
+        prices = prices[:5000]
+
         self.assets = assets
         self.max_interval = max_interval
         self.original_prices = prices.set_axis(assets.symbol_pairs, axis="columns")

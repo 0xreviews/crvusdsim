@@ -570,7 +570,7 @@ web3 = ">=6.0.0b4"
 type = "git"
 url = "https://github.com/curveresearch/curvesim.git"
 reference = "HEAD"
-resolved_reference = "ecd915fdb0085c3f3dece70b8fa3dc48db4ef071"
+resolved_reference = "cc095b021d9c186ce7ff3a0dbde726a146fe2eb0"
 
 [[package]]
 name = "cycler"
@@ -720,13 +720,13 @@ tools = ["hypothesis (>=4.18.2,<5.0.0)"]
 
 [[package]]
 name = "eth-account"
-version = "0.9.0"
+version = "0.10.0"
 description = "eth-account: Sign Ethereum transactions and messages with local private keys"
 optional = false
 python-versions = ">=3.7, <4"
 files = [
-    {file = "eth-account-0.9.0.tar.gz", hash = "sha256:5f66ecb7bc52569924dfaf4a9add501b1c2a4901eec74e3c0598cd26d0971777"},
-    {file = "eth_account-0.9.0-py3-none-any.whl", hash = "sha256:35636ca14e9063dea233648703338be1a44e8cb1a2f9de1519d2b1be4655da59"},
+    {file = "eth-account-0.10.0.tar.gz", hash = "sha256:474a2fccf7286230cf66502565f03b536921d7e1fdfceba198e42160e5ac4bc1"},
+    {file = "eth_account-0.10.0-py3-none-any.whl", hash = "sha256:b7a83f506a8edf57926569e5f04471ce3f1700e572d3421b4ad0dad7a26c0978"},
 ]
 
 [package.dependencies]
@@ -736,7 +736,7 @@ eth-keyfile = ">=0.6.0"
 eth-keys = ">=0.4.0"
 eth-rlp = ">=0.3.0"
 eth-utils = ">=2.0.0"
-hexbytes = ">=0.1.0"
+hexbytes = ">=0.1.0,<0.4.0"
 rlp = ">=1.0.0"
 
 [package.extras]
@@ -1118,13 +1118,13 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "jsonschema"
-version = "4.19.1"
+version = "4.19.2"
 description = "An implementation of JSON Schema validation for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jsonschema-4.19.1-py3-none-any.whl", hash = "sha256:cd5f1f9ed9444e554b38ba003af06c0a8c2868131e56bfbef0550fb450c0330e"},
-    {file = "jsonschema-4.19.1.tar.gz", hash = "sha256:ec84cc37cfa703ef7cd4928db24f9cb31428a5d0fa77747b8b51a847458e0bbf"},
+    {file = "jsonschema-4.19.2-py3-none-any.whl", hash = "sha256:eee9e502c788e89cb166d4d37f43084e3b64ab405c795c03d343a4dbc2c810fc"},
+    {file = "jsonschema-4.19.2.tar.gz", hash = "sha256:c9ff4d7447eed9592c23a12ccee508baf0dd0d59650615e847feb6cdca74f392"},
 ]
 
 [package.dependencies]
@@ -2374,13 +2374,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "web3"
-version = "6.11.1"
+version = "6.11.2"
 description = "web3.py"
 optional = false
 python-versions = ">=3.7.2"
 files = [
-    {file = "web3-6.11.1-py3-none-any.whl", hash = "sha256:0d39f58cbb0c652b45e711f01e01ec655117b47ba4eefd1f9550c52d205afa8c"},
-    {file = "web3-6.11.1.tar.gz", hash = "sha256:d301d7120922d5b9e5c9535ef9780012ea25ea4011c2b177490ba7d3ef886b92"},
+    {file = "web3-6.11.2-py3-none-any.whl", hash = "sha256:119e6e543aaac5e5d475ba8b54c71d3f8e357e4b94449ca236ea9d6ec009465e"},
+    {file = "web3-6.11.2.tar.gz", hash = "sha256:77340b9a8109835a680950e09f21ae77e41ea38076215ab8be2ba4bee7b8034a"},
 ]
 
 [package.dependencies]

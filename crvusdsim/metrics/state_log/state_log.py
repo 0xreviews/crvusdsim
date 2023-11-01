@@ -5,8 +5,9 @@ during simulations.
 from pandas import DataFrame, concat
 
 from curvesim.metrics.base import PoolMetric
+from crvusdsim.metrics.state_log.controller_state import get_controller_state
 
-from crvusdsim.metrics.state_log.user_state import get_user_state
+from crvusdsim.metrics.state_log.controller_state import get_controller_state
 
 from .pool_parameters import get_N_parameters, get_pool_parameters, get_controller_parameters
 from .pool_state import get_pool_state
@@ -45,16 +46,16 @@ class StateLog:
 
         if self.sim_mode == "pool":
             self.state_per_trade.append({"state_data": get_pool_state(self.pool), **kwargs})
-        # elif self.sim_mode == "controller":
-        #     self.state_per_trade.append({"state_data": get_pool_state(self.pool, self.controller), **kwargs})
+        elif self.sim_mode == "controller":
+            self.state_per_trade.append({"state_data": get_controller_state(self.pool, self.controller), **kwargs})
         if self.sim_mode == "N":
-            self.state_per_trade.append({"state_data": get_user_state(self.pool, self.controller), **kwargs})
+            self.state_per_trade.append({"state_data": get_controller_state(self.pool, self.controller), **kwargs})
 
     def get_logs(self):
         """Returns the accumulated log data."""
 
         df = DataFrame(self.state_per_trade)
-
+        
         times = [state["price_sample"].timestamp for state in self.state_per_trade]
         state_per_trade = {col: DataFrame(df[col].to_list(), index=times) for col in df}
 
