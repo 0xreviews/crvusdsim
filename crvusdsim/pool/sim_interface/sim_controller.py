@@ -83,7 +83,7 @@ class SimController(Controller):
             timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
         self._increment_timestamp(timestamp=timestamp)
 
-    def prepare_for_run(self, prices, do_liquidate=False):
+    def prepare_for_run(self, prices):
         """
         Sets init _block_timestamp attribute to current sim time.
 
@@ -96,6 +96,7 @@ class SimController(Controller):
         init_ts = int(prices.index[0].timestamp())
         self._increment_timestamp(timestamp=init_ts)
 
+    def after_trades(self, do_liquidate=False):
         if do_liquidate:
             users_to_liquidate = self.users_to_liquidate()
             for i in range(len(users_to_liquidate)):
@@ -105,18 +106,21 @@ class SimController(Controller):
                     to_repay = position.debt - position.x
                     self.STABLECOIN._mint(DEFAULT_LIQUIDATOR, to_repay)
 
-                self._before_liquidate(position.user)
+                print("liquidation: ", position.user, position.debt/1e18)
+                self._before_liquidate(position)
                 self.liquidate(DEFAULT_LIQUIDATOR, position.user, 0)
 
-    def _before_liquidate(self, user: str, position: Position):
+    def _before_liquidate(self, position: Position):
+        user = position.user
         debt = self.debt(user)
-        init_collateral = self.loan[user].initial_collateral
+        initial_debt = self.loan[user].initial_debt
+        initial_collateral = self.loan[user].initial_collateral
         health = self.health(user)
         to_repay = debt - position.x
         self.users_liquidated[user] = LiquidatedPosition(
             user=user,
-            initial_debt=position.initial_debt,
-            init_collateral=init_collateral,
+            initial_debt=initial_debt,
+            init_collateral=initial_collateral,
             health=health,
             liquidate_profits_x=to_repay,
             liquidate_profits_y=position.y,

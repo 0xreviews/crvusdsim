@@ -18,6 +18,7 @@ DEFAULT_POOL_METRICS = [
 DEFAULT_CONTROLLER_METRICS = [
     PoolMetrics.Timestamp,
     ControllerMetric.UsersHealth,
+    ControllerMetric.LiquidationVolume,
 ]
 DEFAULT_N_METRICS = [
     PoolMetrics.Timestamp,

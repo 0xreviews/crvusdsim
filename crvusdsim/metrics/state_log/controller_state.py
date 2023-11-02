@@ -6,13 +6,15 @@ def get_controller_state(pool, controller):
     """Returns controller and users state."""
 
     users = list(controller.loans.values())
-    users_liquidated = list(controller.users_liquidated.values())
+    users_liquidated = list(controller.users_liquidated.keys())
     
     users_debt = []
     users_x = []
     users_y = []
     users_health = []
     users_init_y = []
+
+    liquidation_volume = 0
 
     for user_address in users:
         users_debt.append(controller.debt(user_address))
@@ -24,10 +26,14 @@ def get_controller_state(pool, controller):
     for user_address in users_liquidated:
         liquidated_position = controller.users_liquidated[user_address]
         users_debt.append(0)
-        users_x.append(liquidated_position.initial_debt)
+        users_x.append(liquidated_position.initial_debt / 1e18)
         users_y.append(0)
-        users_health.append(liquidated_position.health)
-        users_init_y.append(liquidated_position.init_collateral)
+        users_health.append(liquidated_position.health / 1e18)
+        users_init_y.append(liquidated_position.init_collateral / 1e18)
+        liquidation_volume += liquidated_position.initial_debt / 1e18
+
+    liquidation_count = len(users_liquidated)
+
 
     return {
         # controller state
@@ -43,4 +49,8 @@ def get_controller_state(pool, controller):
         "users_y": users_y,
         "users_health": users_health,
         "users_init_y": users_init_y,
+
+        # liquidation
+        "liquidation_count": liquidation_count,
+        "liquidation_volume": liquidation_volume,
     }

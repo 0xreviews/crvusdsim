@@ -744,15 +744,26 @@ class Controller(
         self._transfer_stablecoin(user, debt)
 
     def _remove_from_list(self, _for: str):
-        last_loan_ix: int = self.n_loans - 1
+        # last_loan_ix: int = self.n_loans - 1
+        # loan_ix: int = self.loan_ix[_for]
+        # assert self.loans[loan_ix] == _for  # dev: should never fail but safety first
+        # self.loan_ix[_for] = 0
+        # if loan_ix < last_loan_ix:  # Need to replace
+        #     last_loan: str = self.loans[last_loan_ix]
+        #     self.loans[loan_ix] = last_loan
+        #     self.loan_ix[last_loan] = loan_ix
+
+        # self.n_loans = last_loan_ix
+
+        # delete defaultdict key
         loan_ix: int = self.loan_ix[_for]
-        assert self.loans[loan_ix] == _for  # dev: should never fail but safety first
-        self.loan_ix[_for] = 0
-        if loan_ix < last_loan_ix:  # Need to replace
-            last_loan: str = self.loans[last_loan_ix]
-            self.loans[loan_ix] = last_loan
-            self.loan_ix[last_loan] = loan_ix
-        self.n_loans = last_loan_ix
+        assert self.loans[loan_ix] == _for, "should never fail but safety first"
+
+        self.loan.pop(_for)
+        self.loans.pop(loan_ix)
+        self.loan_ix.pop(_for)
+
+        self.n_loans -= 1
 
     def repay(
         self,
@@ -1285,10 +1296,11 @@ class Controller(
             limit = n_loans
         ix: int = _from
         out: List[Position] = []
-        for i in range(10**6):
-            if ix >= n_loans or i == limit:
-                break
-            user: str = self.loans[ix]
+        # for i in range(10**6):
+        #     if ix >= n_loans or i == limit:
+        #         break
+        #     user: str = self.loans[ix]
+        for user in list(self.loan.keys()):
             debt: int = self._debt_ro(user)
             health: int = self._health(
                 user, debt, True, self.liquidation_discounts[user]

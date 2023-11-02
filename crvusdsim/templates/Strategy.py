@@ -82,13 +82,16 @@ class Strategy(ABC):
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
         if self.bands_strategy is not None:
+            # close exchange fees when adjust bands
+            pool.fees_switch = False
             self.bands_strategy(
                 pool,
                 price_sampler.prices,
                 controller,
                 parameters,
             )
-        
+            pool.fees_switch = True
+
         pool.prepare_for_run(price_sampler.prices)
         controller.prepare_for_run(price_sampler.prices)
 
@@ -98,8 +101,11 @@ class Strategy(ABC):
             )
             pool.prepare_for_trades(sample.timestamp)
             controller.prepare_for_trades(sample.timestamp)
+
             trader_args = self._get_trader_inputs(sample)
             trade_data = trader.process_time_sample(*trader_args)
+            
+            controller.after_trades(do_liquidate=self.sim_mode == "controller")
             state_log.update(price_sample=sample, trade_data=trade_data)
 
         return state_log.compute_metrics()

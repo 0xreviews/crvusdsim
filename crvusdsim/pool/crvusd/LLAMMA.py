@@ -98,6 +98,7 @@ class LLAMMAPool(
         "bands_x_benchmark",  # bands x benchmark to calc loss
         "bands_y_benchmark",  # bands y benchmark to calc loss
         "bands_delta_snapshot",
+        "fees_switch",        # if take fees when exchange
     )
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
@@ -204,6 +205,7 @@ class LLAMMAPool(
         self.bands_y_benchmark = defaultdict(int)
 
         self.bands_delta_snapshot = {}
+        self.fees_switch = True
 
     def limit_p_o(self, p: int) -> List[int]:
         """
@@ -1132,6 +1134,11 @@ class LLAMMAPool(
         antifee: int = unsafe_div(
             (10**18) ** 2, unsafe_sub(10**18, max(self.fee, p_o[1]))
         )
+
+        # SIM_INTERFACE
+        if not self.fees_switch:
+            antifee = 10**18
+            
         admin_fee: int = self.admin_fee
         j: int = MAX_TICKS_UINT
 
@@ -1557,6 +1564,11 @@ class LLAMMAPool(
         antifee: int = unsafe_div(
             (10**18) ** 2, unsafe_sub(10**18, max(self.fee, p_o[1]))
         )
+
+        # SIM_INTERFACE
+        if not self.fees_switch:
+            antifee = 10**18
+            
         admin_fee: int = self.admin_fee
         j: int = MAX_TICKS_UINT
 

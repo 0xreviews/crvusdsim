@@ -33,6 +33,9 @@ def simple_bands_strategy(
     """
     A = pool.A
 
+    # reset controller loans
+    controller.n_loans = 0
+
     init_price = prices.iloc[0, :].tolist()[0] * 10**18
     # max_price = int(prices.iloc[0,0] * 10**18)
     max_price = int(prices.iloc[:, 0].max() * 10**18)
@@ -239,8 +242,8 @@ def user_loans_strategy(
     controller: SimController,
     parameters,
     total_y=10**22,
-    users_health=[0.05, 0.10, 0.20, 0.30],
-    users_count=[2, 3, 4, 5],
+    # users_health=[0.05, 0.06, 0.07],
+    # users_count=[2, 3, 4],
 ):
     """
     The strategy used to distribute the initial liquidity of the LLAMMA pool
@@ -264,7 +267,7 @@ def user_loans_strategy(
         Distribution of users of different health
     """
 
-    assert len(users_health) == len(users_count)
+    # assert len(users_health) == len(users_count)
 
     # init pool state
     # set active_band greater than max_price
@@ -275,49 +278,71 @@ def user_loans_strategy(
     min_price = int(prices.iloc[:, 0].min() * 10**18)
 
     base_price = pool.get_base_price()
+    init_index = floor(log(init_price / base_price, (A - 1) / A))
     min_index = floor(log(max_price / base_price, (A - 1) / A))
     max_index = floor(log(min_price / base_price, (A - 1) / A)) + 1
 
-    pool.active_band = min_index - 2
+    pool.active_band = min_index - 1
 
     p = pool.p_oracle_up(pool.active_band)
     pool.price_oracle_contract._price_last = p
     pool.price_oracle_contract._price_oracle = p
 
-    # set users' loan
-    total_users = sum(users_count)
+    # reset controller
+    controller.n_loans = 0
+
+    total_users = 20
     y_per_user = total_y / total_users
-    count = 0
     N = max_index - min_index + 1
-    
-    for i in range(len(users_health)):
+
+    for i in range(total_users):
+        address = "user_%d" % (i)
         collateral_amount = int(y_per_user)
         max_debt = controller.max_borrowable(collateral_amount, N, 0)
+        pool.COLLATERAL_TOKEN.mint(address, collateral_amount)
+        controller.create_loan(
+            address, collateral_amount, int(max_debt * (1 - i * 0.05 / total_users)), N
+        )
 
-        for j in range(users_count[i]):
-            address = "user_%d_health_%.2f" % (count, users_health[i])
-            pool.COLLATERAL_TOKEN.mint(address, collateral_amount)
-            controller.create_loan(address, collateral_amount, max_debt, N)
-            collateral_value = pool.get_x_down(address)
-            debt_value = controller.debt(address)
+    # set users' loan
+    # total_users = sum(users_count)
+    # y_per_user = total_y / total_users
+    # count = 0
+    # N = max_index - min_index + 1
 
-            target_debt = int(
-                collateral_value
-                * (10**18 - controller.liquidation_discount)
-                / (users_health[i] * 10**18 + 10**18)
-            )
+    # for i in range(len(users_health)):
+    #     collateral_amount = int(y_per_user)
+    #     max_debt = controller.max_borrowable(collateral_amount, N, 0)
 
-            # change user's debt directly
-            # (user's range will change if use `repay` or `borrow_more`)
-            controller.loan[address].initial_debt = target_debt
-            if debt_value > target_debt:
-                controller.STABLECOIN.transferFrom(address, controller.address, (debt_value - target_debt))
-            else:
-                controller.STABLECOIN.transferFrom(controller.address, address, (target_debt - debt_value))
+    #     for j in range(users_count[i]):
+    #         address = "user_%d_health_%.2f" % (count, users_health[i])
+    #         pool.COLLATERAL_TOKEN.mint(address, collateral_amount)
+    #         controller.create_loan(address, collateral_amount, max_debt, N)
+    #         collateral_value = pool.get_x_down(address)
+    #         debt_value = controller.debt(address)
 
-            assert abs(controller.health(address) / 1e18 / users_health[i] - 1) < 1e-3
+    #         target_debt = int(
+    #             collateral_value
+    #             * (10**18 - controller.liquidation_discount)
+    #             / (users_health[i] * 10**18 + 10**18)
+    #         )
 
-            count += 1
+    #         # change user's `initial_debt` directly
+    #         # (user's range will change if use `repay` or `borrow_more`)
+    #         controller.loan[address].initial_debt = target_debt
+    #         if debt_value > target_debt:
+    #             controller.STABLECOIN.transferFrom(address, controller.address, (debt_value - target_debt))
+    #         else:
+    #             controller.STABLECOIN.transferFrom(controller.address, address, (target_debt - debt_value))
+
+    #         assert abs(controller.health(address) / 1e18 / users_health[i] - 1) < 1e-3
+
+    #         count += 1
+
+    pool.active_band = pool.min_band
+    p = pool.p_oracle_up(pool.active_band)
+    pool.price_oracle_contract._price_last = p
+    pool.price_oracle_contract._price_oracle = p
 
     while p > init_price:
         p -= 10**18

@@ -25,7 +25,10 @@ def get_controller_parameters(controller):
     Returns controller parameters for the input controller. Returned values are recorded
     at the start of each simulation run.
     """
-    params = {"loan_discount": controller.loan_discount / 1e18}
+    params = {
+        "loan_discount": round(controller.loan_discount / 1e18, 3),
+        "liquidation_discount": round(controller.liquidation_discount / 1e18, 3),
+    }
     return params
 
 
