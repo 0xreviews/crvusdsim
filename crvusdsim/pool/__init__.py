@@ -31,19 +31,71 @@ logger = get_logger(__name__)
 
 MARKET_DEBT_CEILING = 10**7 * 10**18  # 10M
 
+
 def get_sim_market(
     pool_metadata,
     *,
-    bands=False,
+    bands_data=None,
     pool_data_cache=None,
     end_ts=None,
 ):
     """
-    Effectively the same as the `get_pool` function but returns
-    an object in the `SimPool` hierarchy.
+    Factory function for creating related entities (e.g. SimLLAMMAPool, SimController) 
+    in the same market based on metadata pulled from on-chain.
+
+    Parameters
+    ----------
+    pool_metadata : Union[str, dict, PoolMetaDataInterface]
+        pool address prefixed with "0x" or already pulled metadata in the form
+        of a dict or :class:`PoolMetaDataInterface`.
+
+    chain: str, default="mainnet"
+        chain identifier, only "mainnet" for now.
+
+    bands_data: "pool" | "controller" | None, default=None
+        bands data initialization method
+        pool: init bands_x and bands_y in LLAMMAPool with metadata,
+        controller: init bands_x, bands_y and user_shares in LLAMMAPool with metadata, 
+        init loan, loans, loan_ix, n_loans, total_debt, minted, redeemed in controller.
+
+    end_ts: int, optional
+        Posix timestamp indicating the datetime of the metadata snapshot.
+        Only used when `pool_metadata` is an address.
+
+    Returns
+    -------
+    Tuple: (
+        pool: `SimLLAMMAPool`,
+        controller: `SimController`,
+        collateral_token: `ERC20`,
+        stablecoin: `StableCoin`,
+        aggregator: `AggregateStablePrice`,
+        stableswap_pools: `List[CurveStableSwapPool]`,
+        peg_keepers: `List[PegKeeper]`,
+        policy: `MonetaryPolicy`,
+        factory: `ControllerFactory`,
+    )
+
+    Examples
+    --------
+    >>> import curvesim
+    >>> pool_address = "wsteth"
+    >>> pool = curvesim.pool.get(pool_address, bands_data="pool")
     """
+
+    use_band_snapshot = False
+    use_user_snapshot = False
+
+    if bands_data:
+        if bands_data == "pool":
+            use_band_snapshot = True
+        elif bands_data == "controller":
+            use_user_snapshot = True
+
     if isinstance(pool_metadata, str):
-        pool_metadata = get_metadata(pool_metadata, end_ts=end_ts)
+        pool_metadata = get_metadata(
+            pool_metadata, use_band_snapshot, use_user_snapshot, end_ts=end_ts
+        )
     elif isinstance(pool_metadata, dict):
         if end_ts:
             raise CurvesimValueError(
@@ -59,14 +111,14 @@ def get_sim_market(
         raise CurvesimValueError(
             "`pool_metadata` must be of type `str`, `dict`, or `PoolMetaDataInterface`."
         )
-    
+
     (
         pool_kwargs,
         controller_kwargs,
         monetary_policy_kwargs,
         stableswap_pools_kwargs,
         peg_keepers_kwargs,
-    ) = pool_metadata.init_kwargs(bands)
+    ) = pool_metadata.init_kwargs(bands_data=bands_data)
     logger.debug(
         pool_kwargs, controller_kwargs, monetary_policy_kwargs, peg_keepers_kwargs
     )
@@ -83,7 +135,9 @@ def get_sim_market(
     stableswap_pools = []
     for i in range(len(stableswap_pools_kwargs)):
         pool_kwargs = stableswap_pools_kwargs[i]
-        pool_kwargs["coins"] = [StableCoin(**coin_kwargs) for coin_kwargs in pool_kwargs["coins"]]
+        pool_kwargs["coins"] = [
+            StableCoin(**coin_kwargs) for coin_kwargs in pool_kwargs["coins"]
+        ]
         stableswap_pools.append(CurveStableSwapPool(**pool_kwargs))
 
     peg_keepers = [
@@ -127,6 +181,7 @@ def get_sim_market(
         collateral_token,
         stablecoin,
         aggregator,
+        stableswap_pools,
         peg_keepers,
         policy,
         factory,

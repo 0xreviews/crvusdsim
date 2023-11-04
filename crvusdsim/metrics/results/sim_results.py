@@ -21,12 +21,14 @@ class SimResults(BaseSimResults):
         "plot_config",
         "plotter",
         "prices",
+        "sim_mode",
     ]
 
     def __init__(
         self,
         state_data,
         prices=None,
+        sim_mode="pool",
         *args,
         **kwargs,
     ):
@@ -34,8 +36,9 @@ class SimResults(BaseSimResults):
 
         self.state_data = state_data
         self.prices = prices
+        self.sim_mode = sim_mode
 
-    def plot(self, summary=True, data=True, save_as=None, bands_plot=False):
+    def plot(self, summary=True, data=True, save_as=None):
         """
         Returns and optionally saves a plot of the results data.
 
@@ -61,7 +64,7 @@ class SimResults(BaseSimResults):
         altair.VConcatChart
 
         """
-        if bands_plot:
+        if self.sim_mode == "N":
             chart = super().plot(summary, data, save_as=None)
             bands_arb_profits_chart = make_bands_arb_profits_plot(self.state_data, self.prices)
             page = vconcat(chart, bands_arb_profits_chart).resolve_scale(

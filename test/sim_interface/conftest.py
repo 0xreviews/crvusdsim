@@ -21,6 +21,7 @@ def create_sim_pool():
         collateral_token,
         stablecoin,
         aggregator,
+        stableswap_pools,
         peg_keepers,
         policy,
         factory,

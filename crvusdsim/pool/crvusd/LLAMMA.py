@@ -117,6 +117,8 @@ class LLAMMAPool(
         liquidity_mining_callback=None,
         bands_x=None,
         bands_y=None,
+        user_shares=None,
+        total_shares=None,
         admin=None,
         address: str = None,
         borrowed_token: StableCoin = None,
@@ -184,8 +186,8 @@ class LLAMMAPool(
         else:
             self.bands_y = bands_y
 
-        self.total_shares = defaultdict(int)
-        self.user_shares = defaultdict(_default_user_shares)
+        self.total_shares = defaultdict(int) if total_shares is None else total_shares
+        self.user_shares = defaultdict(_default_user_shares) if user_shares is None else user_shares
 
         self.liquidity_mining_callback = liquidity_mining_callback
 
@@ -1568,7 +1570,7 @@ class LLAMMAPool(
         # SIM_INTERFACE
         if not self.fees_switch:
             antifee = 10**18
-            
+
         admin_fee: int = self.admin_fee
         j: int = MAX_TICKS_UINT
 

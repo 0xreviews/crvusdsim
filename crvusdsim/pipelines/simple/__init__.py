@@ -1,5 +1,7 @@
 import os
 
+from curvesim.logging import get_logger
+
 from crvusdsim.iterators.params_samplers import (
     CRVUSD_POOL_MAP,
     ParameterizedLLAMMAPoolIterator,
@@ -19,6 +21,8 @@ from crvusdsim.pipelines.simple.strategy import SimpleStrategy
 from crvusdsim.pool import get_sim_market
 from crvusdsim.iterators.price_samplers import PriceVolume
 from crvusdsim.pool_data.cache import PoolDataCache
+
+logger = get_logger(__name__)
 
 
 def pipeline(  # pylint: disable=too-many-locals
@@ -109,6 +113,8 @@ def pipeline(  # pylint: disable=too-many-locals
     :class:`~curvesim.metrics.SimResults`
 
     """
+    logger.info("Simulating mode: ", sim_mode)
+
     ncpu = ncpu or os.cpu_count()
     fixed_params = fixed_params or {}  # @todo
 
@@ -134,6 +140,7 @@ def pipeline(  # pylint: disable=too-many-locals
         collateral_token,
         stablecoin,
         aggregator,
+        stableswap_pools,
         peg_keepers,
         policy,
         factory,
@@ -182,6 +189,6 @@ def pipeline(  # pylint: disable=too-many-locals
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
 
-    results = make_results(*output, _metrics, prices=price_sampler.prices)
+    results = make_results(*output, _metrics, prices=price_sampler.prices, sim_mode=sim_mode)
 
     return results

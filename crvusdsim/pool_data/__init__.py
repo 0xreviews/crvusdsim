@@ -18,7 +18,7 @@ from crvusdsim.pool_data.cache import PoolDataCache
 from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 from crvusdsim.pool.crvusd import LLAMMAPool
 from .metadata import MarketMetaData, init_y_bands_strategy
-from .queries import from_address
+from .queries import from_address, from_symbol, valid_collateral_symbol
 
 
 def get_data_cache(
@@ -74,7 +74,7 @@ def get_metadata(
     Parameters
     ----------
     address : str
-        Pool address prefixed with “0x”.
+        Pool address prefixed with “0x” or collateral symbol (e.g. wsteth).
 
     Returns
     -------
@@ -82,12 +82,20 @@ def get_metadata(
 
     """
     # TODO: validate function arguments
-    metadata_dict = from_address(
-        address,
-        end_ts=end_ts,
-        use_band_snapshot=use_band_snapshot,
-        use_user_snapshot=use_user_snapshot,
-    )
+    if valid_collateral_symbol(address):
+        metadata_dict = from_symbol(
+            address,
+            end_ts=end_ts,
+            use_band_snapshot=use_band_snapshot,
+            use_user_snapshot=use_user_snapshot,
+        )
+    else:
+        metadata_dict = from_address(
+            address,
+            end_ts=end_ts,
+            use_band_snapshot=use_band_snapshot,
+            use_user_snapshot=use_user_snapshot,
+        )
     metadata = MarketMetaData(metadata_dict, LLAMMAPool, SimLLAMMAPool)
 
     if save_dir is not None:

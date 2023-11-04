@@ -103,7 +103,14 @@ class Controller(
         amm: LLAMMAPool,
         monetary_policy: any = None,
         address: str = None,
-        n_loans: int = 0,
+        total_debt=None,
+        loan=None,
+        loans=None,
+        loan_ix=None,
+        n_loans=None,
+        minted=None,
+        redeemed=None,
+        liquidation_discounts=None,
         debt_ceiling: int = 5 * 10**24,
     ):
         """
@@ -133,23 +140,28 @@ class Controller(
         self.STABLECOIN = stablecoin
         self.FACTORY = factory
 
-        self.loan = defaultdict(Loan)
-        self.liquidation_discounts = defaultdict(int)
-        self._total_debt = Loan()
+        self.loan = loan if loan is not None else defaultdict(Loan)
+        self.liquidation_discounts = (
+            liquidation_discounts
+            if liquidation_discounts is not None
+            else defaultdict(int)
+        )
 
-        self.loans = defaultdict(str)  # address[]
-        self.loan_ix = defaultdict(int)  # HashMap[address, uint256]
+        self._total_debt = total_debt if total_debt is not None else Loan()
+        
+
+        self.loans = loans if loans is not None else defaultdict(str)  # address[]
+        self.loan_ix = loan_ix if loan_ix is not None else defaultdict(int)  # HashMap[address, uint256]
         self.n_loans = n_loans
 
-        self.minted = 0
-        self.redeemed = 0
+        self.minted =  minted if minted is not None else 0
+        self.redeemed = redeemed if redeemed is not None else 0
 
         if monetary_policy is not None:
             self.monetary_policy = monetary_policy
 
         self.liquidation_discount = liquidation_discount
         self.loan_discount = loan_discount
-        self._total_debt.rate_mul = 10**18
 
         if amm is not None:
             self.AMM = amm

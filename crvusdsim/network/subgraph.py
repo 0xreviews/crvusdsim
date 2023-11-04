@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from string import Template
 
 from curvesim.network.subgraph import query, _pool_snapshot
 from curvesim.exceptions import SubgraphResultError
@@ -156,17 +157,17 @@ async def _market_snapshot(
         end_ts = int(end_date.timestamp())
 
     # pylint: disable=consider-using-f-string
-    q = """
+    template_query = """
         query MarketSnapshots {
             snapshots(
                 orderBy: timestamp,
                 orderDirection: desc,
                 first: 1,
                 where: {
-                    llamma: "%(llamma_address)s"
-                    timestamp_lte: %(end_ts)d
-                    bandSnapshot: %(use_band_snapshot)s
-                    userStateSnapshot: %(use_user_snapshot)s
+                    llamma: "$llamma_address"
+                    timestamp_lte: $end_ts
+                    bandSnapshot: $use_band_snapshot
+                    userStateSnapshot: $use_user_snapshot
                 }
             ) {
                 id
@@ -281,23 +282,58 @@ async def _market_snapshot(
                 }
 
             }
+            llammaRates(
+                orderBy: blockTimestamp,
+                orderDirection: desc,
+                first: 1,
+                where: {
+                    llamma: "$llamma_address"
+                    blockTimestamp_lte: $end_ts
+                }
+            ) {
+                id
+                llamma {
+                    id
+                }
+                rate
+                rateMul
+                blockTimestamp
+            }
         }
-    """ % {
-        "llamma_address": llamma_address.lower(),
-        "end_ts": end_ts,
-        "use_band_snapshot": "true" if use_band_snapshot else "false",
-        "use_user_snapshot": "true" if use_user_snapshot else "false",
-    }
+    """
+
+    q = Template(template_query).substitute(
+        llamma_address=llamma_address.lower(),
+        end_ts=end_ts,
+        use_band_snapshot="true" if use_band_snapshot else "false",
+        use_user_snapshot="false",
+    )
 
     r = await convex_crvusd(q)
+
+    if use_user_snapshot:
+        q2 = Template(template_query).substitute(
+            llamma_address=llamma_address.lower(),
+            end_ts=end_ts,
+            use_band_snapshot="false",
+            use_user_snapshot="true",
+        )
+        r2 = await convex_crvusd(q2)
+
     try:
-        r = r["snapshots"][0]
+        res = r["snapshots"][0]
+        res["llammaRate"] = r["llammaRates"][0]
+
+        if use_user_snapshot:
+            res["userStateSnapshot"] = True
+            res["userStates"] = r2["snapshots"][0]["userStates"]
+
     except IndexError as e:
         raise SubgraphResultError(
             f"No daily snapshot for this pool: {llamma_address}"
         ) from e
 
-    return r
+    return res
 
 
 async def _stableswap_snapshot(pool_addresses):
@@ -397,6 +433,8 @@ async def market_snapshot(
         "llamma_params": {
             "address": r["market"]["amm"]["id"],
             "A": r["A"],
+            "rate": r["llammaRate"]["rate"],
+            "rate_mul": r["llammaRate"]["rateMul"],
             "fee": r["fee"],
             "admin_fee": r["adminFee"],
             "BASE_PRICE": r["basePrice"],
