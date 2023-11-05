@@ -37,12 +37,18 @@ MAX_ETH_GAS = 10000  # Forward this much gas to ETH transfers (2300 is what send
 
 
 class Loan:
-    def __init__(self):
-        self.initial_debt = 0
-        self.rate_mul = 0
+    def __init__(
+        self,
+        initial_debt=0,
+        rate_mul=0,
+        initial_collateral=0,
+        timestamp=0,
+    ):
+        self.initial_debt = initial_debt
+        self.rate_mul = rate_mul
         # SIM_INTERFACE
-        self.initial_collateral = 0
-        self.timestamp = 0
+        self.initial_collateral = initial_collateral
+        self.timestamp = timestamp
 
 
 class Position:
@@ -148,13 +154,14 @@ class Controller(
         )
 
         self._total_debt = total_debt if total_debt is not None else Loan()
-        
 
         self.loans = loans if loans is not None else defaultdict(str)  # address[]
-        self.loan_ix = loan_ix if loan_ix is not None else defaultdict(int)  # HashMap[address, uint256]
+        self.loan_ix = (
+            loan_ix if loan_ix is not None else defaultdict(int)
+        )  # HashMap[address, uint256]
         self.n_loans = n_loans
 
-        self.minted =  minted if minted is not None else 0
+        self.minted = minted if minted is not None else 0
         self.redeemed = redeemed if redeemed is not None else 0
 
         if monetary_policy is not None:

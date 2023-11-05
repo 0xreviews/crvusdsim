@@ -25,6 +25,7 @@ from curvesim.logging import get_logger
 __all__ = [
     "SimLLAMMAPool",
     "get_sim_market",
+    "get",
 ]
 
 logger = get_logger(__name__)
@@ -186,3 +187,5 @@ def get_sim_market(
         policy,
         factory,
     )
+
+get = get_sim_market

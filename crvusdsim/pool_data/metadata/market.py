@@ -107,11 +107,12 @@ class MarketMetaData(PoolMetaDataBase):
 
                 userStates = self._dict["userStates"]
 
-                init_debt = int(_u["debt"] * 10**18 / rate_mul)
-                init_collateral = format_float_to_uint256(_u["depositedCollateral"])
-
                 for i in range(len(userStates)):
                     _u = userStates[i]
+
+                    init_debt = int(format_float_to_uint256(_u["debt"]) / rate_mul)
+                    init_collateral = format_float_to_uint256(_u["depositedCollateral"])
+
                     user_address = _u["user"]["id"]
                     # For the convenience of calculation,
                     # consider all Loan initial rate_mul is one.
@@ -134,6 +135,7 @@ class MarketMetaData(PoolMetaDataBase):
                     n1 = int(_u["n1"])
                     n2 = int(_u["n2"])
                     N = n2 - n1 + 1
+                    ticks = []
                     for b_i in range(n1, n2 + 1):
                         if total_shares[b_i] == 0:
                             # init total shares as 100
@@ -142,20 +144,21 @@ class MarketMetaData(PoolMetaDataBase):
                         x = bands_x[b_i]
                         y = bands_y[b_i]
 
-                        if x > 10**16:
-                            user_shares[user_address] = (
+                        if x > 10**6:
+                            ticks.append(
                                 format_float_to_uint256(_u["stablecoin"])
                                 * total_shares[b_i]
                                 / N
                                 // x
                             )
-                        else:
-                            user_shares[user_address] = (
+                        elif y > 10**3:
+                            ticks.append(
                                 format_float_to_uint256(_u["collateral"])
                                 * total_shares[b_i]
                                 / N
                                 // y
                             )
+                    user_shares[user_address] = UserShares(n1,n2,ticks)
 
                 pool_kwargs["total_shares"] = total_shares
                 pool_kwargs["user_shares"] = user_shares
@@ -164,9 +167,12 @@ class MarketMetaData(PoolMetaDataBase):
                 controller_kwargs["loans"] = loans
                 controller_kwargs["loan_ix"] = loan_ix
                 controller_kwargs["total_debt"] = total_debt
-                controller_kwargs["minted"] = int(data["controller_params"]["minted"])
-                controller_kwargs["redeemed"] = int(data["controller_params"]["redeemed"])
-                
+                controller_kwargs["minted"] = format_float_to_uint256(
+                    data["controller_params"]["minted"]
+                )
+                controller_kwargs["redeemed"] = format_float_to_uint256(
+                    data["controller_params"]["redeemed"]
+                )
 
         return (
             pool_kwargs,

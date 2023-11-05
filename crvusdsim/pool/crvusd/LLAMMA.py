@@ -2011,10 +2011,10 @@ class LLAMMAPool(
 class UserShares:
     """n1, n2 and fraction of n'th band owned by a user"""
 
-    def __init__(self):
-        self.n1 = 0
-        self.n2 = 0
-        self.ticks = [0] * MAX_TICKS
+    def __init__(self, n1=0, n2=0, ticks=[0] * MAX_TICKS):
+        self.n1 = n1
+        self.n2 = n2
+        self.ticks = ticks
 
 
 def _default_user_shares():
