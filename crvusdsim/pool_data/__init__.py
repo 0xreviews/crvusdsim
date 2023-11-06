@@ -63,9 +63,9 @@ def get_data_cache(
 
 def get_metadata(
     address,
-    end_ts=None,
     use_band_snapshot=False,
     use_user_snapshot=False,
+    end_ts=None,
     save_dir=None,
 ):
     """

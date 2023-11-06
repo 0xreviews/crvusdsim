@@ -39,13 +39,6 @@ class MarketMetaData(PoolMetaDataBase):
 
         peg_keepers_kwargs = data["peg_keepers_params"]
 
-        # convert key from str to int
-        bands_x = defaultdict(int)
-        bands_y = defaultdict(int)
-        for b in data["llamma_params"]["bands_x"]:
-            bands_x[int(b)] = int(data["llamma_params"]["bands_x"][b])
-        for b in data["llamma_params"]["bands_y"]:
-            bands_y[int(b)] = int(data["llamma_params"]["bands_y"][b])
 
         pool_kwargs = {
             "address": data["llamma_params"]["address"],
@@ -60,8 +53,6 @@ class MarketMetaData(PoolMetaDataBase):
             "max_band": int(data["llamma_params"]["max_band"]),
             "collateral": collateral_token,
             "price_oracle_contract": price_oracle_contract,
-            "bands_x": bands_x,
-            "bands_y": bands_y,
         }
 
         controller_kwargs = {
@@ -80,11 +71,15 @@ class MarketMetaData(PoolMetaDataBase):
         }
 
         if bands_data:
-            bands = self._dict["bands"]
-            for i in range(len(bands)):
-                _b = bands[i]
-                bands_x[int(_b["index"])] = int(float(_b["stableCoin"]) * 10**18)
-                bands_y[int(_b["index"])] = int(float(_b["collateral"]) * 10**18)
+            # convert key from str to int
+            bands_x = defaultdict(int)
+            bands_y = defaultdict(int)
+
+            for b in data["llamma_params"]["bands_x"]:
+                bands_x[int(b)] = int(data["llamma_params"]["bands_x"][b])
+            for b in data["llamma_params"]["bands_y"]:
+                bands_y[int(b)] = int(data["llamma_params"]["bands_y"][b])
+
             pool_kwargs["bands_x"] = bands_x
             pool_kwargs["bands_y"] = bands_y
 

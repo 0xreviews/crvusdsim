@@ -17,7 +17,6 @@ class PriceOracle(BlocktimestampMixins):
 
     def price_w(self):
         _price_oracle = self._price()
-        # print("ema percent", _price_oracle / self._price_last, (self._block_timestamp - self.last_prices_timestamp), _price_oracle / 1e18, self._price_last / 1e18)
         self._price_oracle = _price_oracle
         self.last_prices_timestamp = self._block_timestamp
         return _price_oracle

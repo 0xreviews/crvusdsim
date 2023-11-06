@@ -91,6 +91,7 @@ def get_sim_market(
         if bands_data == "pool":
             use_band_snapshot = True
         elif bands_data == "controller":
+            use_band_snapshot = True
             use_user_snapshot = True
 
     if isinstance(pool_metadata, str):

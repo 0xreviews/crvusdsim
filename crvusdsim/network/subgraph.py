@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timezone
 from string import Template
 
@@ -406,8 +407,8 @@ async def market_snapshot(
 
     coins = {"names": names, "addresses": addrs, "decimals": decimals}
 
-    bands_x = {}
-    bands_y = {}
+    bands_x = defaultdict(int)
+    bands_y = defaultdict(int)
     for b in r["bands"]:
         bands_x[int(b["index"])] = int(float(b["stableCoin"]) * 1e18)
         bands_y[int(b["index"])] = int(float(b["collateral"]) * 1e18)
@@ -434,6 +435,7 @@ async def market_snapshot(
     # Output
     data = {
         "llamma_params": {
+            "name": "Curve.fi Stablecoin %s" % (r["market"]["collateralName"]),
             "address": r["market"]["amm"]["id"],
             "A": r["A"],
             "rate": r["llammaRate"]["rate"],
@@ -483,6 +485,7 @@ async def market_snapshot(
         "price_oracle_params": {
             "oracle_price": r["oraclePrice"],
         },
+        "name": "Curve.fi Stablecoin %s" % (r["market"]["collateralName"]),
         "symbol": "Curve.fi Stablecoin %s" % (r["market"]["collateralName"]),
         "totalKeeperDebt": r["totalKeeperDebt"],
         "totalCollateral": r["totalCollateral"],
