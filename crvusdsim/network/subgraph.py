@@ -394,12 +394,15 @@ async def market_snapshot(
     logger.debug("Market snapshot: %s", r)
 
     # Coins
-    names = [STABLECOIN_TOKEN_CONF["symbol"], r["market"]["collateralName"]]
-    addrs = [
-        STABLECOIN_TOKEN_CONF["address"],
-        to_checksum_address(r["market"]["collateral"]),
+    names = [
+        r["market"]["collateralName"],
+        STABLECOIN_TOKEN_CONF["symbol"],
     ]
-    decimals = [18, int(r["market"]["collateralPrecision"])]
+    addrs = [
+        to_checksum_address(r["market"]["collateral"]),
+        STABLECOIN_TOKEN_CONF["address"],
+    ]
+    decimals = [int(r["market"]["collateralPrecision"]), 18]
 
     coins = {"names": names, "addresses": addrs, "decimals": decimals}
 

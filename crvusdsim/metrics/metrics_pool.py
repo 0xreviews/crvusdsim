@@ -216,7 +216,7 @@ class PoolValue(PoolPricingMetric):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.numeraire = self.coin_names[0]
+        self.numeraire = "crvUSD"
 
     @property
     @cache

@@ -180,7 +180,7 @@ def init_y_bands_strategy(
     pool.price_oracle_contract._price_oracle = p
 
     while p > init_price:
-        p -= int(0.5 * 10**18)
+        p -= int(1 * 10**18)
         p = int(max(init_price, p))
         pool.price_oracle_contract._price_last = p
         pool.price_oracle_contract._price_oracle = p
@@ -193,7 +193,7 @@ def init_y_bands_strategy(
             i, j = 1, 0
 
         pool.trade(i, j, amount)
-
+    
     p_up = pool.p_oracle_up(pool.active_band)
     p_down = pool.p_oracle_down(pool.active_band)
 

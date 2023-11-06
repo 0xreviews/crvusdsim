@@ -15,13 +15,8 @@ class MarketMetaData(PoolMetaDataBase):
     """Specific implementation of the `PoolMetaDataInterface` for LLAMMA."""
 
     def init_kwargs(self, bands_data=None):
-        _coins_name = self._dict["coins"]["names"]
-        if _coins_name[0] != "crvUSD":
-            self._dict["coins"]["names"].reverse()
-            self._dict["coins"]["addresses"].reverse()
-
         data = self._dict
-
+        
         collateral_token = ERC20(
             address=data["collateral_token_params"]["address"],
             decimals=int(data["collateral_token_params"]["precision"]),
@@ -55,8 +50,8 @@ class MarketMetaData(PoolMetaDataBase):
         pool_kwargs = {
             "address": data["llamma_params"]["address"],
             "A": int(data["llamma_params"]["A"]),
-            "rate": format_float_to_uint256(data["llamma_params"]["rate"]),
-            "rate_mul": format_float_to_uint256(data["llamma_params"]["rate_mul"]),
+            "rate": int(data["llamma_params"]["rate"]),
+            "rate_mul": int(data["llamma_params"]["rate_mul"]),
             "fee": format_float_to_uint256(data["llamma_params"]["fee"]),
             "admin_fee": format_float_to_uint256(data["llamma_params"]["admin_fee"]),
             "BASE_PRICE": format_float_to_uint256(data["llamma_params"]["BASE_PRICE"]),

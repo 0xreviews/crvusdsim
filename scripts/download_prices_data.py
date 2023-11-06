@@ -6,7 +6,7 @@ from curvesim.price_data import get
 crvUSD_address = "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E".lower()
 wstETH_address = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".lower()
 
-def download_prices_data(collateral_address, days=70, data_dir="data"):
+def download_prices_data(collateral_address, days=80, data_dir="data"):
     filename = f"{crvUSD_address.lower()}-{collateral_address.lower()}.csv"
     filepath = os.path.join(data_dir, filename)
 

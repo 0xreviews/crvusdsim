@@ -39,7 +39,7 @@ def pipeline(  # pylint: disable=too-many-locals
     days=60,
     src="coingecko",
     data_dir="data",
-    prices_max_interval=5 * 60,
+    prices_max_interval=10 * 60,
     profit_threshold=50 * 10**18,
     ncpu=None,
 ) -> SimResults:
@@ -110,10 +110,10 @@ def pipeline(  # pylint: disable=too-many-locals
 
     Returns
     -------
-    :class:`~curvesim.metrics.SimResults`
+    :class:`~crvusdsim.metrics.SimResults`
 
     """
-    logger.info("Simulating mode: ", sim_mode)
+    logger.info("Simulating mode: %s", sim_mode)
 
     ncpu = ncpu or os.cpu_count()
     fixed_params = fixed_params or {}  # @todo
