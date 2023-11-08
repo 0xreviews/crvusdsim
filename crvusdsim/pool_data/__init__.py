@@ -27,7 +27,7 @@ def get_data_cache(
     days=60,
     use_band_snapshot=False,
     use_user_snapshot=False,
-    end=None,
+    end_ts=None,
 ):
     """
     Fetch historical volume and redemption price data and return
@@ -42,6 +42,9 @@ def get_data_cache(
 
     chain : str
         Chain identifier, e.g. “mainnet”.
+    
+    end_ts: int, optional
+        Posix timestamp indicating the datetime of the metadata snapshot.
 
     Returns
     -------
@@ -52,11 +55,11 @@ def get_data_cache(
     metadata_dict = from_address(
         address,
         chain,
-        end_ts=end,
+        end_ts=end_ts,
         use_band_snapshot=use_band_snapshot,
         use_user_snapshot=use_user_snapshot,
     )
-    pool_data = PoolDataCache(metadata_dict, days=days, end=end)
+    pool_data = PoolDataCache(metadata_dict, days=days, end=end_ts)
 
     return pool_data
 
@@ -66,7 +69,7 @@ def get_metadata(
     use_band_snapshot=False,
     use_user_snapshot=False,
     end_ts=None,
-    save_dir=None,
+    data_dir=None,
 ):
     """
     Pulls pool state and metadata from daily snapshot.
@@ -98,8 +101,8 @@ def get_metadata(
         )
     metadata = MarketMetaData(metadata_dict, LLAMMAPool, SimLLAMMAPool)
 
-    if save_dir is not None:
-        with open(save_dir, "w") as outfile:
+    if data_dir is not None:
+        with open(data_dir, "w") as outfile:
             outfile.write(json.dumps(metadata_dict, indent=4))
 
     return metadata

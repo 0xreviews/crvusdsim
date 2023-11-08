@@ -16,7 +16,7 @@ from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
 from crvusdsim.pool.crvusd.stableswap import LP_PROVIDER, CurveStableSwapPool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 
-INIT_PRICE = 3000 * 10**18
+INIT_PRICE = 2000 * 10**18
 INIT_PRICE_D1 = INIT_PRICE // 10**18
 
 # LLAMMA

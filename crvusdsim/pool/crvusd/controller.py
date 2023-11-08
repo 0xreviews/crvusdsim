@@ -40,7 +40,7 @@ class Loan:
     def __init__(
         self,
         initial_debt=0,
-        rate_mul=0,
+        rate_mul=10**18,
         initial_collateral=0,
         timestamp=0,
     ):

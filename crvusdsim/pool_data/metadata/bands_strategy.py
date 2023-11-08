@@ -3,7 +3,9 @@ Strategies for adjusting band liquidity distribution
 """
 
 from collections import defaultdict
+from datetime import timedelta
 from math import floor, isqrt, log, log2, sqrt
+from pandas import DataFrame
 from crvusdsim.pool.crvusd.controller import Controller
 from crvusdsim.pool.crvusd.vyper_func import unsafe_sub
 from crvusdsim.pool.sim_interface.sim_controller import SimController
@@ -59,8 +61,6 @@ def simple_bands_strategy(
     p_down = pool.p_oracle_down(pool.active_band)
     assert init_price <= p_up and init_price >= p_down
 
-    pool.price_oracle_contract._price_last = init_price
-    pool.price_oracle_contract._price_oracle = init_price
     pool.prepare_for_run(prices)
 
 
@@ -128,7 +128,6 @@ def init_y_bands_strategy(
         Controller, default is None
     """
     A = pool.A
-
     init_price = prices.iloc[0, :].tolist()[0] * 10**18
     # max_price = int(prices.iloc[0,0] * 10**18)
     max_price = int(prices.iloc[:, 0].max() * 10**18)
@@ -137,7 +136,7 @@ def init_y_bands_strategy(
     base_price = pool.get_base_price()
     # init_index = floor(log(init_price / base_price, (A - 1) / A))
     min_index = floor(log(max_price / base_price, (A - 1) / A))
-    max_index = floor(log(min_price / base_price, (A - 1) / A))
+    max_index = floor(log(min_price / base_price, (A - 1) / A)) + 1
 
     pool.active_band = min_index
     pool.max_band = max_index
@@ -163,7 +162,6 @@ def init_y_bands_strategy(
     pool.bands_x = bands_x
     pool.bands_y = bands_y
 
-    pool.prepare_for_run(prices)
 
     if sum(pool.bands_y.values()) > 0:
         pool.COLLATERAL_TOKEN._mint(pool.address, sum(pool.bands_y.values()))
@@ -173,17 +171,18 @@ def init_y_bands_strategy(
     pool_value_before = (
         sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * init_price / 10**18
     )
-    p_o = pool.price_oracle()
 
     p = pool.p_oracle_up(pool.min_band)
-    pool.price_oracle_contract._price_last = p
-    pool.price_oracle_contract._price_oracle = p
+    pool.prepare_for_run(DataFrame([p], index=[prices.index[0]]))
 
     while p > init_price:
         p -= int(1 * 10**18)
         p = int(max(init_price, p))
+        
         pool.price_oracle_contract._price_last = p
         pool.price_oracle_contract._price_oracle = p
+        pool._increment_timestamp(timedelta=10 * 60)
+        pool.price_oracle_contract._increment_timestamp(timedelta=10 * 60)
 
         amount, pump = pool.get_amount_for_price(p)
 
@@ -194,12 +193,16 @@ def init_y_bands_strategy(
 
         pool.trade(i, j, amount)
     
+    pool.prepare_for_run(prices)
+
     p_up = pool.p_oracle_up(pool.active_band)
     p_down = pool.p_oracle_down(pool.active_band)
 
     assert init_price <= p_up and init_price >= p_down
 
-    assert abs(pool.get_p() / p_o - 1) < 5e-3, "init pool price faild."
+    p_o = pool.price_oracle()
+    amm_p = pool.get_p()
+    assert abs(amm_p / p_o - 1) < 5e-3, "init pool price faild."
 
     # calc band liquidity ratio at both ends of the ending
     # within the price fluctuation range.
@@ -233,7 +236,6 @@ def init_y_bands_strategy(
         abs((bands_x_sum * 10**18 / init_price + bands_y_sum) / init_y - 1) < 0.05
     ), "y0 changed too much"
 
-    pool.prepare_for_run(prices)
 
 
 def user_loans_strategy(
@@ -340,9 +342,9 @@ def user_loans_strategy(
     #         count += 1
 
     pool.active_band = pool.min_band
-    p = pool.p_oracle_up(pool.active_band)
-    pool.price_oracle_contract._price_last = p
-    pool.price_oracle_contract._price_oracle = p
+
+    p = pool.p_oracle_up(pool.min_band)
+    pool.prepare_for_run(DataFrame([p], index=[prices.index[0]]))
 
     while p > init_price:
         p -= 10**18
@@ -358,8 +360,14 @@ def user_loans_strategy(
             i, j = 1, 0
 
         pool.trade(i, j, amount)
+        
+    pool.prepare_for_run(prices)
 
     p_up = pool.p_oracle_up(pool.active_band)
     p_down = pool.p_oracle_down(pool.active_band)
 
     assert init_price <= p_up and init_price >= p_down
+
+    p_o = pool.price_oracle()
+    amm_p = pool.get_p()
+    assert abs(amm_p / p_o - 1) < 5e-3, "init pool price faild."

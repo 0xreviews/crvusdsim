@@ -117,17 +117,18 @@ class ArbMetrics(PricingMetric):
 
             for trade in trade_row:
                 market_price = prices.iloc[0]
-                if trade.coin_in == numeraire:
-                    market_price = 1 / market_price
 
-                arb = trade.amount_out - trade.amount_in * market_price
-                fee = trade.fee
+                pump = trade.coin_in == numeraire
 
-                price = prices.iloc[0]
-                if trade.coin_out != numeraire:
-                    arb *= price
-                if trade.coin_in != numeraire:
-                    fee *= price
+                if pump:
+                    arb = trade.amount_out * market_price - trade.amount_in
+                    fee = trade.fee
+                else:
+                    arb = trade.amount_out - trade.amount_in * market_price
+                    fee = trade.fee * market_price
+
+                if arb < 0:
+                    pass                
 
                 arb_profit += arb
                 pool_profit += fee
@@ -175,7 +176,7 @@ class PoolVolume(PoolPricingMetric):
         }
 
         units = {
-            SimLLAMMAPool: "(of Any Coin)",
+            SimLLAMMAPool: "crvUSD",
         }
 
         config = {}
@@ -232,6 +233,7 @@ class PoolValue(PoolPricingMetric):
                     "title": f"Loss Value (in {self.numeraire})",
                     "style": "time_series",
                     "resample": "last",
+                    "encoding": {"y": {"axis": Axis(format="%")}},
                 },
             },
             "summary": {

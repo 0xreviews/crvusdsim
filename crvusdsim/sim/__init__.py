@@ -29,7 +29,7 @@ def autosim(
     pool=None,
     pool_metadata=None,
     sim_mode="pool",
-    save_dir=None,
+    end_ts=None,
     **kwargs,
 ):
     """
@@ -45,7 +45,7 @@ def autosim(
     Parameters
     ----------
     pool: str, optional
-        This 0x-prefixed string identifies the LLAMMA pool by address or 
+        This 0x-prefixed string identifies the LLAMMA pool by address or
         collateral's symbol of market.
 
         .. note::
@@ -89,8 +89,11 @@ def autosim(
     src: str, default='coingecko'
         Valid values for data source are 'coingecko' or 'local'
 
-    save_dir: str, default=None
+    data_dir: str, default=None
         Relative path to saved data folder.
+    
+    end_ts: int, optional
+        Posix timestamp indicating the datetime of the metadata snapshot.
 
     ncpu : int, default=os.cpu_count()
         Number of cores to use.
@@ -105,14 +108,21 @@ def autosim(
     """
     assert any([pool, pool_metadata]), "Must input 'pool' or 'pool_metadata'"
 
-    pool_metadata = pool_metadata or get_metadata(pool, save_dir=save_dir)
-    p_var, bands_strategy = _parse_arguments(pool_metadata, sim_mode, **kwargs)
+    # pool_metadata = pool_metadata or get_metadata(
+    #     pool, data_dir=data_dir, end_ts=end_ts
+    # )
+    p_var, bands_strategy, rest_of_params = _parse_arguments(
+        pool_metadata, sim_mode, **kwargs
+    )
+
 
     results = pipeline(
-        pool_metadata,
+        pool_metadata=pool if pool else pool_metadata,
         sim_mode=sim_mode,
         variable_params=p_var,
         bands_strategy=bands_strategy,
+        end_ts=end_ts,
+        **rest_of_params,
     )
 
     return results
@@ -137,13 +147,15 @@ def _parse_arguments(pool_metadata, sim_mode, **kwargs):
         bands_strategy = one_user_bands_strategy
 
     variable_params = {}
+    rest_of_params = {}
 
     for key, val in kwargs.items():
         if key in input_args:
             if all(isinstance(v, int) for v in val):
                 variable_params[key] = val
-
             else:
                 raise TypeError(f"Argument {key} must be an int or iterable of ints")
+        else:
+            rest_of_params[key] = val
 
-    return variable_params, bands_strategy
+    return variable_params, bands_strategy, rest_of_params

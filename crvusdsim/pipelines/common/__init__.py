@@ -24,7 +24,6 @@ DEFAULT_N_METRICS = [
     PoolMetrics.Timestamp,
     RangeNMetrics.RangeNReturns
 ]
-
 DEFAULT_POOL_PARAMS = {
     "A": [50, 100, 150, 200],
     "fee": [
@@ -36,7 +35,6 @@ DEFAULT_CONTROLLER_PARAMS = {
     "loan_discount": [int(0.09 * 10**18), int(0.05 * 10**18)]
 }
 DEFAULT_N_PARAMS = {"N": [n for n in range(4, 51)]}
-
 TEST_PARAMS = {
     "A": [50, 100, 150, 200],
     "fee": [
@@ -71,22 +69,29 @@ def get_arb_trades(
 
     trades = []
 
+    # price_limit_up = pool.p_oracle_up(pool.min_band)
+    # price_limit_down = pool.p_oracle_up(pool.max_band)
+
     for pair in prices:
-        i, j = pool.asset_names
 
         p_o = int(prices[pair] * 10**18)
+        target_price = p_o
+        # target_price = min(price_limit_up, max(price_limit_down, target_price))
 
-        target_price = pool.price_oracle()
-
+        amm_p = pool.get_p()
         amount, pump = pool.get_amount_for_price(target_price)
 
+        if amount < 10**6:
+            # trades.append((0, 0, 0, 0, pair, prices[pair]))
+            continue
+
         if pump:
-            price = 1 / prices[pair]
-            coin_in, coin_out = i, j
+            price = prices[pair]
+            coin_in, coin_out = pool.asset_names
             amount_in, amount_out, fees = pool.get_dxdy(0, 1, amount)
         else:
-            price = prices[pair]
-            coin_in, coin_out = j, i
+            price = 1 / prices[pair]
+            coin_out, coin_in = pool.asset_names
             amount_in, amount_out, fees = pool.get_dxdy(1, 0, amount)
 
         if pump:
@@ -104,15 +109,9 @@ def get_arb_trades(
         # do exchange if profit enough, except for last round
         # (we need amm p to approximate p_out in order to calculate loss)
         if profit < profit_threshold:
+            # trades.append((0, 0, 0, 0, pair, prices[pair]))
             continue
 
-        # simply calc profit
-        amm_p = pool.price(i, j)
-        profit = amount_in * (amm_p - p_o) / 10**18
-        if abs(profit) < profit_threshold:
-            trades.append((0, 0, pair, prices[pair]))
-            continue
-
-        trades.append((amount_in, amount_out, (coin_in, coin_out), price))
-
+        trades.append((amount_in, amount_out, fees, profit, (coin_in, coin_out), price))
+    
     return trades

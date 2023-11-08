@@ -10,7 +10,7 @@ DEAD_SHARES = 10**3
 
 
 @given(
-    oracle_price=st.integers(min_value=2400 * 10**18, max_value=3750 * 10**18),
+    oracle_price=st.integers(min_value=1400 * 10**18, max_value=2750 * 10**18),
     n1=st.integers(min_value=1, max_value=50),
     dn=st.integers(min_value=4, max_value=49),
     deposit_amount=st.integers(min_value=10**12, max_value=10**20),

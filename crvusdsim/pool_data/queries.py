@@ -26,10 +26,8 @@ def from_address(
     ----------
     llamma_address: str
         Address prefixed with '0x'
-    chain: str
-        Chain name
-    env: str
-        Environment name for subgraph: 'prod' or 'staging'
+    end_ts: int, optional
+        Posix timestamp indicating the datetime of the metadata snapshot.
 
     Returns
     -------

@@ -103,7 +103,11 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             
         self._before_exchange()
 
-        i, j = self.get_asset_indices(coin_in, coin_out)
+        # i, j = self.get_asset_indices(coin_in, coin_out)
+        pump = coin_in == "crvUSD" or coin_in == 0
+        i, j = 0, 1
+        if not pump:
+            i, j = 1, 0
 
         if i == 0:
             self.BORROWED_TOKEN._mint(ARBITRAGUR_ADDRESS, size)
@@ -151,11 +155,13 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.rate_time = init_ts
         self.price_oracle_contract.set_price(initial_price)
         self.price_oracle_contract._price_oracle = initial_price
+        self.price_oracle_contract._price_last = initial_price
         self.price_oracle_contract._increment_timestamp(timestamp=init_ts)
         self.price_oracle_contract.last_prices_timestamp = init_ts
 
         self.bands_x_benchmark = self.bands_x.copy()
         self.bands_y_benchmark = self.bands_y.copy()
+
 
     @property
     @cache
@@ -178,7 +184,6 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         self.last_active_band = self.active_band
         self.bands_x_snapshot_tmp = self.bands_x.copy()
         self.bands_y_snapshot_tmp = self.bands_y.copy()
-        pass
 
     def _after_exchange(self):
         index = self.last_active_band

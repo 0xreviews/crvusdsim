@@ -1423,7 +1423,7 @@ class LLAMMAPool(
             int
         ] = self._price_oracle_w()  # Let's update the oracle even if we exchange 0
         if amount == 0:
-            return [0, 0]
+            return [0, 0, 0]
 
         lm = self.liquidity_mining_callback
         collateral_shares: List[int] = []
@@ -1454,7 +1454,7 @@ class LLAMMAPool(
         else:
             assert in_amount_done <= minmax_amount, "Slippage"
         if out_amount_done == 0 or in_amount_done == 0:
-            return [0, 0]
+            return [0, 0, 0]
 
         out.admin_fee = unsafe_div(out.admin_fee, in_precision)
         if i == 0:
@@ -2011,10 +2011,10 @@ class LLAMMAPool(
 class UserShares:
     """n1, n2 and fraction of n'th band owned by a user"""
 
-    def __init__(self, n1=0, n2=0, ticks=[0] * MAX_TICKS):
+    def __init__(self, n1=0, n2=0, ticks=None):
         self.n1 = n1
         self.n2 = n2
-        self.ticks = ticks
+        self.ticks = ticks if ticks is not None else [0] * MAX_TICKS
 
 
 def _default_user_shares():

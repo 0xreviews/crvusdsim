@@ -40,12 +40,12 @@ def pipeline(  # pylint: disable=too-many-locals
     src="coingecko",
     data_dir="data",
     prices_max_interval=10 * 60,
-    profit_threshold=50 * 10**18,
+    profit_threshold=0 * 10**18,
     ncpu=None,
 ) -> SimResults:
     """
     Implements the simple arbitrage pipeline.  This is a very simplified version
-    of :func:`curvesim.pipelines.vol_limited_arb.pipeline`.
+    of :func:`crvusdsim.pipelines.simple.pipeline`.
 
     At each timestep, the pool is arbitraged as close to the prevailing market
     price as possible for the coin pair generating the largest arbitrage profit.
@@ -144,7 +144,11 @@ def pipeline(  # pylint: disable=too-many-locals
         peg_keepers,
         policy,
         factory,
-    ) = get_sim_market(pool_metadata, pool_data_cache=pool_data_cache, end_ts=end_ts)
+    ) = get_sim_market(
+        pool_metadata,
+        pool_data_cache=pool_data_cache,
+        end_ts=None if isinstance(pool_metadata, str) else end_ts,
+    )
 
     if test:
         fixed_params = {}
@@ -189,6 +193,8 @@ def pipeline(  # pylint: disable=too-many-locals
 
     output = run_pipeline(param_sampler, price_sampler, strategy, ncpu=ncpu)
 
-    results = make_results(*output, _metrics, prices=price_sampler.prices, sim_mode=sim_mode)
+    results = make_results(
+        *output, _metrics, prices=price_sampler.prices, sim_mode=sim_mode
+    )
 
     return results

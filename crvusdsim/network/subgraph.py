@@ -396,14 +396,14 @@ async def market_snapshot(
 
     # Coins
     names = [
-        r["market"]["collateralName"],
         STABLECOIN_TOKEN_CONF["symbol"],
+        r["market"]["collateralName"],
     ]
     addrs = [
-        to_checksum_address(r["market"]["collateral"]),
         STABLECOIN_TOKEN_CONF["address"],
+        to_checksum_address(r["market"]["collateral"]),
     ]
-    decimals = [int(r["market"]["collateralPrecision"]), 18]
+    decimals = [18, int(r["market"]["collateralPrecision"])]
 
     coins = {"names": names, "addresses": addrs, "decimals": decimals}
 

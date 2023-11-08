@@ -62,8 +62,12 @@ class PriceVolume(PriceSampler):
             Identifies pricing source: coingecko or local.
 
         """
+        addresses = assets.addresses
+        if assets.symbols[0] == "crvUSD":
+            addresses.reverse() # should reverse address here
+
         prices, volumes, _ = get(
-            assets.addresses,
+            assets.addresses, # [collateral_address, crvUSD_address]
             chain=assets.chain,
             days=days,
             data_dir=data_dir,
@@ -71,10 +75,11 @@ class PriceVolume(PriceSampler):
             end=end,
         )
 
+
         self.assets = assets
         self.max_interval = max_interval
-        self.original_prices = prices.set_axis(assets.symbol_pairs, axis="columns")
-        self.original_volumes = volumes.set_axis(assets.symbol_pairs, axis="columns")
+        self.original_prices = prices.dropna().set_axis(assets.symbol_pairs, axis="columns")
+        self.original_volumes = volumes.dropna().set_axis(assets.symbol_pairs, axis="columns")
 
         self.insert_prices_volumes()
 
