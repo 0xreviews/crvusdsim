@@ -29,7 +29,6 @@ def autosim(
     pool=None,
     pool_metadata=None,
     sim_mode="pool",
-    end_ts=None,
     **kwargs,
 ):
     """
@@ -121,7 +120,6 @@ def autosim(
         sim_mode=sim_mode,
         variable_params=p_var,
         bands_strategy=bands_strategy,
-        end_ts=end_ts,
         **rest_of_params,
     )
 

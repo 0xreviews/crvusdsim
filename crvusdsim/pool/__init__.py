@@ -39,9 +39,11 @@ def get_sim_market(
     bands_data=None,
     pool_data_cache=None,
     end_ts=None,
+    src=None,
+    data_dir=None,
 ):
     """
-    Factory function for creating related entities (e.g. SimLLAMMAPool, SimController) 
+    Factory function for creating related entities (e.g. SimLLAMMAPool, SimController)
     in the same market based on metadata pulled from on-chain.
 
     Parameters
@@ -56,7 +58,7 @@ def get_sim_market(
     bands_data: "pool" | "controller" | None, default=None
         bands data initialization method
         pool: init bands_x and bands_y in LLAMMAPool with metadata,
-        controller: init bands_x, bands_y and user_shares in LLAMMAPool with metadata, 
+        controller: init bands_x, bands_y and user_shares in LLAMMAPool with metadata,
         init loan, loans, loan_ix, n_loans, total_debt, minted, redeemed in controller.
 
     end_ts: int, optional
@@ -96,7 +98,12 @@ def get_sim_market(
 
     if isinstance(pool_metadata, str):
         pool_metadata = get_metadata(
-            pool_metadata, use_band_snapshot, use_user_snapshot, end_ts=end_ts
+            pool_metadata,
+            use_band_snapshot,
+            use_user_snapshot,
+            src=src,
+            data_dir=data_dir,
+            end_ts=end_ts,
         )
     elif isinstance(pool_metadata, dict):
         if end_ts:
@@ -188,5 +195,6 @@ def get_sim_market(
         policy,
         factory,
     )
+
 
 get = get_sim_market

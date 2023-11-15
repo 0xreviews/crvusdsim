@@ -106,7 +106,6 @@ class SimController(Controller):
                     to_repay = position.debt - position.x
                     self.STABLECOIN._mint(DEFAULT_LIQUIDATOR, to_repay)
 
-                print("liquidation: ", position.user, position.debt/1e18)
                 self._before_liquidate(position)
                 self.liquidate(DEFAULT_LIQUIDATOR, position.user, 0)
 

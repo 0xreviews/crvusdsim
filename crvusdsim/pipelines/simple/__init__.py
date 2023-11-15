@@ -38,7 +38,7 @@ def pipeline(  # pylint: disable=too-many-locals
     end_ts=None,
     days=60,
     src="coingecko",
-    data_dir="data",
+    data_dir=None,
     prices_max_interval=10 * 60,
     profit_threshold=0 * 10**18,
     ncpu=None,
@@ -147,6 +147,8 @@ def pipeline(  # pylint: disable=too-many-locals
     ) = get_sim_market(
         pool_metadata,
         pool_data_cache=pool_data_cache,
+        src=src if src == "local" else None,
+        data_dir=data_dir,
         end_ts=None if isinstance(pool_metadata, str) else end_ts,
     )
 

@@ -289,7 +289,7 @@ def user_loans_strategy(
     p = pool.p_oracle_up(pool.active_band)
     pool.price_oracle_contract._price_last = p
     pool.price_oracle_contract._price_oracle = p
-
+    
     # reset controller
     controller.n_loans = 0
 
@@ -341,7 +341,6 @@ def user_loans_strategy(
 
     #         count += 1
 
-    pool.active_band = pool.min_band
 
     p = pool.p_oracle_up(pool.min_band)
     pool.prepare_for_run(DataFrame([p], index=[prices.index[0]]))
