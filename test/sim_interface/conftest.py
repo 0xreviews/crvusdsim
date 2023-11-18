@@ -27,7 +27,18 @@ def create_sim_pool():
         factory,
     ) = get_sim_market(pool_metadata)
 
-    return pool, controller
+    return (
+        pool,
+        controller,
+        collateral_token,
+        stablecoin,
+        aggregator,
+        stableswap_pools,
+        peg_keepers,
+        policy,
+        factory,
+    )
+
 
 @pytest.fixture(scope="module")
 def assets():
@@ -37,6 +48,7 @@ def assets():
         chain="mainnet",
     )
     return assets
+
 
 @pytest.fixture(scope="module")
 def local_prices(assets):

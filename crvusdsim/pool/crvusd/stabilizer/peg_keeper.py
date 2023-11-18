@@ -24,7 +24,8 @@ SHARE_PRECISION = 10**5
 
 class PegKeeper(BlocktimestampMixins):
     __all__ = [
-        "address" "POOL",
+        "address",
+        "POOL",
         "I",
         "PEGGED",
         "IS_INVERSE",
@@ -269,7 +270,6 @@ class PegKeeper(BlocktimestampMixins):
         if balance_peg > balance_pegged:
             assert p_agg >= 10**18
             self._provide((balance_peg - balance_pegged) // 5)  # this dumps stablecoin
-
         else:
             assert p_agg <= 10**18
             self._withdraw((balance_pegged - balance_peg) // 5)  # this pumps stablecoin

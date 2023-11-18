@@ -109,8 +109,8 @@ def one_user_bands_strategy(
 def init_y_bands_strategy(
     pool: SimLLAMMAPool,
     prices,
-    controller,
-    parameters,
+    controller=None,
+    parameters=None,
 ):
     """
     The strategy used to distribute the initial liquidity of the LLAMMA pool
@@ -133,10 +133,16 @@ def init_y_bands_strategy(
     max_price = int(prices.iloc[:, 0].max() * 10**18)
     min_price = int(prices.iloc[:, 0].min() * 10**18)
 
+
     base_price = pool.get_base_price()
     # init_index = floor(log(init_price / base_price, (A - 1) / A))
     min_index = floor(log(max_price / base_price, (A - 1) / A))
     max_index = floor(log(min_price / base_price, (A - 1) / A)) + 1
+
+    if abs(pool.p_oracle_up(min_index) / max_price) - 1 < 1e-3:
+        min_index -= 1
+    if abs(pool.p_oracle_up(max_index) / min_price) - 1 < 1e-3:
+        max_index += 1
 
     pool.active_band = min_index
     pool.max_band = max_index
@@ -173,7 +179,8 @@ def init_y_bands_strategy(
     )
 
     p = pool.p_oracle_up(pool.min_band)
-    pool.prepare_for_run(DataFrame([p], index=[prices.index[0]]))
+
+    pool.prepare_for_run(DataFrame([p / 1e18], index=[prices.index[0]]))
 
     while p > init_price:
         p -= int(1 * 10**18)
@@ -191,7 +198,7 @@ def init_y_bands_strategy(
         else:
             i, j = 1, 0
 
-        pool.trade(i, j, amount)
+        pool.trade(i, j, amount, snapshot=False)
     
     pool.prepare_for_run(prices)
 
@@ -242,7 +249,7 @@ def user_loans_strategy(
     pool: SimLLAMMAPool,
     prices,
     controller: SimController,
-    parameters,
+    parameters=None,
     total_y=10**22,
     # users_health=[0.05, 0.06, 0.07],
     # users_count=[2, 3, 4],

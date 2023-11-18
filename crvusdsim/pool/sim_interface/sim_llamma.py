@@ -77,7 +77,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         else:
             return 10**36 // p
 
-    def trade(self, coin_in, coin_out, size):
+    def trade(self, coin_in, coin_out, size, snapshot=True):
         """
         Perform an exchange between two coins.
 
@@ -101,7 +101,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         if size == 0:
             return 0, 0, 0
             
-        self._before_exchange()
+        self._before_exchange(snapshot)
 
         # i, j = self.get_asset_indices(coin_in, coin_out)
         pump = coin_in == "crvUSD" or coin_in == 0
@@ -116,7 +116,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
 
         in_amount_done, out_amount_done, fees = self.exchange(i, j, size, min_amount=0)
 
-        self._after_exchange()
+        self._after_exchange(snapshot)
 
         return in_amount_done, out_amount_done, fees
 
@@ -180,28 +180,30 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
             self.chain,
         )
 
-    def _before_exchange(self):
-        self.last_active_band = self.active_band
-        self.bands_x_snapshot_tmp = self.bands_x.copy()
-        self.bands_y_snapshot_tmp = self.bands_y.copy()
+    def _before_exchange(self, snapshot):
+        if snapshot:
+            self.last_active_band = self.active_band
+            self.bands_x_snapshot_tmp = self.bands_x.copy()
+            self.bands_y_snapshot_tmp = self.bands_y.copy()
 
-    def _after_exchange(self):
-        index = self.last_active_band
-        delta_i = -1 if self.active_band < self.last_active_band else 1
-        snapshot = {}
-        while True:
-            snapshot[index] = {
-                "x": self.bands_x[index] - self.bands_x_snapshot_tmp[index],
-                "y": self.bands_y[index] - self.bands_y_snapshot_tmp[index],
-            }
-            index += delta_i
-            if index == self.active_band + delta_i:
-                break
+    def _after_exchange(self, snapshot):
+        if snapshot:
+            index = self.last_active_band
+            delta_i = -1 if self.active_band < self.last_active_band else 1
+            snapshot = {}
+            while True:
+                snapshot[index] = {
+                    "x": self.bands_x[index] - self.bands_x_snapshot_tmp[index],
+                    "y": self.bands_y[index] - self.bands_y_snapshot_tmp[index],
+                }
+                index += delta_i
+                if index == self.active_band + delta_i:
+                    break
 
-        self.bands_x_snapshot_tmp = None
-        self.bands_y_snapshot_tmp = None
-        self.bands_delta_snapshot[self._block_timestamp] = snapshot
-        self.last_active_band = None
+            self.bands_x_snapshot_tmp = None
+            self.bands_y_snapshot_tmp = None
+            self.bands_delta_snapshot[self._block_timestamp] = snapshot
+            self.last_active_band = None
     
     def get_band_snapshot(self, index: int, timestamp=None):
         if timestamp is None:

@@ -161,6 +161,7 @@ class ControllerFactory:
             liquidation_discount=liquidation_discount,
             amm=amm,
         )
+        assert self.STABLECOIN.balanceOf[controller.address] == 0
         amm.set_admin(controller)
         self._set_debt_ceiling(
             addr=controller.address, debt_ceiling=debt_ceiling, update=True

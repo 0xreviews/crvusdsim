@@ -52,7 +52,7 @@ def test_create_loan(accounts):
     assert h >= 0.05 and h <= 0.06
 
     h = controller.health(user, True) / 1e18 + 0.02
-    assert approx(h, c_amount * 3000 / l_amount - 1, 0.02)
+    assert approx(h, c_amount * (INIT_PRICE / 1e18) / l_amount - 1, 0.02)
 
 
 def create_existing_loan(accounts):
@@ -116,7 +116,7 @@ def test_add_collateral(accounts):
     collateral = controller.COLLATERAL_TOKEN
     user = accounts[0]
 
-    c_amount = int(2 * 1e6 * 1e18 * 1.5 / 3000)
+    c_amount = int(2 * 1e6 * 1e18 * 1.5 / (INIT_PRICE / 1e18))
     debt = controller.debt(user)
 
     n_before_0, n_before_1 = market_amm.read_user_tick_numbers(user)
@@ -143,7 +143,7 @@ def test_borrow_more(accounts):
 
     debt = controller.debt(user)
     more_debt = debt // 10
-    c_amount = int(2 * 1e6 * 1e18 * 1.5 / 3000)
+    c_amount = int(2 * 1e6 * 1e18 * 1.5 / (INIT_PRICE / 1e18))
 
     n_before_0, n_before_1 = market_amm.read_user_tick_numbers(user)
     controller.borrow_more(user, 0, more_debt)

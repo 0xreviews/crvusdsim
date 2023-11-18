@@ -14,7 +14,17 @@ profit_threshold = 50 * 10**18
 
 
 def test_bands_snapshot(assets):
-    pool, _ = create_sim_pool()
+    (
+        pool,
+        controller,
+        collateral_token,
+        stablecoin,
+        aggregator,
+        stableswap_pools,
+        peg_keepers,
+        policy,
+        factory,
+    ) = create_sim_pool()
     ts_begin = int(time.time())
     ts = ts_begin
     pool._increment_timestamp(ts)
@@ -28,12 +38,7 @@ def test_bands_snapshot(assets):
         columns=assets.symbol_pairs,
     )
 
-    total_y = 10000 * 10**18
-    init_y_bands_strategy(
-        pool,
-        prices,
-        total_y=total_y,
-    )
+    init_y_bands_strategy(pool, prices)
 
     bands_x_sum = sum(pool.bands_x.values())
     bands_y_sum = sum(pool.bands_y.values())
@@ -70,7 +75,7 @@ def test_bands_snapshot(assets):
     assert approx(sum(pool.bands_y_benchmark.values()), benchmark_y_sum, 1e-3)
 
     # dump
-    for i in range(pool.max_band, pool.min_band+1):
+    for i in range(pool.max_band, pool.min_band + 1):
         bands_x_before = pool.bands_x.copy()
         bands_y_before = pool.bands_y.copy()
 
@@ -98,9 +103,18 @@ def test_bands_snapshot(assets):
     assert approx(sum(pool.bands_y_benchmark.values()), benchmark_y_sum, 1e-3)
 
 
-
 def test_bands_arb_profits_with_benchmark(assets, local_prices):
-    pool, _ = create_sim_pool()
+    (
+        pool,
+        controller,
+        collateral_token,
+        stablecoin,
+        aggregator,
+        stableswap_pools,
+        peg_keepers,
+        policy,
+        factory,
+    ) = create_sim_pool()
 
     prices, volumes = local_prices
     # prices = prices[:1000]
@@ -115,7 +129,7 @@ def test_bands_arb_profits_with_benchmark(assets, local_prices):
     # prices = pd.concat([prices.iloc[:, 0], prices_reverse.iloc[:, 0]])
     # prices = pd.DataFrame(prices, columns=assets.symbol_pairs)
 
-    init_y_bands_strategy(pool, prices, total_y=10000 * 10**18, unuse_bands=20)
+    init_y_bands_strategy(pool, prices)
 
     pool.prepare_for_run(prices=prices)
     init_bands_x = pool.bands_x.copy()
@@ -169,29 +183,32 @@ def test_bands_arb_profits_with_benchmark(assets, local_prices):
             total_fee_borrowed += in_amount_done * fee_rate / 1e18
         else:
             total_fee_collateral += in_amount_done * fee_rate / 1e18
-    
-    print("p_o", prices.iloc[0,0])
-    print("p_o", prices.iloc[-1,0])
-    assert approx(pool.get_p(), pool.price_oracle(), 1e-3), "should no price diff at last"
+
+    assert approx(
+        pool.get_p(), pool.price_oracle(), 1e-3
+    ), "should no price diff at last"
 
     final_pool_value = pool.get_total_xy_up(use_y=False)
 
     price = pool.price_oracle() / 1e18
-    bench_pool_value = sum(pool.bands_x_benchmark.values()) + sum(pool.bands_y_benchmark.values()) * price
+    bench_pool_value = (
+        sum(pool.bands_x_benchmark.values())
+        + sum(pool.bands_y_benchmark.values()) * price
+    )
     pool_value = sum(pool.bands_x.values()) + sum(pool.bands_y.values()) * price
 
-    print("")
-    print("init_pool_value", init_pool_value / 1e18)
-    print("final_pool_value", final_pool_value / 1e18)
-    print("total_profit", total_profit / 1e18)
-    print((init_pool_value - final_pool_value) / 1e18)
-    print("loss {:.4f}%".format((final_pool_value / init_pool_value - 1) * 100))
-    print("profit {:.4f}%".format((total_profit / init_pool_value)  * 100))
-    print(bench_pool_value / 1e18)
-    print(pool_value / 1e18)
-    print("bech loss {:.4f}%".format((pool_value / bench_pool_value - 1)  * 100), (bench_pool_value - pool_value) / 1e18)
-    print("total_fee_borrowed", total_fee_borrowed / 1e18)
-    print("total_fee_collateral", total_fee_collateral / 1e18)
+    # print("")
+    # print("init_pool_value", init_pool_value / 1e18)
+    # print("final_pool_value", final_pool_value / 1e18)
+    # print("total_profit", total_profit / 1e18)
+    # print((init_pool_value - final_pool_value) / 1e18)
+    # print("loss {:.4f}%".format((final_pool_value / init_pool_value - 1) * 100))
+    # print("profit {:.4f}%".format((total_profit / init_pool_value)  * 100))
+    # print(bench_pool_value / 1e18)
+    # print(pool_value / 1e18)
+    # print("bech loss {:.4f}%".format((pool_value / bench_pool_value - 1)  * 100), (bench_pool_value - pool_value) / 1e18)
+    # print("total_fee_borrowed", total_fee_borrowed / 1e18)
+    # print("total_fee_collateral", total_fee_collateral / 1e18)
 
     # assert final_pool_value < init_pool_value
     assert pool_value < bench_pool_value

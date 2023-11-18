@@ -117,7 +117,7 @@ class Controller(
         minted=None,
         redeemed=None,
         liquidation_discounts=None,
-        debt_ceiling: int = 5 * 10**24,
+        debt_ceiling: int = 0,
     ):
         """
         Controller constructor deployed by the factory from blueprint
@@ -159,7 +159,7 @@ class Controller(
         self.loan_ix = (
             loan_ix if loan_ix is not None else defaultdict(int)
         )  # HashMap[address, uint256]
-        self.n_loans = n_loans
+        self.n_loans = n_loans if n_loans is not None else 0
 
         self.minted = minted if minted is not None else 0
         self.redeemed = redeemed if redeemed is not None else 0

@@ -1,6 +1,8 @@
+from datetime import timedelta
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
+from crvusdsim.pool.crvusd.stabilizer.peg_keeper import ACTION_DELAY
 from test.utils import approx
 
 
@@ -22,7 +24,7 @@ def test_pegkeepers_update(
 ):
     beneficiary_addr = "_beneficiary_address"
     buy_amount = 1 * 10**5 * 10**18
-    time_delta = 2 * 60  # 10m
+    time_delta = 10 * 60  # 10m
 
     def increase_timestamp(td):
         for i in range(len(stableswaps)):
@@ -34,7 +36,9 @@ def test_pegkeepers_update(
     for i in range(len(stableswaps)):
         pool = stableswaps[i]
         pk = pegkeepers[i]
+        pool.coins[0]._mint(ARBITRAGUR_ADDRESS, buy_amount)
         pool.exchange(0, 1, buy_amount, _receiver=ARBITRAGUR_ADDRESS)
+        pool._increment_timestamp(timedelta=time_delta)
 
     aggregator._increment_timestamp(timedelta=time_delta)
 
@@ -61,13 +65,16 @@ def test_pegkeepers_update(
         pool = stableswaps[i]
         pk = pegkeepers[i]
         old_pool_p = pool.get_p()
-        dx, dy, fees = pool.exchange(1, 0, int(buy_amount * 1.1), _receiver=ARBITRAGUR_ADDRESS)
+        amount_in = int(buy_amount * 1.2)
+        pool.coins[1]._mint(ARBITRAGUR_ADDRESS, amount_in)
+        pool.exchange(1, 0, amount_in, _receiver=ARBITRAGUR_ADDRESS)
+        pool._increment_timestamp(timedelta=time_delta)
         assert old_pool_p > pool.get_p(), "price must go down after exchange"
 
     aggregator._increment_timestamp(timedelta=time_delta)
     assert old_agg_p > aggregator.price(), "price must go down after exchange"
 
-    increase_timestamp(time_delta)
+    increase_timestamp(ACTION_DELAY + 1 * 60)
     for i in range(len(pegkeepers)):
         pool = stableswaps[i]
         pk = pegkeepers[i]
