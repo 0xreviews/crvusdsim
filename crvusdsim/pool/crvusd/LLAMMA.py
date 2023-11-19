@@ -128,7 +128,44 @@ class LLAMMAPool(
         Parameters
         ----------
         A : int
-        @todo
+            "Amplification coefficient" which also defines density of liquidity and band size. Relative band size is 1/_A
+        fee : int
+            fee Relative fee of the AMM: int(fee * 1e18)
+        admin_fee : int
+            how much of fee goes to admin. 50% === int(0.5 * 1e18)
+        BASE_PRICE : int
+            Typically the initial crypto price at which AMM is deployed. Will correspond to band 0
+        active_band : int (default=None)
+            set pool's active_band if it is not None
+        min_band : int (default=None)
+            set pool's min_band if it is not None
+        max_band : int (default=None)
+            set pool's max_band if it is not None
+        rate : int (default=None)
+            set pool's rate if it is not None
+        rate_mul : int
+            set pool's rate_mul if it is not None
+        collateral : :class:`ERC20`
+            set pool's collateral if it is not None
+        price_oracle_contract : :class:`PriceOracle`
+            set pool's price_oracle_contract if it is not None
+        liquidity_mining_callback : any (default=None)
+        
+        bands_x: defaultdict(int) (default=None)
+            set pool's bands_x if it is not None
+        bands_y: defaultdict(int) (default=None)
+            set pool's bands_y if it is not None
+        user_shares: defaultdict(UserShares) (default=None)
+            set pool's user_shares if it is not None
+        total_shares: defaultdict(int) (default=None)
+            set pool's total_shares if it is not None
+        address : str (default=None)
+            set pool's address if it is not None
+        borrowed_token : :class:`StableCoin`
+            set pool's borrowed_token if it is not None
+        benchmark_slippage_rate : int (default=0)
+            the slippage rate of benchmark exchange
+
         """
         super().__init__()
 
