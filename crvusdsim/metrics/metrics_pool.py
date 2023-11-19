@@ -229,7 +229,7 @@ class PoolValue(PoolPricingMetric):
                     "style": "time_series",
                     "resample": "last",
                 },
-                "loss_percent": {
+                "arb_profits_percent": {
                     "title": f"Loss Value (in {self.numeraire})",
                     "style": "time_series",
                     "resample": "last",
@@ -242,7 +242,7 @@ class PoolValue(PoolPricingMetric):
                     "style": "point_line",
                     "encoding": {"y": {"axis": Axis(format="%")}},
                 },
-                "loss_percent": {
+                "arb_profits_percent": {
                     "title": f"Annualized loss percent",
                     "style": "point_line",
                     "encoding": {"y": {"axis": Axis(format="%")}},
@@ -252,7 +252,7 @@ class PoolValue(PoolPricingMetric):
 
         summary_fns = {
             "pool_value": {"annualized_returns": self.compute_annualized_returns},
-            "loss_percent": {"annualized_loss": self.compute_annualized_loss},
+            "arb_profits_percent": {"annualized_arb_profits": self.compute_annualized_arb_profits},
         }
 
         base = {
@@ -283,7 +283,7 @@ class PoolValue(PoolPricingMetric):
         Computes all metrics for each timestamp in an individual run.
         Used for non-meta pools.
         """
-        results = state_data[["pool_value", "loss_percent"]].set_axis(
+        results = state_data[["pool_value", "arb_profits_percent"]].set_axis(
             ["pool_value", "loss_value"], axis=1
         )
         results.columns = list(self.config["plot"]["metrics"])
@@ -296,7 +296,7 @@ class PoolValue(PoolPricingMetric):
 
         return exp((log_returns * year_multipliers).mean()) - 1
 
-    def compute_annualized_loss(self, data):
+    def compute_annualized_arb_profits(self, data):
         """Computes annualized loss from a series of loss percent."""
         data = 1 + data
         year_multipliers = timedelta64(365, "D") / data.index.to_series().diff()
