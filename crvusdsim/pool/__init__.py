@@ -14,7 +14,7 @@ from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
-from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
+from crvusdsim.pool.sim_interface.sim_stableswap import SimCurveStableSwapPool
 from crvusdsim.pool.sim_interface.sim_controller import SimController
 from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 from crvusdsim.pool_data import get_metadata
@@ -147,7 +147,7 @@ def get_sim_market(
         pool_kwargs["coins"] = [
             StableCoin(**coin_kwargs) for coin_kwargs in pool_kwargs["coins"]
         ]
-        stableswap_pools.append(CurveStableSwapPool(**pool_kwargs))
+        stableswap_pools.append(SimCurveStableSwapPool(**pool_kwargs))
 
     peg_keepers = [
         PegKeeper(
