@@ -316,7 +316,6 @@ async def _market_snapshot(
                 where: {
                     llamma: "$llamma_address"
                     timestamp_lte: $end_ts
-                    bandSnapshot: $use_band_snapshot
                 }
             ) {
                 id
@@ -417,8 +416,6 @@ async def _market_snapshot(
     q = Template(template_query).substitute(
         llamma_address=llamma_address.lower(),
         end_ts=end_ts,
-        use_band_snapshot="false",
-        use_user_snapshot="false",
     )
 
     r = await convex_crvusd(q)

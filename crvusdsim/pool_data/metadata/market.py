@@ -16,7 +16,7 @@ class MarketMetaData(PoolMetaDataBase):
 
     def init_kwargs(self, bands_data=None):
         data = self._dict
-        
+
         collateral_token = ERC20(
             address=data["collateral_token_params"]["address"],
             decimals=int(data["collateral_token_params"]["precision"]),
@@ -38,7 +38,6 @@ class MarketMetaData(PoolMetaDataBase):
         stableswap_pools_kwargs = data["stableswap_pools_params"]
 
         peg_keepers_kwargs = data["peg_keepers_params"]
-
 
         pool_kwargs = {
             "address": data["llamma_params"]["address"],
@@ -97,30 +96,13 @@ class MarketMetaData(PoolMetaDataBase):
 
                 userStates = self._dict["userStates"]
 
+                # need float rate_mul to prevent small positions
+                # from being floored to zero when setting init_debt.
+                rate_mul_float = rate_mul / 10**18
+
                 for i in range(len(userStates)):
                     _u = userStates[i]
-
-                    init_debt = int(format_float_to_uint256(_u["debt"]) / rate_mul)
-                    init_collateral = format_float_to_uint256(_u["depositedCollateral"])
-
                     user_address = _u["user"]["id"]
-                    # For the convenience of calculation,
-                    # consider all Loan initial rate_mul is one.
-                    loan[user_address] = Loan(
-                        initial_debt=init_debt,
-                        rate_mul=10 ** 18,
-                        initial_collateral=init_collateral,
-                        timestamp=0,
-                    )
-                    liquidation_discounts[user_address] = controller_kwargs[
-                        "liquidation_discount"
-                    ]
-                    total_debt.initial_debt += init_debt
-                    total_debt.initial_collateral += init_collateral
-
-                    n_loans += 1
-                    loans[n_loans] = user_address
-                    loan_ix[user_address] = n_loans
 
                     n1 = int(_u["n1"])
                     n2 = int(_u["n2"])
@@ -148,7 +130,39 @@ class MarketMetaData(PoolMetaDataBase):
                                 / N
                                 // y
                             )
-                    user_shares[user_address] = UserShares(n1,n2,ticks)
+
+                    if ticks == []:
+                        # FIXME bands_x and bands_y do not have updated data with the user's deposits.
+                        # This might be because user snapshot and band snapshot are taken at a different time.
+                        logger.warning(
+                            f"User {user_address} has no shares... Skipping."
+                        )
+                        continue
+
+                    user_shares[user_address] = UserShares(n1, n2, ticks)
+
+                    init_debt = int(
+                        format_float_to_uint256(float(_u["debt"]) / rate_mul_float)
+                    )
+                    init_collateral = format_float_to_uint256(_u["depositedCollateral"])
+
+                    # For the convenience of calculation,
+                    # consider all Loan initial rate_mul is one.
+                    loan[user_address] = Loan(
+                        initial_debt=init_debt,
+                        rate_mul=10**18,
+                        initial_collateral=init_collateral,
+                        timestamp=0,
+                    )
+                    liquidation_discounts[user_address] = controller_kwargs[
+                        "liquidation_discount"
+                    ]
+                    total_debt.initial_debt += init_debt
+                    total_debt.initial_collateral += init_collateral
+
+                    n_loans += 1
+                    loans[n_loans] = user_address
+                    loan_ix[user_address] = n_loans
 
                 pool_kwargs["total_shares"] = total_shares
                 pool_kwargs["user_shares"] = user_shares
