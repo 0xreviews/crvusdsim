@@ -88,7 +88,7 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
             (amount of coin `j` received, trading fee)
         """
         if size == 0:
-            return 0, 0
+            return 0
         self.coins[i]._mint(user, size)
         amount_out = self.exchange(i, j, size)
         return amount_out
