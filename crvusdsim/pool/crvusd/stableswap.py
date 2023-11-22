@@ -14,6 +14,7 @@ from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.clac import exp, shift
 from crvusdsim.pool.crvusd.utils import BlocktimestampMixins
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
+from curvesim.utils import override
 
 PRECISION = 10**18
 A_PRECISION = 100
@@ -141,11 +142,31 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         for i in range(len(self.balances)):
             self.coins[i]._mint(self.address, self.balances[i])
 
+    @property
+    @override
+    def coin_names(self):
+        return [c.name for c in self.coins]
+    
+    @property
+    @override
+    def coin_addresses(self):
+        return [c.address for c in self.coins]
+    
+    @property
+    @override
+    def coin_decimals(self):
+        return [c.decimals for c in self.coins]
+
     def _xp_mem(self, _rates: List[int], _balances: List[int]) -> List[int]:
         result: List[int] = [0] * self.n
         for i in range(self.n):
             result[i] = _rates[i] * _balances[i] // PRECISION
         return result
+    
+    def _xp(self) -> List[int]:
+        rates = self.rates
+        balances = self.balances
+        return self._xp_mem(rates, balances)
 
     def get_D(self, _xp: List[int], _amp: int) -> int:
         """

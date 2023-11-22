@@ -92,6 +92,7 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         self.coins[i]._mint(user, size)
         amount_out = self.exchange(i, j, size)
         return amount_out
+
     @override
     def get_max_trade_size(self, i, j, out_balance_perc=0.01):
         """
