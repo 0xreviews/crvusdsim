@@ -5,7 +5,7 @@ from curvesim.utils import cache, override
 from curvesim.pool.sim_interface.asset_indices import AssetIndicesMixin
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 
-from ..crvusd.stableswap import CurveStableSwapPool
+from ..crvusd.stableswap import CurveStableSwapPool, PRECISION
 
 
 class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
@@ -118,7 +118,7 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         xp_j = int(xp[j] * out_balance_perc)
 
         in_amount = self.get_y(j, i, xp_j, xp, 0, 0) - xp[i]
-        return in_amount
+        return in_amount * PRECISION // self.rates[i]
 
     @override
     def get_min_trade_size(self, i):
