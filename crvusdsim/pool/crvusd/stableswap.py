@@ -8,12 +8,13 @@ from collections import defaultdict
 from typing import List, Tuple, Type
 
 from curvesim.pool.base import Pool
-from curvesim.pool.snapshot import CurvePoolBalanceSnapshot, Snapshot
+from curvesim.pool.snapshot import Snapshot
 from curvesim.pool.stableswap.pool import CurvePool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.clac import exp, shift
 from crvusdsim.pool.crvusd.utils import BlocktimestampMixins
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
+from crvusdsim.pool.snapshot import CurveStableSwapPoolSnapshot
 from curvesim.utils import override
 
 PRECISION = 10**18
@@ -26,7 +27,7 @@ LP_PROVIDER = "LP_PROVIDER"
 
 class CurveStableSwapPool(Pool, BlocktimestampMixins):
 
-    snapshot_class: Type[Snapshot] = CurvePoolBalanceSnapshot
+    snapshot_class: Type[Snapshot] = CurveStableSwapPoolSnapshot
 
     __slots__ = (
         "address",

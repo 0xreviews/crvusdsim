@@ -1,3 +1,4 @@
+from copy import deepcopy
 from curvesim.pool.snapshot import Snapshot
 
 class Loan:
@@ -209,3 +210,23 @@ class ControllerSnapshot(Snapshot):
 
         controller.liquidation_discount = self.liquidation_discount
         controller.loan_discount = self.loan_discount
+
+class CurveStableSwapPoolSnapshot(Snapshot):
+    """Snapshot that saves pool balances and admin balances."""
+
+    def __init__(self, balances, admin_balances, coins):
+        self.balances = balances
+        self.admin_balances = admin_balances
+        self.coins = coins
+
+    @classmethod
+    def create(cls, pool):
+        balances = pool.balances.copy()
+        admin_balances = pool.admin_balances.copy()
+        coins = [deepcopy(c) for c in pool.coins]
+        return cls(balances, admin_balances, coins)
+
+    def restore(self, pool):
+        pool.balances = self.balances.copy()
+        pool.admin_balances = self.admin_balances.copy()
+        pool.coins = [deepcopy(c) for c in self.coins]
