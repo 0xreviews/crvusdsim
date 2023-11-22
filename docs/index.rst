@@ -18,17 +18,7 @@ Pythonic interaction with LLAMMA market objects::
 
    >>> import crvusdsim
 
-   >>> (
-      pool,
-      controller,
-      collateral_token,
-      stablecoin,
-      aggregator,
-      stableswap_pools,
-      peg_keepers,
-      policy,
-      factory,
-   ) = crvusdsim.pool.get("wstETH", bands_data="controller")
+   >>> (pool,controller,collateral_token,stablecoin,aggregator,stableswap_pools,peg_keepers,policy,factory) = crvusdsim.pool.get("wstETH", bands_data="controller")
    >>> pool.name
    'Curve.fi Stablecoin wstETH'
    >>> pool.coin_names
@@ -83,17 +73,8 @@ Arbitrage simulations to see results of varying fee and amplification (A) parame
 
 Arbitrage simulations to see results of varying loan_discount and liquidation_discount parameters in `Controller`::
 
-   >>> res = crvusdsim.autosim(
-      pool="wstETH",
-      sim_mode="controller",
-      loan_discount=[
-         int(0.09 * 10**18),
-         int(0.10 * 10**18),
-         int(0.11 * 10**18),
-         int(0.12 * 10**18),
-      ],
-      liquidation_discount=[int(0.06 * 10**18)],
-   )
+   >>> loan_discounts = [int(d * 10**18) for d in [0.09, 0.10, 0.11, 0.12]]
+   >>> res = crvusdsim.autosim(pool="wstETH", sim_mode="controller", loan_discount=loan_discounts, liquidation_discount=[int(0.06 * 10**18)])
 
    [INFO][17:01:13][crvusdsim.pipelines.simple]-91016: Simulating mode: controller
    [INFO][17:01:15][curvesim.price_data.sources]-91016: Fetching CoinGecko price data...

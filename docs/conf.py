@@ -8,6 +8,7 @@
 
 import os
 import sys
+import crvusdsim
 
 # Insert crvusdsim path into the system.
 sys.path.insert(0, os.path.abspath(".."))
@@ -15,7 +16,10 @@ sys.path.insert(0, os.path.abspath(".."))
 project = 'crvusdsim'
 copyright = '2023, 0xreviews'
 author = '0xreviews'
-release = '0.1.0'
+# The short X.Y version.
+version = crvusdsim.__version__
+# The full version, including alpha/beta/rc tags.
+release = crvusdsim.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -1,0 +1,3 @@
+#    pip-compile docs/requirements.in
+Sphinx>=7,<8
+pallets_sphinx_themes

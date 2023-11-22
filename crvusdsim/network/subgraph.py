@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from string import Template
 
 from curvesim.network.subgraph import query, _pool_snapshot
@@ -44,6 +44,66 @@ async def convex_crvusd(q):
             f"No data returned from Convex crvUSD: query: {q}\nerror: {err}"
         )
     return r["data"]
+
+
+async def get_all(template, key, llamma_address, end_ts=None, first=100):
+    """
+    Function to ensure we get all results from subgraph
+    despite rate limit (which is at most 1000 results). We assume
+    that we want all rows to have the same timestamp.
+
+    Parameters
+    ----------
+    template : str
+        A GraphQL query.
+
+    Returns
+    -------
+    list
+        A list of results.
+    """
+    skip = 0
+    res = []
+    ts = None
+    while True:
+        q = Template(template).substitute(
+            llamma_address=llamma_address.lower(),
+            end_ts=end_ts,
+            first=first,
+            skip=skip,
+        )
+
+        r = await convex_crvusd(q)
+
+        try:
+            r = r[key]
+
+            if len(r):
+                # Fix timestamp key
+                if key == "bands":
+                    for i in range(len(r)):
+                        r[i]["timestamp"] = r[i]["snapshot"]["timestamp"]
+                        del r[i]["snapshot"]
+
+                if not ts:
+                    ts = r[0]["timestamp"]
+
+                r = [item for item in r if item["timestamp"] == ts]
+                res.extend(r)
+
+                if len(r) < first:
+                    break
+
+                skip += first
+
+        except IndexError as e:
+            raise SubgraphResultError(
+                f"No user snapshot for this pool: {llamma_address}"
+            ) from e
+
+    assert len(set([item["timestamp"] for item in res])) == 1
+
+    return res
 
 
 async def symbol_address(symbol, index=0):
@@ -102,6 +162,95 @@ async def symbol_address(symbol, index=0):
     policy_address = to_checksum_address(market["amm"]["id"])
 
     return (amm_address, controller_address, policy_address)
+
+
+async def get_band_snapshots(llamma_address, end_ts=None, first=100):
+    """Get all band snapshots for a given pool."""
+    if not end_ts:
+        end_date = datetime.now(timezone.utc)
+        end_ts = int(end_date.timestamp())
+
+    # Using timestamp_gte in query because we can't sort by timestamp :(
+    end_ts -= 86400
+
+    # pylint: disable=consider-using-f-string
+    template_query = """
+        query bandSnapshot {
+            bands(
+                first: $first,
+                skip: $skip,
+                where: {
+                    snapshot_: {
+                        llamma: "$llamma_address"
+                        timestamp_gte: $end_ts
+                    }
+                }
+            ) {
+                id
+                index
+                stableCoin
+                collateral
+                collateralUsd
+                priceOracleUp
+                priceOracleDown
+                snapshot {
+                    timestamp
+                }
+            }
+        }
+    """
+
+    res = await get_all(
+        template_query, "bands", llamma_address, end_ts=end_ts, first=first
+    )
+    return res
+
+
+async def get_user_snapshots(llamma_address, end_ts=None, first=100):
+    """Get all user state snapshots for a given pool."""
+    if not end_ts:
+        end_date = datetime.now(timezone.utc)
+        end_ts = int(end_date.timestamp())
+
+    # pylint: disable=consider-using-f-string
+    template_query = """
+        query UserSnapshots {
+            userStateSnapshots(
+                orderBy: timestamp,
+                orderDirection: desc,
+                first: $first,
+                skip: $skip,
+                where: {
+                    market_: {
+                        amm: "$llamma_address"
+                    }
+                    timestamp_lte: $end_ts
+                }
+            ) {
+                id
+                user {
+                    id
+                }
+                collateral
+                depositedCollateral
+                collateralUp
+                loss
+                lossPct
+                stablecoin
+                n
+                n1
+                n2
+                debt
+                health
+                timestamp
+            }
+        }
+    """
+
+    res = await get_all(
+        template_query, "userStateSnapshots", llamma_address, end_ts=end_ts, first=first
+    )
+    return res
 
 
 async def get_debt_ceiling(address):
@@ -167,8 +316,6 @@ async def _market_snapshot(
                 where: {
                     llamma: "$llamma_address"
                     timestamp_lte: $end_ts
-                    bandSnapshot: $use_band_snapshot
-                    userStateSnapshot: $use_user_snapshot
                 }
             ) {
                 id
@@ -245,43 +392,6 @@ async def _market_snapshot(
                     
                 }
 
-                bandSnapshot
-                bands (
-                    orderBy: index
-                    orderDirection: asc
-                ) {
-                    id
-                    index
-                    stableCoin
-                    collateral
-                    collateralUsd
-                    priceOracleUp
-                    priceOracleDown
-                }
-
-                userStateSnapshot
-                userStates(
-                    orderBy: depositedCollateral
-                    orderDirection: desc
-                ) {
-                    id
-                    user {
-                        id
-                    }
-                    collateral
-                    depositedCollateral
-                    collateralUp
-                    loss
-                    lossPct
-                    stablecoin
-                    n
-                    n1
-                    n2
-                    debt
-                    health
-                    timestamp
-                }
-
             }
             llammaRates(
                 orderBy: blockTimestamp,
@@ -306,28 +416,23 @@ async def _market_snapshot(
     q = Template(template_query).substitute(
         llamma_address=llamma_address.lower(),
         end_ts=end_ts,
-        use_band_snapshot="true" if use_band_snapshot else "false",
-        use_user_snapshot="false",
     )
 
     r = await convex_crvusd(q)
-
-    if use_user_snapshot:
-        q2 = Template(template_query).substitute(
-            llamma_address=llamma_address.lower(),
-            end_ts=end_ts,
-            use_band_snapshot="false",
-            use_user_snapshot="true",
-        )
-        r2 = await convex_crvusd(q2)
 
     try:
         res = r["snapshots"][0]
         res["llammaRate"] = r["llammaRates"][0]
 
         if use_user_snapshot:
+            user_data = await get_user_snapshots(llamma_address, end_ts=end_ts)
             res["userStateSnapshot"] = True
-            res["userStates"] = r2["snapshots"][0]["userStates"]
+            res["userStates"] = user_data
+        
+        if use_band_snapshot:
+            band_data = await get_band_snapshots(llamma_address, end_ts=end_ts)
+            res["bandSnapshot"] = True
+            res["bands"] = band_data
 
     except IndexError as e:
         raise SubgraphResultError(
