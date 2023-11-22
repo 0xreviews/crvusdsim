@@ -117,7 +117,7 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         xp = self._xp()
         xp_j = int(xp[j] * out_balance_perc)
 
-        in_amount = self.get_y(j, i, xp_j, xp) - xp[i]
+        in_amount = self.get_y(j, i, xp_j, xp, 0, 0) - xp[i]
         return in_amount
 
     @override
