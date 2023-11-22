@@ -361,8 +361,8 @@ async def _stableswap_snapshot(pool_addresses):
                 "rates": [
                     10 ** (18 - int(decimals)) for decimals in r["pool"]["coinDecimals"]
                 ],
-                "fee": int(float(r["fee"]) * 1e18),
-                "admin_fee": int(float(r["adminFee"]) * 1e18),
+                "fee": int(float(r["fee"]) * 1e10),
+                "admin_fee": int(float(r["adminFee"]) * 1e10),
                 "name": r["pool"]["name"],
                 "symbol": r["pool"]["symbol"],
                 "decimals": 18,
