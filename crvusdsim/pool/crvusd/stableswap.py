@@ -5,8 +5,10 @@ StableSwap
 """
 
 from collections import defaultdict
-from typing import List, Tuple
+from typing import List, Tuple, Type
 
+from curvesim.pool.base import Pool
+from curvesim.pool.snapshot import CurvePoolBalanceSnapshot, Snapshot
 from curvesim.pool.stableswap.pool import CurvePool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.clac import exp, shift
@@ -21,7 +23,10 @@ ADMIN_FEE = 5000000000
 LP_PROVIDER = "LP_PROVIDER"
 
 
-class CurveStableSwapPool(BlocktimestampMixins):
+class CurveStableSwapPool(Pool, BlocktimestampMixins):
+
+    snapshot_class: Type[Snapshot] = CurvePoolBalanceSnapshot
+
     __slots__ = (
         "address",
         "name",
