@@ -247,6 +247,7 @@ async def _market_snapshot(
 
                 bandSnapshot
                 bands (
+                    first: 1000,
                     orderBy: index
                     orderDirection: asc
                 ) {
@@ -261,6 +262,7 @@ async def _market_snapshot(
 
                 userStateSnapshot
                 userStates(
+                    first: 1000,
                     orderBy: depositedCollateral
                     orderDirection: desc
                 ) {
