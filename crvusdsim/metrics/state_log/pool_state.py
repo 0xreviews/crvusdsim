@@ -37,11 +37,14 @@ def get_llamma_pool_state(pool):
         band_value = (
             pool.bands_x[band_index] + pool.bands_y[band_index] * last_out_price
         )
-        band_value_benchmark = (
-            pool.bands_x_benchmark[band_index]
-            + pool.bands_y_benchmark[band_index] * last_out_price
-        )
-        bands_arb_profits.append((band_value_benchmark - band_value) / band_value)
+        if band_value > 0:
+            band_value_benchmark = (
+                pool.bands_x_benchmark[band_index]
+                + pool.bands_y_benchmark[band_index] * last_out_price
+            )
+            bands_arb_profits.append((band_value_benchmark - band_value) / band_value)
+        else:
+            bands_arb_profits.append(0)
 
     return {
         "A": pool.A,

@@ -42,9 +42,9 @@ def make_bands_arb_profits_plot(state_data, prices):
 
     last_run = state_data[max_A_index]
     A = last_run.iloc[max_A_index]["A"]
-    base_price = last_run.iloc[-1]["base_price"]
-    min_price = base_price * ((A - 1) / A) ** (last_run.iloc[-1]["max_band"] + 1)
-    max_price = base_price * ((A - 1) / A) ** (last_run.iloc[-1]["min_band"] - 1)
+    base_price = last_run.iloc[max_A_index]["base_price"]
+    min_price = base_price * ((A - 1) / A) ** (last_run.iloc[max_A_index]["max_band"] + 1)
+    max_price = base_price * ((A - 1) / A) ** (last_run.iloc[max_A_index]["min_band"] - 1)
     price_ranges = [p for p in range(int(min_price), int(max_price), PRICE_INTERVAL)]
 
     x = []

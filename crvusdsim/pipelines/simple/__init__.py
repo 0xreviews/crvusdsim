@@ -32,7 +32,7 @@ def pipeline(  # pylint: disable=too-many-locals
     sim_mode="pool",
     variable_params=None,
     fixed_params=None,
-    bands_strategy=None,
+    bands_strategy_class=None,
     test=False,
     end_ts=None,
     days=60,
@@ -184,7 +184,7 @@ def pipeline(  # pylint: disable=too-many-locals
     _metrics = init_metrics(default_metrics, pool=pool, controller=controller)
     strategy = SimpleStrategy(
         _metrics,
-        bands_strategy=bands_strategy,
+        bands_strategy_class=bands_strategy_class,
         sim_mode=sim_mode,
         profit_threshold=profit_threshold,
     )

@@ -153,6 +153,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         
         self.prev_p_o_time = init_ts
         self.rate_time = init_ts
+        self._increment_timestamp(timestamp=init_ts)
         self.price_oracle_contract.set_price(initial_price)
         self.price_oracle_contract._price_oracle = initial_price
         self.price_oracle_contract._price_last = initial_price
