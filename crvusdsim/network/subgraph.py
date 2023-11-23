@@ -46,7 +46,7 @@ async def convex_crvusd(q):
     return r["data"]
 
 
-async def get_all(template, key, llamma_address, end_ts=None, first=100):
+async def get_all(template, key, llamma_address, end_ts=None, first=1000):
     """
     Function to ensure we get all results from subgraph
     despite rate limit (which is at most 1000 results). We assume
@@ -164,7 +164,7 @@ async def symbol_address(symbol, index=0):
     return (amm_address, controller_address, policy_address)
 
 
-async def get_band_snapshots(llamma_address, end_ts=None, first=100):
+async def get_band_snapshots(llamma_address, end_ts=None, first=1000):
     """Get all band snapshots for a given pool."""
     if not end_ts:
         end_date = datetime.now(timezone.utc)
@@ -206,7 +206,7 @@ async def get_band_snapshots(llamma_address, end_ts=None, first=100):
     return res
 
 
-async def get_user_snapshots(llamma_address, end_ts=None, first=100):
+async def get_user_snapshots(llamma_address, end_ts=None, first=1000):
     """Get all user state snapshots for a given pool."""
     if not end_ts:
         end_date = datetime.now(timezone.utc)
@@ -316,6 +316,8 @@ async def _market_snapshot(
                 where: {
                     llamma: "$llamma_address"
                     timestamp_lte: $end_ts
+                    bandSnapshot: false
+                    userStateSnapshot: false
                 }
             ) {
                 id
@@ -392,6 +394,43 @@ async def _market_snapshot(
                     
                 }
 
+            bandSnapshot
+            bands (
+                orderBy: index
+                orderDirection: asc
+            ) {
+                id
+                index
+                stableCoin
+                collateral
+                collateralUsd
+                priceOracleUp
+                priceOracleDown
+            }
+
+            userStateSnapshot
+            userStates(
+                orderBy: depositedCollateral
+                orderDirection: desc
+            ) {
+                id
+                user {
+                    id
+                }
+                collateral
+                depositedCollateral
+                collateralUp
+                loss
+                lossPct
+                stablecoin
+                n
+                n1
+                n2
+                debt
+                health
+                timestamp
+            }
+
             }
             llammaRates(
                 orderBy: blockTimestamp,
@@ -426,11 +465,13 @@ async def _market_snapshot(
 
         if use_user_snapshot:
             user_data = await get_user_snapshots(llamma_address, end_ts=end_ts)
+            logger.debug("User snapshot: %s", user_data)
             res["userStateSnapshot"] = True
             res["userStates"] = user_data
         
         if use_band_snapshot:
             band_data = await get_band_snapshots(llamma_address, end_ts=end_ts)
+            logger.debug("Bands snapshot: %s", band_data)
             res["bandSnapshot"] = True
             res["bands"] = band_data
 
