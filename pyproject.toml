@@ -8,8 +8,10 @@ readme = "README.md"
 packages = [{ include = "crvusdsim" }]
 
 [tool.poetry.dependencies]
+# use `poetry export` command to generate requirements.txt file
+# poetry export --without-hashes --without-urls | awk '{ print $1 }' FS=';' > requirements.txt
 python = "^3.10"
-curvesim = { git = "https://github.com/curveresearch/curvesim.git" }
+curvesim = { git = "https://github.com/curveresearch/curvesim.git", branch = "main" }
 pytest = "^7.4.3"
 hypothesis = "^6.90.0"
 
