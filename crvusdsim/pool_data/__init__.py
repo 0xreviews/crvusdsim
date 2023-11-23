@@ -25,6 +25,7 @@ def get_metadata(
     src="subgraph",
     end_ts=None,
     data_dir=None,
+    save_data=False,
 ):
     """
     Pulls pool state and metadata from daily snapshot.
@@ -66,7 +67,9 @@ def get_metadata(
                 use_user_snapshot=use_user_snapshot,
             )
 
-        if data_dir is not None:
+        if save_data:
+            if use_symbol:
+                address = ALIAS_TO_ADDRESS[address.lower()]
             with open(data_dir + "/pool_metadata_%s.json" % (address), "w") as outfile:
                 outfile.write(json.dumps(metadata_dict, indent=4))
 

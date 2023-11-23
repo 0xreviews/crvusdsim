@@ -84,7 +84,7 @@ class MarketMetaData(PoolMetaDataBase):
             pool_kwargs["bands_y"] = bands_y
 
             if bands_data == "controller":
-                rate_mul = format_float_to_uint256(data["llamma_params"]["rate_mul"])
+                rate_mul = int(data["llamma_params"]["rate_mul"])
                 total_shares = defaultdict(int)
                 user_shares = defaultdict(_default_user_shares)
                 loan = defaultdict(Loan)
@@ -100,7 +100,7 @@ class MarketMetaData(PoolMetaDataBase):
                 for i in range(len(userStates)):
                     _u = userStates[i]
 
-                    init_debt = int(format_float_to_uint256(_u["debt"]) / rate_mul)
+                    init_debt = int(format_float_to_uint256(_u["debt"]) * 10**18 / rate_mul)
                     init_collateral = format_float_to_uint256(_u["depositedCollateral"])
 
                     user_address = _u["user"]["id"]
@@ -108,9 +108,9 @@ class MarketMetaData(PoolMetaDataBase):
                     # consider all Loan initial rate_mul is one.
                     loan[user_address] = Loan(
                         initial_debt=init_debt,
-                        rate_mul=10 * 18,
+                        rate_mul=10**18,
                         initial_collateral=init_collateral,
-                        timestamp=0,
+                        timestamp=int(_u["timestamp"]),
                     )
                     liquidation_discounts[user_address] = controller_kwargs[
                         "liquidation_discount"

@@ -44,6 +44,7 @@ pip-log.txt
 .DS_Store
 data/*.json
 data/*.csv
+data/*.html
 
 # Sphinx
 /docs/_build

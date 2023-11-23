@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Crvusdsim: Python Simulator for Curve Stablecoin
+crvUSDsim: Python Simulator for Curve Stablecoin
 ================================================
 
 Release v\ |version|. (:ref:`Installation <install>`)
@@ -14,13 +14,16 @@ Release v\ |version|. (:ref:`Installation <install>`)
 
 --------------------------
 
-Pythonic interaction with LLAMMA market objects::
+Pythonic interaction with curve stablecoin market objects (include LLAMMA pool, controller, aggregator, PegKeepers, etc.)::
 
    >>> import crvusdsim
 
-   >>> (pool,controller,collateral_token,stablecoin,aggregator,stableswap_pools,peg_keepers,policy,factory) = crvusdsim.pool.get("wstETH", bands_data="controller")
+   >>> (pool, controller, collateral_token, stablecoin, aggregator, stableswap_pools, peg_keepers, policy, factory) 
+   >>>      = crvusdsim.pool.get(market_name, bands_data="controller")
+
    >>> pool.name
    'Curve.fi Stablecoin wstETH'
+   
    >>> pool.coin_names
    ['wstETH', 'crvUSD']
    >>> pool.A
@@ -30,9 +33,29 @@ Pythonic interaction with LLAMMA market objects::
    0
    >>> sum(pool.bands_y.values())
    40106052164494685140992
+
+   >>> len(pool.user_shares)
+   392
    
-   >>> pool.exchange(1, 2, dx)
-   (12343765500, 1234499)
+   >>> dx = 10**18
+   >>> pool.trade(0, 1, dx) # dx, dy, fees
+   (1000000000000000000, 445225238462727, 6000000000000000)
+
+   >>> controller.loan_discount
+   90000000000000000
+
+   >>> controller.liquidation_discount
+   60000000000000000
+
+   >>> len(controller.loan)
+   392
+
+   >>> user0 = controller.loans[1] # user address
+   >>> loan0 = controller.loan[user0] # :class:Loan
+   >>> (loan0.initial_debt, loan0.initial_collateral, loan0.rate_mul, loan0.timestamp)
+   (9779961749290509154648064, 6785745612366175797248, 1000000000000000000, 1700712599)
+
+
 
 Arbitrage simulations to see results of varying fee and amplification (A) parameters in `LLAMMA pool`::
 
@@ -155,7 +178,7 @@ Arbitrage simulations to see results of varying N of user's position::
 Features
 --------
 
-Crvusdsim lets you:
+crvUSDsim lets you:
 
 * Simulate interactions with A series of objects related to crvusd in Python (include LLAMMA pool, Controller, PegKeepers, etc).
 * Analyze the effects of parameter changes on pool performance
@@ -200,7 +223,7 @@ Support
 
 If you are having issues, please let us know.  You can reach us via the following
 
-|  GitHub: `Crvusdsim issues <https://github.com/0xreviews/crvusdsim/issues>`_
+|  GitHub: `crvUSDsim issues <https://github.com/0xreviews/crvusdsim/issues>`_
 
 
 License
