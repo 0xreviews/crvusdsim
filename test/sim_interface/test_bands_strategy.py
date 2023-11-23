@@ -4,14 +4,14 @@ from hypothesis import strategies as st
 import numpy as np
 
 from crvusdsim.pool_data.metadata.bands_strategy import (
-    init_y_bands_strategy,
-    user_loans_strategy,
+    IinitYBandsStrategy,
+    UserLoansBandsStrategy,
 )
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx, generate_prices
 
 from crvusdsim.pipelines.simple import CRVUSD_POOL_MAP, ParameterizedLLAMMAPoolIterator
-from crvusdsim.pool_data.metadata.bands_strategy import init_y_bands_strategy
+
 
 
 @given(
@@ -40,7 +40,8 @@ def test_init_y_bands_strategy(assets, init_y, price_max, dprice, trade_count):
         columns=assets.symbol_pairs,
     )
 
-    init_y_bands_strategy(pool, prices)
+    bands_strategy = IinitYBandsStrategy(pool, controller, prices)
+    bands_strategy.do_strategy()
 
     pool.prepare_for_run(prices=prices)
 
@@ -75,7 +76,8 @@ def test_init_y_bands_strategy_1(assets, local_prices):
     init_y = 10000 * 10**18
     prices, volumes = local_prices
 
-    init_y_bands_strategy(pool, prices)
+    bands_strategy = IinitYBandsStrategy(pool, controller, prices)
+    bands_strategy.do_strategy()
 
     pool.prepare_for_run(prices=prices)
 
@@ -139,7 +141,8 @@ def test_pool_value(assets, local_prices):
     pool_values = {}
 
     for pool, controller, params in param_sampler:
-        init_y_bands_strategy(pool, prices)
+        bands_strategy = IinitYBandsStrategy(pool, controller, prices)
+        bands_strategy.do_strategy()
         pool.prepare_for_run(prices)
 
         last_out_price = pool.price_oracle_contract._price_last / 1e18
@@ -182,4 +185,7 @@ def test_user_loan_strategy(assets, local_prices):
 
     init_y = 10000 * 10**18
 
-    user_loans_strategy(pool, prices, controller, total_y=init_y)
+    bands_strategy = UserLoansBandsStrategy(pool, prices, controller, total_y=init_y)
+    bands_strategy.do_strategy()
+
+    print(controller.loan.keys())

@@ -1,4 +1,3 @@
-__all__ = ["MarketMetaData", "init_y_bands_strategy"]
+__all__ = ["MarketMetaData"]
 
 from .market import MarketMetaData
-from .bands_strategy import init_y_bands_strategy

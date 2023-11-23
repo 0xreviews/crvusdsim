@@ -29,7 +29,7 @@ class Strategy(ABC):
     trader_class = None
     state_log_class = None
 
-    def __init__(self, metrics, sim_mode="pool", bands_strategy=None):
+    def __init__(self, metrics, sim_mode="pool", bands_strategy_class=None):
         """
         Parameters
         ----------
@@ -38,7 +38,7 @@ class Strategy(ABC):
         """
         self.metrics = metrics
         self.sim_mode = sim_mode
-        self.bands_strategy = bands_strategy
+        self.bands_strategy_class = bands_strategy_class
 
     def __call__(self, pool, controller, parameters, price_sampler):
         """
@@ -81,15 +81,17 @@ class Strategy(ABC):
 
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
-        if self.bands_strategy is not None:
+        if self.bands_strategy_class is not None:
             # close exchange fees when adjust bands
             pool.fees_switch = False
-            self.bands_strategy(
+            bands_strategy = self.bands_strategy_class(
                 pool,
                 price_sampler.prices,
                 controller,
                 parameters,
             )
+            bands_strategy.do_strategy()
+            
             pool.fees_switch = True
 
         pool.prepare_for_run(price_sampler.prices)

@@ -8,14 +8,13 @@ and 2-token cryptopools.
 __all__ = [
     "from_address",
     "get_metadata",
-    "init_y_bands_strategy",
 ]
 
 import json
 
 from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 from crvusdsim.pool.crvusd import LLAMMAPool
-from .metadata import MarketMetaData, init_y_bands_strategy
+from .metadata import MarketMetaData
 from .queries import ALIAS_TO_ADDRESS, from_address, from_symbol, valid_collateral_symbol
 
 def get_metadata(

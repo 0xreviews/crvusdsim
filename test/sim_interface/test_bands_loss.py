@@ -2,7 +2,8 @@ import pytest
 from datetime import datetime, timedelta
 from random import randint
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
-from crvusdsim.pool_data.metadata.bands_strategy import init_y_bands_strategy
+from crvusdsim.pool_data.metadata import bands_strategy
+from crvusdsim.pool_data.metadata.bands_strategy import IinitYBandsStrategy
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx, generate_prices
 import time
@@ -38,7 +39,9 @@ def test_bands_snapshot(assets):
         columns=assets.symbol_pairs,
     )
 
-    init_y_bands_strategy(pool, prices)
+    bands_strategy = IinitYBandsStrategy(pool, prices, controller)
+    bands_strategy.do_strategy()
+
 
     bands_x_sum = sum(pool.bands_x.values())
     bands_y_sum = sum(pool.bands_y.values())

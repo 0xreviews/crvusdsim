@@ -16,9 +16,9 @@ from curvesim.logging import get_logger
 from crvusdsim.pipelines.simple import pipeline
 from crvusdsim.pool_data import get_metadata
 from crvusdsim.pool_data.metadata.bands_strategy import (
-    init_y_bands_strategy,
-    one_user_bands_strategy,
-    user_loans_strategy,
+    IinitYBandsStrategy,
+    OneUserBandsStrategy,
+    UserLoansBandsStrategy,
 )
 
 
@@ -90,7 +90,7 @@ def autosim(
 
     data_dir: str, default=None
         Relative path to saved data folder.
-    
+
     end_ts: int, optional
         Posix timestamp indicating the datetime of the metadata snapshot.
 
@@ -110,16 +110,15 @@ def autosim(
     # pool_metadata = pool_metadata or get_metadata(
     #     pool, data_dir=data_dir, end_ts=end_ts
     # )
-    p_var, bands_strategy, rest_of_params = _parse_arguments(
+    p_var, bands_strategy_class, rest_of_params = _parse_arguments(
         pool_metadata, sim_mode, **kwargs
     )
-
 
     results = pipeline(
         pool_metadata=pool if pool else pool_metadata,
         sim_mode=sim_mode,
         variable_params=p_var,
-        bands_strategy=bands_strategy,
+        bands_strategy_class=bands_strategy_class,
         **rest_of_params,
     )
 
@@ -128,7 +127,7 @@ def autosim(
 
 def _parse_arguments(pool_metadata, sim_mode, **kwargs):
     input_args = []
-    bands_strategy = None
+    bands_strategy_class = None
 
     if sim_mode == "pool":
         input_args = [
@@ -136,13 +135,13 @@ def _parse_arguments(pool_metadata, sim_mode, **kwargs):
             "fee",
             "admin_fee",
         ]
-        bands_strategy = init_y_bands_strategy
+        bands_strategy_class = IinitYBandsStrategy
     elif sim_mode == "controller":
         input_args = ["loan_discount", "liquidation_discount"]
-        bands_strategy = user_loans_strategy
+        bands_strategy_class = UserLoansBandsStrategy
     elif sim_mode == "N":
         input_args = ["N"]
-        bands_strategy = one_user_bands_strategy
+        bands_strategy_class = OneUserBandsStrategy
 
     variable_params = {}
     rest_of_params = {}
@@ -156,4 +155,4 @@ def _parse_arguments(pool_metadata, sim_mode, **kwargs):
         else:
             rest_of_params[key] = val
 
-    return variable_params, bands_strategy, rest_of_params
+    return variable_params, bands_strategy_class, rest_of_params
