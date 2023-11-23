@@ -1,4 +1,6 @@
+import os
 from datetime import timedelta
+from curvesim.exceptions import NetworkError
 from curvesim.logging import get_logger
 from curvesim.price_data import get
 from curvesim.templates.price_samplers import PriceSample, PriceSampler
@@ -66,14 +68,28 @@ class PriceVolume(PriceSampler):
         if assets.symbols[0] == "crvUSD":
             addresses.reverse() # should reverse address here
 
-        prices, volumes, _ = get(
-            assets.addresses, # [collateral_address, crvUSD_address]
-            chain=assets.chain,
-            days=days,
-            data_dir=data_dir,
-            src=src,
-            end=end,
-        )
+        if src == "local":
+            filename = f"{assets.addresses[0].lower()}-{assets.addresses[1].lower()}.csv"
+            filepath = os.path.join(data_dir, filename)
+
+            try:
+                local_data = pd.read_csv(filepath, index_col=0)
+                local_data.index = pd.to_datetime(local_data.index)
+
+                prices = pd.DataFrame(local_data["price"])
+                volumes = pd.DataFrame(local_data["volume"])
+
+            except Exception:
+                raise NetworkError("Load or parse local prices data faild.")
+        else:
+            prices, volumes, _ = get(
+                assets.addresses, # [collateral_address, crvUSD_address]
+                chain=assets.chain,
+                days=days,
+                data_dir=data_dir,
+                src=src,
+                end=end,
+            )
 
 
         self.assets = assets

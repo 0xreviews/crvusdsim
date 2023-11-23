@@ -2,7 +2,7 @@
 Canonical source of truth for version info.
 
 The version number should not be changed manually here.  Instead,
-a tool such as `bump2version` should be used.
+a tool such as `poetry version` or `bump2version` should be used.
 """
 import re
 
