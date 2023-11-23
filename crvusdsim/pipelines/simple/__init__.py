@@ -20,7 +20,6 @@ from crvusdsim.pipelines.common import DEFAULT_POOL_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
 from crvusdsim.pool import get_sim_market
 from crvusdsim.iterators.price_samplers import PriceVolume
-from crvusdsim.pool_data.cache import PoolDataCache
 
 logger = get_logger(__name__)
 
@@ -130,9 +129,6 @@ def pipeline(  # pylint: disable=too-many-locals
             variable_params = DEFAULT_CONTROLLER_PARAMS
         elif sim_mode == "N":
             variable_params = DEFAULT_N_PARAMS
-
-    # if pool_data_cache is None:
-    #     pool_data_cache = PoolDataCache(pool_metadata, days=days, end=end_ts)
 
     (
         pool,
