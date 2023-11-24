@@ -1,3 +1,4 @@
+from copy import deepcopy
 from curvesim.exceptions import CurvesimValueError
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.conf import (
@@ -25,6 +26,7 @@ from curvesim.logging import get_logger
 __all__ = [
     "SimLLAMMAPool",
     "get_sim_market",
+    "copy_sim_market",
     "get",
 ]
 
@@ -147,7 +149,23 @@ def get_sim_market(
         pool_kwargs["coins"] = [
             StableCoin(**coin_kwargs) for coin_kwargs in pool_kwargs["coins"]
         ]
-        stableswap_pools.append(SimCurveStableSwapPool(**pool_kwargs))
+        spool = SimCurveStableSwapPool(**pool_kwargs)
+        spool.coins[1] = stablecoin
+
+        # mint token to pool
+        for i in range(len(spool.balances)):
+            pool_address = spool.address
+            b = spool.balances[i]
+            balanceOf = spool.coins[i].balanceOf[pool_address]
+            if b - balanceOf:
+                spool.coins[i]._mint(pool_address, b - balanceOf)
+
+        # let  price_oracle() = get_p()
+        spool.last_price = spool.get_p()
+        spool.ma_price = spool.last_price
+        stableswap_pools.append(spool)
+
+        aggregator.add_price_pair(spool)
 
     peg_keepers = [
         PegKeeper(
@@ -194,6 +212,58 @@ def get_sim_market(
         peg_keepers,
         policy,
         factory,
+    )
+
+
+def copy_sim_market(
+    pool,
+    controller,
+    collateral_token,
+    stablecoin,
+    aggregator,
+    stableswap_pools,
+    peg_keepers,
+    policy,
+    factory,
+):
+    new_pool = deepcopy(pool)
+    new_controller = deepcopy(controller)
+    new_collateral_token = deepcopy(collateral_token)
+    new_stablecoin = deepcopy(stablecoin)
+    new_aggregator = deepcopy(aggregator)
+    new_stableswap_pools = [deepcopy(sp) for sp in stableswap_pools]
+    new_peg_keepers = [deepcopy(pk) for pk in peg_keepers]
+    new_policy = deepcopy(policy)
+    new_factory = deepcopy(factory)
+
+    # rebind
+    new_pool.BORROWED_TOKEN = new_stablecoin
+    new_pool.COLLATERAL_TOKEN = new_collateral_token
+    new_controller._rebind_pool(new_pool)
+    new_controller.FACTORY = new_factory
+    new_aggregator.STABLECOIN = new_stablecoin
+
+    while new_aggregator.n_price_pairs > 0:
+        new_aggregator.remove_price_pair(new_aggregator.n_price_pairs - 1)
+
+    for i in range(len(new_stableswap_pools)):
+        new_stableswap_pools[i].coins[1] = new_stablecoin
+        new_peg_keepers[i].POOL = new_stableswap_pools[i]
+        new_peg_keepers[i].PEGGED = new_stablecoin
+        new_peg_keepers[i].FACTORY = new_factory
+        new_peg_keepers[i].AGGREGATOR = new_aggregator
+        new_aggregator.add_price_pair(new_stableswap_pools[i])
+
+    return (
+        new_pool,
+        new_controller,
+        new_collateral_token,
+        new_stablecoin,
+        new_aggregator,
+        new_stableswap_pools,
+        new_peg_keepers,
+        new_policy,
+        new_factory,
     )
 
 
