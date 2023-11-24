@@ -82,10 +82,12 @@ class AggregateStablePrice(BlocktimestampMixins):
     def remove_price_pair(self, n: int):
         # assert msg.sender == self.admin
         n_max: int = self.n_price_pairs - 1
-        assert n <= n_max
+        assert n <= n_max, "remove_price_pair error n %d n_max %d" % (n, n_max)
 
         if n < n_max:
             self.price_pairs[n] = self.price_pairs[n_max]
+
+        self.price_pairs.pop(n_max)
         self.n_price_pairs = n_max
 
     def exp(self, power: int) -> int:

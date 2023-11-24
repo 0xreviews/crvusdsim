@@ -117,13 +117,13 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
             coins
             if coins is not None
             else [
-                StableCoin(),
                 StableCoin(
                     address="%s_address" % name.split("/")[0],
                     name="%s" % name.split("/")[0],
                     symbol="%s_address" % name.split("/")[0],
                     decimals=18,
                 ),
+                StableCoin(), # crvUSD
             ]
         )
         self.precisions = [10 ** (18 - coin.decimals) for coin in self.coins]
