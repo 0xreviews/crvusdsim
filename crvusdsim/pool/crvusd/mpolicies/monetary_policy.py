@@ -130,7 +130,7 @@ class MonetaryPolicy:
     def rate(self, _for: Controller) -> int:
         return self.calculate_rate(_for, self.PRICE_ORACLE.price())
 
-    def rate_write(self, _for: Controller) -> int:
+    def rate_write(self, _for: Controller=None) -> int:
         # Not needed here but useful for more automated policies
         # which change rate0 - for example rate0 targeting some fraction pl_debt/total_debt
         return self.calculate_rate(_for, self.PRICE_ORACLE.price_w())

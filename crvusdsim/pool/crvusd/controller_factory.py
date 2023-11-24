@@ -180,6 +180,48 @@ class ControllerFactory:
 
         return controller, amm
 
+    def _add_market_without_creating(self, amm, controller, monetary_policy, token, debt_ceiling):
+        """
+        Add a new market, without creating AMM and Controller
+
+        Parameters
+        ----------
+        token : { address: str, precision: int }
+            Collateral token address
+        A : int
+            Amplification coefficient; one band size is 1/A
+        fee : int
+            AMM fee in the market's AMM
+        admin_fee : int
+            AMM admin fee
+        _price_oracle_contract : PriceOracle
+            Address of price oracle contract for this market
+        monetary_policy : MonetaryPolicy
+            Monetary policy for this market
+        loan_discount : int
+            Loan discount: allowed to borrow only up to x_down * (1 - loan_discount)
+        liquidation_discount : int
+            Discount which defines a bad liquidation threshold
+        debt_ceiling : int
+            Debt ceiling for this market
+        """
+        monetary_policy.rate_write(_for=None)
+        amm.set_admin(controller)
+        self._set_debt_ceiling(
+            addr=controller.address, debt_ceiling=debt_ceiling, update=True
+        )
+
+        N: int = self.n_collaterals
+        self.collaterals[N] = token.address
+        for i in range(1000):
+            if self.collaterals_index[token.address][i] == 0:
+                self.collaterals_index[token.address][i] = 2**128 + N
+                break
+            assert i != 999, "Too many controllers for same collateral"
+        self.controllers[N] = controller
+        self.amms[N] = amm
+        self.n_collaterals = N + 1
+
     def total_debt(self) -> int:
         """
         Sum of all debts across controllers

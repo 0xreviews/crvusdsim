@@ -180,7 +180,7 @@ def get_sim_market(
         for i in range(len(peg_keepers_kwargs))
     ]
     policy = MonetaryPolicy(
-        price_oracle_contract=price_oracle,
+        price_oracle_contract=aggregator,
         controller_factory_contract=factory,
         peg_keepers=peg_keepers,
         rate0=monetary_policy_kwargs["rate0"],
@@ -195,8 +195,11 @@ def get_sim_market(
         amm=pool,
         **controller_kwargs,
     )
-    # set debt ceil
-    factory.set_debt_ceiling(controller.address, MARKET_DEBT_CEILING)
+
+    # add_market in factory
+    factory._add_market_without_creating(
+        pool, controller, policy, collateral_token, MARKET_DEBT_CEILING
+    )
 
     pool.metadata = pool_metadata._dict  # pylint: disable=protected-access
     pool.metadata["address"] = pool_metadata._dict["llamma_params"]["address"]
@@ -240,8 +243,11 @@ def copy_sim_market(
     new_pool.BORROWED_TOKEN = new_stablecoin
     new_pool.COLLATERAL_TOKEN = new_collateral_token
     new_controller._rebind_pool(new_pool)
+    new_controller.set_monetary_policy(new_policy)
     new_controller.FACTORY = new_factory
     new_aggregator.STABLECOIN = new_stablecoin
+    new_policy.PRICE_ORACLE = new_aggregator
+    new_policy.CONTROLLER_FACTORY = new_factory
 
     while new_aggregator.n_price_pairs > 0:
         new_aggregator.remove_price_pair(new_aggregator.n_price_pairs - 1)
@@ -253,6 +259,15 @@ def copy_sim_market(
         new_peg_keepers[i].FACTORY = new_factory
         new_peg_keepers[i].AGGREGATOR = new_aggregator
         new_aggregator.add_price_pair(new_stableswap_pools[i])
+
+    # add_market in new factory
+    new_factory._add_market_without_creating(
+        new_pool,
+        new_controller,
+        new_policy,
+        new_collateral_token,
+        factory.debt_ceiling[controller.address],
+    )
 
     return (
         new_pool,
