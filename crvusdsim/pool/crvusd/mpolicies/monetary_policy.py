@@ -90,7 +90,7 @@ class MonetaryPolicy:
         for pk in self.peg_keepers:
             pk_debt += pk.debt
 
-        power: int = (
+        power: int = int(
             (10**18 - p) * 10**18 // sigma
         )  # high price -> negative pow -> low rate
         

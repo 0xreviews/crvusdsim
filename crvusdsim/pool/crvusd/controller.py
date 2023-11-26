@@ -515,6 +515,8 @@ class Controller(
         assert self.COLLATERAL_TOKEN.transferFrom(_receiver, self.AMM.address, amount)
 
     def _withdraw_collateral(self, _for: str, amount: int):
+        if self.COLLATERAL_TOKEN.balanceOf[self.AMM.address] < amount:
+            self.COLLATERAL_TOKEN._mint(self.AMM.address, amount)
         assert self.COLLATERAL_TOKEN.transferFrom(self.AMM.address, _for, amount)
 
     def _transfer_stablecoin(self, _to: str, amount: int):
@@ -821,7 +823,8 @@ class Controller(
             xy: int[2] = self.AMM.withdraw(_for, 10**18)
 
             if xy[0] > 0:
-                self.STABLECOIN.transferFrom(self.AMM.address, _for, xy[0])
+                # self.STABLECOIN.transferFrom(self.AMM.address, _for, xy[0])
+                self._transfer_stablecoin(_for, xy[0])
 
             if xy[1] > 0:
                 self._withdraw_collateral(_for, xy[1])

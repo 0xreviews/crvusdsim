@@ -2,6 +2,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from ..utils import approx
+from ..conftest import STABLE_A,STABLE_N,STABLE_FEE
+from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
 
 
 # @given(
@@ -63,3 +65,25 @@ def test_stableswap_get_p(accounts, stableswaps):
 
     pool.exchange(1, 0, 15000 * 10**18)
     assert before_p > pool.get_p()
+
+
+def test_stableswap_imbalance(accounts, stablecoin, other_coins):
+    peg_coin = other_coins[0]
+    pool = CurveStableSwapPool(
+        name="crvUSD/%s" % (peg_coin.symbol),
+        symbol="crvUSD-%s" % (peg_coin.symbol),
+        A=STABLE_A,
+        D=[1,1],
+        n=STABLE_N,
+        fee=STABLE_FEE,
+        coins=[peg_coin, stablecoin],
+    )
+
+    amounts = [1449474484878008769590815, 3096768931877039410568459]
+    for i in range(len(pool.coins)):
+        pool.coins[i]._mint(accounts[0], amounts[i])
+    
+    pool.add_liquidity(amounts, _receiver=accounts[0])
+
+    buy_amount = 3.968282314606846e+19
+    dx = pool.get_dx(0, 1, buy_amount)

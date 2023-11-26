@@ -791,12 +791,10 @@ class LLAMMAPool(
         for i in range(MAX_TICKS):
             x: int = self.bands_x[n]
             y: int = self.bands_y[n]
-            ds: int = unsafe_div(
-                frac * user_shares[i], 10**18
-            )  # Can ONLY zero out when frac == 10**18
+            ds: int = frac * user_shares[i] // 10**18  # Can ONLY zero out when frac == 10**18
             user_shares[i] = unsafe_sub(user_shares[i], ds)
             s: int = self.total_shares[n]
-            new_shares: int = s - ds
+            new_shares: int = max(0, s - ds)
             self.total_shares[n] = new_shares
             s += DEAD_SHARES
             dx: int = (x + 1) * ds // s
@@ -804,6 +802,8 @@ class LLAMMAPool(
 
             x -= dx
             y -= dy
+            x = max(x, 0)
+            y = max(y, 0)
 
             # If withdrawal is the last one - tranfer dust to admin fees
             if new_shares == 0:
@@ -1219,9 +1219,9 @@ class LLAMMAPool(
                             x_dest = unsafe_div(
                                 in_amount_left * 10**18, antifee
                             )  # LESS than in_amount_left
-                            out.last_tick_j = min(
+                            out.last_tick_j = max(0, min(
                                 Inv // (f + (x + x_dest)) - g + 1, y
-                            )  # Should be always >= 0
+                            ))  # Should be always >= 0
 
                             # SIM_INTERFACE: fees
                             fees = unsafe_sub(in_amount_left, x_dest)
@@ -1276,7 +1276,7 @@ class LLAMMAPool(
                         if dy >= in_amount_left:
                             # This is the last band
                             y_dest = unsafe_div(in_amount_left * 10**18, antifee)
-                            out.last_tick_j = min(Inv // (g + (y + y_dest)) - f + 1, x)
+                            out.last_tick_j = max(0, min(Inv // (g + (y + y_dest)) - f + 1, x))
 
                             # SIM_INTERFACE: fees
                             fees = unsafe_sub(in_amount_left, y_dest)
@@ -1644,7 +1644,7 @@ class LLAMMAPool(
                     if g != 0:
                         if y >= out_amount_left:
                             # This is the last band
-                            out.last_tick_j = unsafe_sub(y, out_amount_left)
+                            out.last_tick_j = max(0, unsafe_sub(y, out_amount_left))
                             x_dest: int = Inv // (g + out.last_tick_j) - f - x
                             dx: int = unsafe_div(
                                 x_dest * antifee, 10**18
@@ -1699,7 +1699,7 @@ class LLAMMAPool(
                     if f != 0:
                         if x >= out_amount_left:
                             # This is the last band
-                            out.last_tick_j = unsafe_sub(x, out_amount_left)
+                            out.last_tick_j = max(0, unsafe_sub(x, out_amount_left))
                             y_dest: int = Inv // (f + out.last_tick_j) - g - y
                             dy: int = unsafe_div(
                                 y_dest * antifee, 10**18

@@ -90,7 +90,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         symbol : str
             Symbol of pool (eg. "crvUSD-USDC")
         coins : List[Stablecoin]
-            [crvUSD, Pegged coin]
+            [Pegged coin, crvUSD]
         """
 
         BlocktimestampMixins.__init__(self)
@@ -134,12 +134,13 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         self.ma_exp_time = 866  # = 600 / ln(2)
 
         self.balanceOf = defaultdict(int)
-        self.totalSupply = self.get_D_mem(rates, balances, A)
+        self.totalSupply = self.get_D_mem(rates, balances, self.A)
         self.decimals = decimals
 
         # mint token for init liquidity
         for i in range(len(self.balances)):
-            self.coins[i]._mint(self.address, self.balances[i])
+            if self.balances[i] > 0:
+                self.coins[i]._mint(self.address, self.balances[i])
 
     def _xp_mem(self, _rates: List[int], _balances: List[int]) -> List[int]:
         result: List[int] = [0] * self.n
@@ -178,7 +179,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         D: int = S
         Ann: int = _amp * self.n
         for i in range(255):
-            D_P: int = D * D // _xp[0] * D // _xp[1] // self.n**self.n
+            D_P: int = D * D // _xp[0] * D // _xp[1] // (self.n**self.n)
             Dprev: int = D
             D = (
                 (Ann * S // A_PRECISION + D_P * self.n)
@@ -223,7 +224,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         _amounts: List[int],
         _receiver: str = LP_PROVIDER,
         _min_mint_amount: int = 0,
-    ):
+    ) -> int:
         """
         Deposit coin amounts for LP token.
 
@@ -247,7 +248,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         D0: int = self.get_D_mem(rates, old_balances, amp)
 
         total_supply: int = self.totalSupply
-        new_balances: List[int] = old_balances
+        new_balances: List[int] = old_balances.copy()
         for i in range(self.n):
             amount: int = _amounts[i]
             if amount > 0:
