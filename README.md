@@ -193,4 +193,4 @@ GitHub: crvUSDsim issues <https://github.com/0xreviews/crvusdsim/issues>
 
 ## License
 
-Portions of the codebase are authorized derivatives of code owned by Curve.fi (Swiss Stake GmbH).  These are the Vyper snippets used for testing and the Python code derived from them (`curvesim/pool/crvusd`); there are copyright notices placed appropriately.  The rest of the codebase has an MIT license.
+Portions of the codebase are authorized derivatives of code owned by Curve.fi (Swiss Stake GmbH).  These are the Vyper snippets used for testing and the Python code derived from them (`crvusdsim/pool/crvusd`); there are copyright notices placed appropriately.  The rest of the codebase has an MIT license.
