@@ -15,8 +15,6 @@ from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 
 DEFAULT_USER_ADDRESS = "default_user_address"
 
-# @todo class BandsStrategy
-
 
 class BandsStrategy(ABC):
     def __init__(self, pool: SimLLAMMAPool, prices, controller=None, parameters=None, **kwargs):

@@ -107,6 +107,15 @@ def pipeline(  # pylint: disable=too-many-locals
     ncpu : int, default=os.cpu_count()
         Number of cores to use.
 
+    prices_max_interval: int, default=10 * 60 (10m)
+        The maximum interval for pricing data. If the time interval between two 
+        adjacent data exceeds this value, interpolation processing will be performed automatically.
+    
+    profit_threshold: int, default=0
+        Profit threshold for arbitrageurs, trades with profits below this value will not be executed
+
+
+
     Returns
     -------
     :class:`~crvusdsim.metrics.SimResults`

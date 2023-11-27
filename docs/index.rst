@@ -193,8 +193,6 @@ User Guide
 
    install
    quickstart
-   advanced
-
 
 
 API Documentation
@@ -229,5 +227,4 @@ If you are having issues, please let us know.  You can reach us via the followin
 License
 -------
 
-.. @todo
-.. Portions of the codebase are authorized derivatives of code owned by Curve.fi (Swiss Stake GmbH).  These are the vyper snippets used for testing (`test/fixtures/curve`) and the python code derived from them (`curvesim/pool/stableswap` and `curvesim/pool/cryptoswap`); there are copyright notices placed appropriately.  The rest of the codebase has an MIT license.
+Portions of the codebase are authorized derivatives of code owned by Curve.fi (Swiss Stake GmbH).  These are the vyper snippets used for testing and the python code derived from them (`curvesim/pool/crvusd`); there are copyright notices placed appropriately.  The rest of the codebase has an MIT license.
