@@ -8,12 +8,14 @@ from collections import defaultdict
 from typing import List, Tuple, Type
 
 from curvesim.pool.base import Pool
-from curvesim.pool.snapshot import CurvePoolBalanceSnapshot, Snapshot
+from curvesim.pool.snapshot import Snapshot
 from curvesim.pool.stableswap.pool import CurvePool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.clac import exp, shift
 from crvusdsim.pool.crvusd.utils import BlocktimestampMixins
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
+from crvusdsim.pool.snapshot import CurveStableSwapPoolSnapshot
+from curvesim.utils import override
 
 PRECISION = 10**18
 A_PRECISION = 100
@@ -25,7 +27,7 @@ LP_PROVIDER = "LP_PROVIDER"
 
 class CurveStableSwapPool(Pool, BlocktimestampMixins):
 
-    snapshot_class: Type[Snapshot] = CurvePoolBalanceSnapshot
+    snapshot_class: Type[Snapshot] = CurveStableSwapPoolSnapshot
 
     __slots__ = (
         "address",
@@ -142,11 +144,31 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
             if self.balances[i] > 0:
                 self.coins[i]._mint(self.address, self.balances[i])
 
+    @property
+    @override
+    def coin_names(self):
+        return [c.name for c in self.coins]
+
+    @property
+    @override
+    def coin_addresses(self):
+        return [c.address for c in self.coins]
+
+    @property
+    @override
+    def coin_decimals(self):
+        return [c.decimals for c in self.coins]
+
     def _xp_mem(self, _rates: List[int], _balances: List[int]) -> List[int]:
         result: List[int] = [0] * self.n
         for i in range(self.n):
             result[i] = _rates[i] * _balances[i] // PRECISION
         return result
+
+    def _xp(self) -> List[int]:
+        rates = self.rates
+        balances = self.balances
+        return self._xp_mem(rates, balances)
 
     def get_D(self, _xp: List[int], _amp: int) -> int:
         """
