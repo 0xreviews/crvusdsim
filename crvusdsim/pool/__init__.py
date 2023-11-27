@@ -248,6 +248,7 @@ def copy_sim_market(
     new_aggregator.STABLECOIN = new_stablecoin
     new_policy.PRICE_ORACLE = new_aggregator
     new_policy.CONTROLLER_FACTORY = new_factory
+    new_factory.STABLECOIN = new_stablecoin
 
     while new_aggregator.n_price_pairs > 0:
         new_aggregator.remove_price_pair(new_aggregator.n_price_pairs - 1)
