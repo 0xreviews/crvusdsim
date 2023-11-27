@@ -101,13 +101,7 @@ class SimController(Controller):
             users_to_liquidate = self.users_to_liquidate()
             for i in range(len(users_to_liquidate)):
                 position = users_to_liquidate[i]
-
-                if position.debt > position.x:
-                    to_repay = position.debt - position.x
-                    self.STABLECOIN._mint(DEFAULT_LIQUIDATOR, to_repay)
-
-                self._before_liquidate(position)
-                self.liquidate(DEFAULT_LIQUIDATOR, position.user, 0)
+                self.liquidate_sim(position)
 
     def _before_liquidate(self, position: Position):
         user = position.user
@@ -125,6 +119,17 @@ class SimController(Controller):
             liquidate_profits_y=position.y,
             ts=self._block_timestamp,
         )
+
+    def liquidate_sim(self, position, liquidator=DEFAULT_LIQUIDATOR, min_x=0):
+        """
+        Sim interface for liquidation that mints necessary
+        stablecoin.
+        """
+        to_repay = position.debt - position.x
+        if to_repay > 0:
+            self.STABLECOIN._mint(liquidator, to_repay)
+        self._before_liquidate(position)
+        self.liquidate(liquidator, position.user, min_x)
 
     def calc_debt_by_health(
         self, collateral_amount: int, n1: int, n2: int, health: int

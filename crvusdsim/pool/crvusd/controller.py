@@ -159,7 +159,7 @@ class Controller(
         self.loan_ix = (
             loan_ix if loan_ix is not None else defaultdict(int)
         )  # HashMap[address, uint256]
-        self.n_loans = n_loans if n_loans is not None else 0
+        self.n_loans = n_loans if n_loans is not None else len(self.loans)
 
         self.minted = minted if minted is not None else 0
         self.redeemed = redeemed if redeemed is not None else 0
