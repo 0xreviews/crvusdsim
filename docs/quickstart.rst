@@ -183,14 +183,41 @@ To simlate controller's parameters, such as ``loan_discount`` and ``liquidation_
     >>>    loan_discount=[int(0.09 * 10**18), int(0.10 * 10**18), int(0.11 * 10**18), int(0.12 * 10**18)],
     >>>    liquidation_discount=[int(0.04 * 10**18), int(0.06 * 10**18)])
 
+    [INFO][13:50:55][crvusdsim.pipelines.simple]-7441: Simulating mode: controller
+    [INFO][13:50:59][curvesim.price_data.sources]-7441: Fetching CoinGecko price data...
+    [INFO][13:51:15][crvusdsim.templates.Strategy]-9436: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 120000000000000000, 'liquidation_discount': 60000000000000000}
+    [INFO][13:51:15][crvusdsim.templates.Strategy]-9431: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 110000000000000000, 'liquidation_discount': 40000000000000000}
+    [INFO][13:51:16][crvusdsim.templates.Strategy]-9432: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 60000000000000000}
+    [INFO][13:51:16][crvusdsim.templates.Strategy]-9430: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 40000000000000000}
+    [INFO][13:51:16][crvusdsim.templates.Strategy]-9433: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 40000000000000000}
+    [INFO][13:51:16][crvusdsim.templates.Strategy]-9435: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 120000000000000000, 'liquidation_discount': 40000000000000000}
+    [INFO][13:51:16][crvusdsim.templates.Strategy]-9429: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 60000000000000000}
+    [INFO][13:51:16][crvusdsim.templates.Strategy]-9434: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 110000000000000000, 'liquidation_discount': 60000000000000000}
+
     >>> res.summary()
 
     metric	averange_user_health	liquidations_count	liquidation_volume
     stat	mean	max	sum
-    0	0.027328	0.0	0.0
-    1	0.038743	0.0	0.0
-    2	0.050414	0.0	0.0
-    3	0.062351	0.0	0.0
+    0	0.010677	20.0	1.246573e+11
+    1	0.004959	20.0	1.409887e+11
+    2	0.014525	20.0	1.156440e+11
+    3	0.007697	20.0	1.310613e+11
+    4	0.019034	20.0	1.059855e+11
+    5	0.011063	20.0	1.206467e+11
+    6	0.024296	20.0	9.143412e+10
+    7	0.015066	20.0	1.116965e+11
+
+    >>> res.summary(full=True)
+
+    	loan_discount	liquidation_discount	averange_user_health mean	liquidations_count max	liquidation_volume sum
+    0	0.09	0.04	0.010677	20.0	1.246573e+11
+    1	0.09	0.06	0.004959	20.0	1.409887e+11
+    2	0.10	0.04	0.014525	20.0	1.156440e+11
+    3	0.10	0.06	0.007697	20.0	1.310613e+11
+    4	0.11	0.04	0.019034	20.0	1.059855e+11
+    5	0.11	0.06	0.011063	20.0	1.206467e+11
+    6	0.12	0.04	0.024296	20.0	9.143412e+10
+    7	0.12	0.06	0.015066	20.0	1.116965e+11
 
     >>> res.data()
 
@@ -206,7 +233,25 @@ To simlate controller's parameters, such as ``loan_discount`` and ``liquidation_
     40993	3	2023-11-18 23:12:51+00:00	0.045240	0.0	0.0
     40994	3	2023-11-18 23:21:25+00:00	0.045240	0.0	0.0
     40995	3	2023-11-18 23:30:00+00:00	0.045240	0.0	0.0
+
     40996 rows x 5 columns
+
+    >>> res.data(full=True)
+
+    	loan_discount	liquidation_discount	run	timestamp	averange_user_health	liquidations_count	liquidation_volume
+    0	0.09	0.04	0	2023-09-27 23:30:00+00:00	0.065833	0.0	0.000000e+00
+    1	0.09	0.04	0	2023-09-27 23:38:34+00:00	0.065813	0.0	0.000000e+00
+    2	0.09	0.04	0	2023-09-27 23:47:08+00:00	0.065794	0.0	0.000000e+00
+    3	0.09	0.04	0	2023-09-27 23:55:42+00:00	0.065774	0.0	0.000000e+00
+    4	0.09	0.04	0	2023-09-28 00:04:17+00:00	0.065755	0.0	0.000000e+00
+    ...	...	...	...	...	...	...	...
+    81987	0.12	0.06	7	2023-11-27 22:55:42+00:00	-0.000019	20.0	1.779585e+07
+    81988	0.12	0.06	7	2023-11-27 23:04:17+00:00	-0.000019	20.0	1.779585e+07
+    81989	0.12	0.06	7	2023-11-27 23:12:51+00:00	-0.000019	20.0	1.779585e+07
+    81990	0.12	0.06	7	2023-11-27 23:21:25+00:00	-0.000019	20.0	1.779585e+07
+    81991	0.12	0.06	7	2023-11-27 23:30:00+00:00	-0.000019	20.0	1.779585e+07
+    
+    81992 rows x 7 columns
 
 
 
