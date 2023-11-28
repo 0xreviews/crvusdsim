@@ -48,3 +48,6 @@ data/*.html
 
 # Sphinx
 /docs/_build
+
+# Notebooks
+notebooks/dev.ipynb
