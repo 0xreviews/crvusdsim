@@ -483,10 +483,10 @@ async def _market_snapshot(
     return res
 
 
-async def _stableswap_snapshot(pool_addresses):
+async def _stableswap_snapshot(pool_addresses, chain = "mainnet"):
     pools_params = []
     for addr in pool_addresses:
-        r = await _pool_snapshot(address=addr, chain="mainnet", env="prod")
+        r = await _pool_snapshot(address=addr, chain=chain, env="prod")
         coins = []
         for i in range(len(r["pool"]["coins"])):
             coins.append(
@@ -513,6 +513,7 @@ async def _stableswap_snapshot(pool_addresses):
                 "symbol": r["pool"]["symbol"],
                 "decimals": 18,
                 "coins": coins,
+                "chain": chain,
             }
         )
     return pools_params
