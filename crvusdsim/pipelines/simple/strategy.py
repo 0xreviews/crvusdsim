@@ -12,9 +12,9 @@ class SimpleStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Class Attributes
     ----------------
-    trader_class : :class:`~curvesim.pipelines.simple.trader.SimpleArbitrageur`
+    trader_class : :class:`~crvusdsim.pipelines.simple.trader.SimpleArbitrageur`
         Class for creating trader instances.
-    state_log_class : :class:`~curvesim.metrics.StateLog`
+    state_log_class : :class:`~crvusdsim.metrics.StateLog`
         Class for creating state logger instances.
     """
 

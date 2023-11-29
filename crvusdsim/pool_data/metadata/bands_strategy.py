@@ -44,7 +44,7 @@ class BandsStrategy(ABC):
             min_index -= 1
         if abs(pool.p_oracle_up(max_index) / min_price) - 1 < 5e-3:
             max_index += 1
-        
+
         pool.min_band = min_index
         pool.max_band = max_index
 
@@ -108,9 +108,7 @@ class BandsStrategy(ABC):
                 self.pool.active_band <= self.pool.max_band
                 and self.pool.active_band >= self.pool.min_band
             ), "init price faild."
-            amm_p = self.pool.get_p()
 
-        
         self.pool.prepare_for_run(self.prices)
         amount, pump = self.pool.get_amount_for_price(self.init_price)
         if amount > 0:
@@ -119,7 +117,6 @@ class BandsStrategy(ABC):
             else:
                 i, j = 1, 0
             self.pool.trade(i, j, amount, snapshot=False)
-
 
     def check_active_band_init(self):
         p_up = self.pool.p_oracle_up(self.pool.active_band)

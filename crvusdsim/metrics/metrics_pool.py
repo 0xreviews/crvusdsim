@@ -228,31 +228,32 @@ class PoolValue(PoolPricingMetric):
                     "title": f"Pool Value (in {self.numeraire})",
                     "style": "time_series",
                     "resample": "last",
+                    "encoding": {"y": {"scale": Scale(zero=True)}},
                 },
-                "arb_profits_percent": {
+                "loss_value": {
                     "title": f"Loss Value (in {self.numeraire})",
                     "style": "time_series",
                     "resample": "last",
-                    "encoding": {"y": {"axis": Axis(format="%")}},
+                    "encoding": {"y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}},
                 },
             },
             "summary": {
                 "pool_value": {
                     "title": f"Annualized Returns (in {self.numeraire})",
                     "style": "point_line",
-                    "encoding": {"y": {"axis": Axis(format="%")}},
+                    "encoding": {"y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}},
                 },
-                "arb_profits_percent": {
-                    "title": f"Annualized loss percent",
+                "loss_value": {
+                    "title": f"Annualized Loss(%)",
                     "style": "point_line",
-                    "encoding": {"y": {"axis": Axis(format="%")}},
+                    "encoding": {"y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}},
                 },
             },
         }
 
         summary_fns = {
             "pool_value": {"annualized_returns": self.compute_annualized_returns},
-            "arb_profits_percent": {"annualized_arb_profits": self.compute_annualized_arb_profits},
+            "loss_value": {"annualized_arb_profits": self.compute_annualized_arb_profits},
         }
 
         base = {

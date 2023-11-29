@@ -82,6 +82,8 @@ class PriceVolume(PriceSampler):
             except Exception:
                 raise NetworkError("Load or parse local prices data faild.")
         else:
+            # Over 60 days, the interval between price data returned 
+            # by Coingecko API will increase significantly.
             prices, volumes, _ = get(
                 assets.addresses, # [collateral_address, crvUSD_address]
                 chain=assets.chain,

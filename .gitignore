@@ -9,6 +9,7 @@
 
 # Python
 *.py[co]
+/dev.py
 
 # test
 .hypothesis/
