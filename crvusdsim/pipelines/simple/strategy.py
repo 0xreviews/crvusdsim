@@ -18,7 +18,7 @@ class SimpleStrategy(Strategy):  # pylint: disable=too-few-public-methods
         Class for creating state logger instances.
     """
 
-    trader_class = SimpleArbitrageur
+    llamma_trader_class = SimpleArbitrageur
     state_log_class = StateLog
 
     def __init__(self, metrics, profit_threshold=50*10**18, **kwargs):

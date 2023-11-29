@@ -28,7 +28,6 @@ __all__ = [
     "ArbMetrics",
     "PoolVolume",
     "PoolValue",
-    "PriceDepth",
     "Timestamp",
 ]
 
@@ -39,7 +38,6 @@ from .metrics_pool import (
     ArbMetrics,
     PoolVolume,
     PoolValue,
-    PriceDepth,
     Timestamp,
 )
 

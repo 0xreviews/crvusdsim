@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 from curvesim.logging import get_logger
 
+from crvusdsim.pool import SimMarketInstance
+
 logger = get_logger(__name__)
 
 
@@ -42,7 +44,7 @@ class Strategy(ABC):
         self.sim_mode = sim_mode
         self.bands_strategy_class = bands_strategy_class
 
-    def __call__(self, pool, controller, parameters, price_sampler):
+    def __call__(self, sim_market: SimMarketInstance, parameters, price_sampler):
         """
         Computes and executes trades at each timestep.
 
@@ -68,14 +70,25 @@ class Strategy(ABC):
 
         """
         # pylint: disable=not-callable
+        (
+            pool,
+            controller,
+            collateral_token,
+            stablecoin,
+            aggregator,
+            price_oracle,
+            stableswap_pools,
+            peg_keepers,
+            policy,
+            factory,
+        ) = sim_market
         assert pool == controller.AMM, "`controller.AMM` is not `pool`"
         assert pool.BORROWED_TOKEN == controller.STABLECOIN
         assert pool.COLLATERAL_TOKEN == controller.COLLATERAL_TOKEN
 
         llamma_trader = self.llamma_trader_class(pool)
         state_log = self.state_log_class(
-            pool,
-            controller,
+            sim_market,
             self.metrics,
             parameters=parameters,
             sim_mode=self.sim_mode,

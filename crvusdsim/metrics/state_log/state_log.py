@@ -8,6 +8,7 @@ from curvesim.metrics.base import PoolMetric
 from crvusdsim.metrics.state_log.controller_state import get_controller_state
 
 from crvusdsim.metrics.state_log.controller_state import get_controller_state
+from crvusdsim.pool import SimMarketInstance
 
 from .pool_parameters import get_N_parameters, get_pool_parameters, get_controller_parameters
 from .pool_state import get_pool_state
@@ -21,17 +22,27 @@ class StateLog:
 
     __slots__ = [
         "metrics",
-        "pool",
-        "controller",
+        "sim_market",
         "state_per_run",
         "state_per_trade",
         "sim_mode",
     ]
 
-    def __init__(self, pool, controller, metrics, parameters, sim_mode="pool"):
-        self.pool = pool
-        self.controller = controller
-        self.metrics = prepare_metrics(metrics, pool)
+    def __init__(self, sim_market: SimMarketInstance, metrics, parameters, sim_mode="pool"):
+        (
+            pool,
+            controller,
+            collateral_token,
+            stablecoin,
+            aggregator,
+            price_oracle,
+            stableswap_pools,
+            peg_keepers,
+            policy,
+            factory,
+        ) = sim_market
+        self.sim_market = sim_market
+        self.metrics = metrics
         self.sim_mode = sim_mode
         self.state_per_trade = []
         if sim_mode == "pool":
@@ -44,12 +55,24 @@ class StateLog:
     def update(self, **kwargs):
         """Records pool state and any keyword arguments provided."""
 
+        (
+            pool,
+            controller,
+            collateral_token,
+            stablecoin,
+            aggregator,
+            price_oracle,
+            stableswap_pools,
+            peg_keepers,
+            policy,
+            factory,
+        ) = self.sim_market
         if self.sim_mode == "pool":
-            self.state_per_trade.append({"state_data": get_pool_state(self.pool), **kwargs})
+            self.state_per_trade.append({"state_data": get_pool_state(pool), **kwargs})
         elif self.sim_mode == "controller":
-            self.state_per_trade.append({"state_data": get_controller_state(self.pool, self.controller), **kwargs})
+            self.state_per_trade.append({"state_data": get_controller_state(pool, controller), **kwargs})
         if self.sim_mode == "N":
-            self.state_per_trade.append({"state_data": get_controller_state(self.pool, self.controller), **kwargs})
+            self.state_per_trade.append({"state_data": get_controller_state(pool, controller), **kwargs})
 
     def get_logs(self):
         """Returns the accumulated log data."""
@@ -77,17 +100,6 @@ class StateLog:
             concat(summary_data, axis=1),
             state_logs["state_data"],
         )
-
-
-def prepare_metrics(metrics, pool):
-    """
-    Applies any neccessary preparations to the input metrics.
-    Currently, only updates the pool object for PoolMetrics.
-    """
-    for metric in metrics:
-        if isinstance(metric, PoolMetric):
-            metric.set_pool(pool)
-    return metrics
 
 
 get_parameters_func = {

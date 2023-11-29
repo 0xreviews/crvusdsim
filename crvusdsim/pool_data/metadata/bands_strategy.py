@@ -133,14 +133,13 @@ class BandsStrategy(ABC):
 
 
 class SimpleUsersBandsStrategy(BandsStrategy):
-
     def __init__(
         self,
         pool: SimLLAMMAPool,
         prices,
         controller=None,
         parameters=None,
-        collateral_amount: int = 10 * 10**18
+        collateral_amount: int = 10 * 10**18,
     ):
         super().__init__(pool, prices, controller, parameters)
         self.collateral_amount = collateral_amount
@@ -184,6 +183,18 @@ class SimpleUsersBandsStrategy(BandsStrategy):
 
 
 class IinitYBandsStrategy(BandsStrategy):
+    def __init__(
+        self,
+        pool: SimLLAMMAPool,
+        prices,
+        controller=None,
+        parameters=None,
+        init_y=None,
+        **kwargs
+    ):
+        super().__init__(pool, prices, controller, parameters, **kwargs)
+        self.init_y = init_y
+
     def do_strategy(self):
         self.pool.active_band = self.min_index
         self.pool.max_band = self.max_index
@@ -193,9 +204,13 @@ class IinitYBandsStrategy(BandsStrategy):
         bands_x = defaultdict(int)
         bands_y = defaultdict(int)
 
-        init_y = int(sum(self.pool.bands_x.values()) / self.prices.iloc[0, 0]) + sum(
-            self.pool.bands_y.values()
-        )
+        if self.init_y is None:
+            init_y = int(
+                sum(self.pool.bands_x.values()) / self.prices.iloc[0, 0]
+            ) + sum(self.pool.bands_y.values())
+        else:
+            init_y = self.init_y
+
         if init_y < 10**18:
             init_y = 10**24
 

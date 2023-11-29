@@ -5,6 +5,7 @@ from itertools import product
 
 from curvesim.utils import override
 from curvesim.exceptions import ParameterSamplerError
+from crvusdsim.pool import SimMarketInstance
 
 from crvusdsim.pool.crvusd.clac import ln_int
 from curvesim.iterators.param_samplers import ParameterizedPoolIterator
@@ -21,12 +22,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
     # pylint: disable-next=unused-argument
     def __new__(
         cls,
-        pool,
-        controller,
-        aggregator,
-        peg_keepers,
-        policy,
-        factory,
+        sim_market: SimMarketInstance,
         sim_mode="pool",
         variable_params=None,
         fixed_params=None,
@@ -37,8 +33,11 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
 
         Parameters
         ----------
-        pool_map : dict, optional
-            A mapping between pool types and subclasses. Overrides default mapping.
+        sim_market : :class:`crvusdsim.pool.SimMarketInstance`
+
+        sim_mode: str
+            For different modes, the comparison dimensions are different.
+            Supported values are: "pool", "controller", "N"
 
         Returns
         -------
@@ -51,7 +50,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
             return super().__new__(cls)
 
         try:
-            pool_type = type(pool)
+            pool_type = type(sim_market.pool)
             subclass = pool_map[pool_type]
 
         except KeyError as e:
@@ -65,23 +64,13 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
 
     def __init__(
         self,
-        pool,
-        controller,
-        aggregator,
-        peg_keepers,
-        policy,
-        factory,
+        sim_market: SimMarketInstance,
         sim_mode="pool",
         variable_params=None,
         *args,
         **kwargs,
     ):
-        self.pool_template = deepcopy(pool)
-        self.controller_template = deepcopy(controller)
-        self.aggregator_template = deepcopy(aggregator)
-        self.peg_keepers_templates = [deepcopy(pk) for pk in peg_keepers]
-        self.policy_template = deepcopy(policy)
-        self.factory_template = deepcopy(factory)
+        self.sim_market_template = sim_market
         self.sim_mode = sim_mode
         self.parameter_sequence = self.make_parameter_sequence(variable_params)
 
@@ -89,27 +78,21 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         """
         Yields
         -------
-        pool : :class:`~curvesim.templates.SimPool`
-            A pool object with the current variable parameters set.
+        sim_market : :class:`~crvusdsim.pool.SimMarketInstance`
+            A Market object with the current variable parameters set.
 
         params : dict
             A dictionary of the pool parameters set on this iteration.
         """
         for params in self.parameter_sequence:
-            pool = deepcopy(self.pool_template)
-            controller = deepcopy(self.controller_template)
-            
-            # should rebind the AMM and token in the controller
-            # so that they point to the new copy.
-            controller._rebind_pool(pool)
-            
-            if self.sim_mode == "pool":
-                self.set_pool_attributes(pool, params)
-            elif self.sim_mode == "controller":
-                self.set_controller_attributes(controller, params)
-            yield pool, controller, params
+            sim_market = self.sim_market_template.copy()
 
-            
+            if self.sim_mode == "pool":
+                self.set_pool_attributes(sim_market.pool, params)
+            elif self.sim_mode == "controller":
+                self.set_controller_attributes(sim_market.controller, params)
+            yield sim_market, params
+
     def make_parameter_sequence(self, variable_params):
         """
         Returns a list of dicts for each possible combination of the input parameters.
@@ -204,7 +187,6 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         else:
             pool_attr = (pool, attr)
             setattr(*pool_attr, value)
-
 
     def _set_controller_attribute(self, controller, attr, value):
         if attr in self.controller_setters:

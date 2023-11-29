@@ -23,8 +23,8 @@ Pythonic interaction with curve stablecoin market objects (including LLAMMA pool
 ```shell
 >>> import crvusdsim
 
->>> (pool, controller, collateral_token, stablecoin, aggregator, stableswap_pools, peg_keepers, policy, factory)
->>>      = crvusdsim.pool.get(market_name, bands_data="controller")
+>>> (pool, controller, collateral_token, stablecoin, aggregator, price_oracle, stableswap_pools, peg_keepers, policy, factory)
+>>>     = crvusdsim.pool.get(market_name, bands_data="controller")
 
 >>> pool.name
 'Curve.fi Stablecoin wstETH'

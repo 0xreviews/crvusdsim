@@ -13,7 +13,6 @@ from test.utils import approx, generate_prices
 from crvusdsim.pipelines.simple import CRVUSD_POOL_MAP, ParameterizedLLAMMAPoolIterator
 
 
-
 @given(
     init_y=st.integers(min_value=10**18, max_value=10**24),
     price_max=st.integers(min_value=2001, max_value=3000),
@@ -21,17 +20,7 @@ from crvusdsim.pipelines.simple import CRVUSD_POOL_MAP, ParameterizedLLAMMAPoolI
     trade_count=st.integers(min_value=10, max_value=200),
 )
 def test_init_y_bands_strategy(assets, init_y, price_max, dprice, trade_count):
-    (
-        pool,
-        controller,
-        collateral_token,
-        stablecoin,
-        aggregator,
-        stableswap_pools,
-        peg_keepers,
-        policy,
-        factory,
-    ) = create_sim_pool()
+    (pool, controller, *rest) = create_sim_pool()
 
     prices = generate_prices(
         price_max=price_max,
@@ -40,7 +29,7 @@ def test_init_y_bands_strategy(assets, init_y, price_max, dprice, trade_count):
         columns=assets.symbol_pairs,
     )
 
-    bands_strategy = IinitYBandsStrategy(pool, controller, prices)
+    bands_strategy = IinitYBandsStrategy(pool, prices, controller)
     bands_strategy.do_strategy()
 
     pool.prepare_for_run(prices=prices)
@@ -61,22 +50,12 @@ def test_init_y_bands_strategy(assets, init_y, price_max, dprice, trade_count):
 
 
 def test_init_y_bands_strategy_1(assets, local_prices):
-    (
-        pool,
-        controller,
-        collateral_token,
-        stablecoin,
-        aggregator,
-        stableswap_pools,
-        peg_keepers,
-        policy,
-        factory,
-    ) = create_sim_pool()
+    (pool, controller, *rest) = create_sim_pool()
 
     init_y = 10000 * 10**18
     prices, volumes = local_prices
 
-    bands_strategy = IinitYBandsStrategy(pool, controller, prices)
+    bands_strategy = IinitYBandsStrategy(pool, prices, controller, init_y=init_y)
     bands_strategy.do_strategy()
 
     pool.prepare_for_run(prices=prices)
@@ -109,17 +88,8 @@ variable_params = {
 
 
 def test_pool_value(assets, local_prices):
-    (
-        pool,
-        controller,
-        collateral_token,
-        stablecoin,
-        aggregator,
-        stableswap_pools,
-        peg_keepers,
-        policy,
-        factory,
-    ) = create_sim_pool()
+    sim_market = create_sim_pool()
+    (pool, controller, *rest) = sim_market
     prices, volumes = local_prices
 
     init_y = int(sum(pool.bands_x.values()) / prices.iloc[0, 0]) + sum(
@@ -127,12 +97,7 @@ def test_pool_value(assets, local_prices):
     )
 
     param_sampler = ParameterizedLLAMMAPoolIterator(
-        pool,
-        controller,
-        aggregator,
-        peg_keepers,
-        policy,
-        factory,
+        sim_market,
         sim_mode="pool",
         variable_params=variable_params,
         fixed_params={},
@@ -140,8 +105,9 @@ def test_pool_value(assets, local_prices):
 
     pool_values = {}
 
-    for pool, controller, params in param_sampler:
-        bands_strategy = IinitYBandsStrategy(pool, controller, prices)
+    for sim_market, params in param_sampler:
+        (pool, controller, *rest) = sim_market
+        bands_strategy = IinitYBandsStrategy(pool, prices, controller, init_y=init_y)
         bands_strategy.do_strategy()
         pool.prepare_for_run(prices)
 
@@ -176,6 +142,7 @@ def test_user_loan_strategy(assets, local_prices):
         collateral_token,
         stablecoin,
         aggregator,
+        price_oracle,
         stableswap_pools,
         peg_keepers,
         policy,
@@ -187,5 +154,3 @@ def test_user_loan_strategy(assets, local_prices):
 
     bands_strategy = UserLoansBandsStrategy(pool, prices, controller, total_y=init_y)
     bands_strategy.do_strategy()
-
-    print(controller.loan.keys())

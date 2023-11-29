@@ -57,7 +57,7 @@ def run_pipeline(param_sampler, price_sampler, strategy, ncpu=4):
     if ncpu > 1:
         with multiprocessing_logging_queue() as logging_queue:
             strategy_args_list = [
-                (pool, controller, params, price_sampler) for pool, controller, params in param_sampler
+                (sim_market, params, price_sampler) for sim_market, params in param_sampler
             ]
 
             wrapped_args_list = [
@@ -73,8 +73,8 @@ def run_pipeline(param_sampler, price_sampler, strategy, ncpu=4):
 
     else:
         results = []
-        for pool, controller, params in param_sampler:
-            metrics = strategy(pool, controller, params, price_sampler)
+        for sim_market, params in param_sampler:
+            metrics = strategy(sim_market, params, price_sampler)
             results.append(metrics)
         results = tuple(zip(*results))
 

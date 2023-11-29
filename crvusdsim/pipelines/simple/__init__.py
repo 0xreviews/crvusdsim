@@ -139,17 +139,7 @@ def pipeline(  # pylint: disable=too-many-locals
         elif sim_mode == "N":
             variable_params = DEFAULT_N_PARAMS
 
-    (
-        pool,
-        controller,
-        collateral_token,
-        stablecoin,
-        aggregator,
-        stableswap_pools,
-        peg_keepers,
-        policy,
-        factory,
-    ) = get_sim_market(
+    sim_market = get_sim_market(
         pool_metadata,
         pool_data_cache=pool_data_cache,
         src=src if src == "local" else None,
@@ -161,7 +151,7 @@ def pipeline(  # pylint: disable=too-many-locals
         fixed_params = {}
         pool_params = TEST_PARAMS
 
-    sim_assets = pool.assets
+    sim_assets = sim_market.pool.assets
     price_sampler = PriceVolume(
         sim_assets,
         days=days,
@@ -172,12 +162,7 @@ def pipeline(  # pylint: disable=too-many-locals
     )
 
     param_sampler = ParameterizedLLAMMAPoolIterator(
-        pool,
-        controller,
-        aggregator,
-        peg_keepers,
-        policy,
-        factory,
+        sim_market,
         sim_mode=sim_mode,
         variable_params=variable_params,
         fixed_params=fixed_params,
@@ -190,7 +175,7 @@ def pipeline(  # pylint: disable=too-many-locals
     elif sim_mode == "N":
         default_metrics = DEFAULT_N_METRICS
 
-    _metrics = init_metrics(default_metrics, pool=pool, controller=controller)
+    _metrics = init_metrics(default_metrics, sim_market=sim_market)
     strategy = SimpleStrategy(
         _metrics,
         bands_strategy_class=bands_strategy_class,

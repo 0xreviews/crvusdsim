@@ -21,6 +21,7 @@ def test_bands_snapshot(assets):
         collateral_token,
         stablecoin,
         aggregator,
+        price_oracle,
         stableswap_pools,
         peg_keepers,
         policy,
@@ -113,6 +114,7 @@ def test_bands_arb_profits_with_benchmark(assets, local_prices):
         collateral_token,
         stablecoin,
         aggregator,
+        price_oracle,
         stableswap_pools,
         peg_keepers,
         policy,
@@ -120,19 +122,9 @@ def test_bands_arb_profits_with_benchmark(assets, local_prices):
     ) = create_sim_pool()
 
     prices, volumes = local_prices
-    # prices = prices[:1000]
-
-    # Populate inverse price data, bringing it back to the initial price
-    # time_duration = prices.index[-1] - prices.index[0]
-    # prices_reverse = pd.DataFrame(
-    #     prices.iloc[::-1].values.tolist(),
-    #     index=prices.index + time_duration,
-    #     columns=assets.symbol_pairs,
-    # )
-    # prices = pd.concat([prices.iloc[:, 0], prices_reverse.iloc[:, 0]])
-    # prices = pd.DataFrame(prices, columns=assets.symbol_pairs)
-
-    init_y_bands_strategy(pool, prices)
+    
+    bands_strategy = IinitYBandsStrategy(pool, prices, controller)
+    bands_strategy.do_strategy()
 
     pool.prepare_for_run(prices=prices)
     init_bands_x = pool.bands_x.copy()

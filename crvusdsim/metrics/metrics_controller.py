@@ -8,28 +8,13 @@ from altair import Axis, Scale
 from curvesim.exceptions import MetricError
 from curvesim.utils import cache, override
 
-from curvesim.metrics.base import Metric
+from .base import MarketMetric
 
 
-class ControllerMetric(Metric):
+class ControllerMetric(MarketMetric):
     """
     :class:`Metric`
     """
-
-    __slots__ = ["_controller"]
-
-    def __init__(self, pool, controller, **kwargs):
-        """
-        Parameters
-        ----------
-        controller : Controller object
-            A controller simulation interface. Used to select the controller's configuration from
-            :func:`controller_config` and stored as :python:`self._controller` for access during
-            metric computations.
-        """
-        self._pool = pool
-        self._controller = controller
-        super().__init__(**kwargs)  # kwargs are ignored
 
     def set_controller(self, controller):
         self._controller = controller
@@ -47,7 +32,7 @@ class UsersHealth(ControllerMetric):
     @property
     @cache
     def config(self):
-        config = {
+        return {
             "functions": {
                 "summary": {
                     "averange_user_health": "mean",
@@ -84,8 +69,6 @@ class UsersHealth(ControllerMetric):
                 },
             },
         }
-
-        return config
 
     def averange_user_health(self, **kwargs):
         """
@@ -141,7 +124,8 @@ class LiquidationVolume(ControllerMetric):
         """
         state_data = kwargs["state_data"]
         results = DataFrame(
-            state_data["liquidation_volume"], index=state_data["liquidation_volume"].index
+            state_data["liquidation_volume"],
+            index=state_data["liquidation_volume"].index,
         )
         results.columns = list(self.config["plot"]["metrics"])
         return results.astype("float64")

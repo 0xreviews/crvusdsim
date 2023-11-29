@@ -2,7 +2,7 @@ import pytest
 import json
 from curvesim.templates import SimAssets
 from crvusdsim.iterators.price_samplers.price_volume import PriceVolume
-from crvusdsim.pool import SimLLAMMAPool, get_sim_market
+from crvusdsim.pool import SimLLAMMAPool, SimMarketInstance, get_sim_market
 from curvesim.price_data import get
 
 crvUSD_address = "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E".lower()
@@ -11,33 +11,11 @@ wstETH_llamma_address = "0x37417b2238aa52d0dd2d6252d989e728e8f706e4"
 meta_data_dir = "data/pool_metadata_%s.json" % (wstETH_llamma_address)
 
 
-def create_sim_pool():
+def create_sim_pool() -> SimMarketInstance:
     with open(meta_data_dir) as openfile:
         pool_metadata = json.load(openfile)
 
-    (
-        pool,
-        controller,
-        collateral_token,
-        stablecoin,
-        aggregator,
-        stableswap_pools,
-        peg_keepers,
-        policy,
-        factory,
-    ) = get_sim_market(pool_metadata)
-
-    return (
-        pool,
-        controller,
-        collateral_token,
-        stablecoin,
-        aggregator,
-        stableswap_pools,
-        peg_keepers,
-        policy,
-        factory,
-    )
+    return get_sim_market(pool_metadata)
 
 
 @pytest.fixture(scope="module")

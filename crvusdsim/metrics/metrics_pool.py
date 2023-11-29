@@ -7,7 +7,6 @@ __all__ = [
     "ArbMetrics",
     "PoolVolume",
     "PoolValue",
-    "PriceDepth",
     "Timestamp",
 ]
 
@@ -18,12 +17,12 @@ from numpy import where, exp, log, timedelta64
 from pandas import DataFrame, concat
 
 from curvesim.utils import cache, get_pairs
-from curvesim.metrics.base import Metric, PoolMetric, PoolPricingMetric, PricingMetric, summarize_data
+from .base import MarketMetric, PricingMarketMetric
 
 from crvusdsim.pool.sim_interface import SimLLAMMAPool
 
 
-class ArbMetrics(PricingMetric):
+class ArbMetrics(PricingMarketMetric):
     """
     Computes metrics characterizing arbitrage trades: arbitrageur profits, pool fees,
     and post-trade price error between target and pool price.
@@ -81,9 +80,6 @@ class ArbMetrics(PricingMetric):
             },
         }
 
-    def __init__(self, pool, **kwargs):
-        super().__init__(pool.assets.symbols)
-
     def compute_arb_metrics(self, **kwargs):
         """Computes all metrics for each timestamp in an individual run."""
         price_sample = kwargs["price_sample"]
@@ -128,7 +124,7 @@ class ArbMetrics(PricingMetric):
                     fee = trade.fee * market_price
 
                 if arb < 0:
-                    pass                
+                    pass
 
                 arb_profit += arb
                 pool_profit += fee
@@ -144,51 +140,35 @@ class ArbMetrics(PricingMetric):
         return DataFrame(profit).set_index("timestamp")
 
 
-class PoolVolume(PoolPricingMetric):
+class PoolVolume(PricingMarketMetric):
     """
     Records total trade volume for each timestamp.
     """
 
     @property
     @cache
-    def pool_config(self):
-        base = {
-            "functions": {"summary": {"pool_volume": "sum"}},
+    def config(self):
+        return {
+            "functions": {
+                "metrics": self.get_llamma_pool_volume,
+                "summary": {"pool_volume": "sum"},
+            },
             "plot": {
                 "metrics": {
                     "pool_volume": {
-                        "title": "Daily Volume",
+                        "title": "Daily Volume crvUSD",
                         "style": "time_series",
                         "resample": "sum",
                     },
                 },
                 "summary": {
                     "pool_volume": {
-                        "title": "Total Volume",
+                        "title": "Total Volume crvUSD",
                         "style": "point_line",
                     },
                 },
             },
         }
-
-        functions = {
-            SimLLAMMAPool: self.get_llamma_pool_volume,
-        }
-
-        units = {
-            SimLLAMMAPool: "crvUSD",
-        }
-
-        config = {}
-        for pool in functions:
-            cfg = deepcopy(base)
-            cfg["functions"]["metrics"] = functions[pool]
-            _units = units[pool]
-            cfg["plot"]["metrics"]["pool_volume"]["title"] = "Daily Volume " + _units
-            cfg["plot"]["summary"]["pool_volume"]["title"] = "Total Volume " + _units
-            config[pool] = cfg
-
-        return config
 
     def get_llamma_pool_volume(self, **kwargs):
         """
@@ -209,7 +189,7 @@ class PoolVolume(PoolPricingMetric):
         return results
 
 
-class PoolValue(PoolPricingMetric):
+class PoolValue(PricingMarketMetric):
     """
     Computes pool's value over time in virtual units and the chosen
     numeraire, `self.numeraire`. Each are summarized as annualized returns.
@@ -221,56 +201,54 @@ class PoolValue(PoolPricingMetric):
 
     @property
     @cache
-    def pool_config(self):
-        plot = {
-            "metrics": {
-                "pool_value": {
-                    "title": f"Pool Value (in {self.numeraire})",
-                    "style": "time_series",
-                    "resample": "last",
-                    "encoding": {"y": {"scale": Scale(zero=True)}},
-                },
-                "loss_value": {
-                    "title": f"Loss Value (in {self.numeraire})",
-                    "style": "time_series",
-                    "resample": "last",
-                    "encoding": {"y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}},
+    def config(self):
+        return {
+            "functions": {
+                "metrics": self.get_llamma_pool_value,
+                "summary": {
+                    "pool_value": {
+                        "annualized_returns": self.compute_annualized_returns
+                    },
+                    "loss_value": {
+                        "annualized_arb_profits": self.compute_annualized_arb_profits
+                    },
                 },
             },
-            "summary": {
-                "pool_value": {
-                    "title": f"Annualized Returns (in {self.numeraire})",
-                    "style": "point_line",
-                    "encoding": {"y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}},
+            "plot": {
+                "metrics": {
+                    "pool_value": {
+                        "title": f"Pool Value (in {self.numeraire})",
+                        "style": "time_series",
+                        "resample": "last",
+                        "encoding": {"y": {"scale": Scale(zero=True)}},
+                    },
+                    "loss_value": {
+                        "title": f"Loss Value (in {self.numeraire})",
+                        "style": "time_series",
+                        "resample": "last",
+                        "encoding": {
+                            "y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}
+                        },
+                    },
                 },
-                "loss_value": {
-                    "title": f"Annualized Loss(%)",
-                    "style": "point_line",
-                    "encoding": {"y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}},
+                "summary": {
+                    "pool_value": {
+                        "title": f"Annualized Returns (in {self.numeraire})",
+                        "style": "point_line",
+                        "encoding": {
+                            "y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}
+                        },
+                    },
+                    "loss_value": {
+                        "title": f"Annualized Loss(%)",
+                        "style": "point_line",
+                        "encoding": {
+                            "y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}
+                        },
+                    },
                 },
             },
         }
-
-        summary_fns = {
-            "pool_value": {"annualized_returns": self.compute_annualized_returns},
-            "loss_value": {"annualized_arb_profits": self.compute_annualized_arb_profits},
-        }
-
-        base = {
-            "functions": {"summary": summary_fns},
-            "plot": plot,
-        }
-
-        functions = {
-            SimLLAMMAPool: self.get_llamma_pool_value,
-        }
-
-        config = {}
-        for pool, fn in functions.items():
-            config[pool] = deepcopy(base)
-            config[pool]["functions"]["metrics"] = fn
-
-        return config
 
     def get_llamma_pool_value(self, **kwargs):
         """
@@ -306,112 +284,7 @@ class PoolValue(PoolPricingMetric):
         return exp((log_returns * year_multipliers).mean()) - 1
 
 
-class PriceDepth(PoolMetric):
-    """
-    Computes metrics indicating a pool's price (liquidity) depth. Generally, uses
-    liquidity density, % change in reserves per % change in price.
-    """
-
-    __slots__ = ["_factor"]
-
-    @property
-    @cache
-    def pool_config(self):
-        ss_config = {
-            "functions": {
-                "metrics": self.get_curve_LD,
-                "summary": {"liquidity_density": ["median", "min"]},
-            },
-            "plot": {
-                "metrics": {
-                    "liquidity_density": {
-                        "title": "Liquidity Density (Daily Median)",
-                        "style": "time_series",
-                        "resample": "median",
-                        "encoding": {
-                            "y": {"title": "Liquidity Density (Daily Median)"}
-                        },
-                    }
-                },
-                "summary": {
-                    "liquidity_density": {
-                        "title": "Liquidity Density",
-                        "style": "point_line",
-                    }
-                },
-            },
-        }
-
-        return dict.fromkeys(
-            [SimLLAMMAPool],
-            ss_config,
-        )
-
-    def __init__(self, pool, factor=10**8, **kwargs):
-        self._factor = factor
-        super().__init__(pool, **kwargs)
-
-    def get_curve_LD(self, **kwargs):
-        """
-        Computes liquidity density for each timestamp in an individual run.
-        Used for all Curve pools.
-        """
-        state_data = kwargs["state_data"]
-
-        coin_pairs = get_pairs(
-            self._pool.coin_names
-        )  # for metapool, uses only meta assets
-        LD = state_data.apply(self._get_curve_LD_by_row, axis=1, coin_pairs=coin_pairs)
-        return DataFrame(LD, columns=["liquidity_density"])
-
-    def _get_curve_LD_by_row(self, state_data_row, coin_pairs):
-        """
-        Computes liquidity density for a single row of data (i.e., a single timestamp).
-        Used for all Curve pools.
-        """
-        self.set_pool_state(state_data_row)
-
-        LD = []
-        for pair in coin_pairs:
-            ld = self._compute_liquidity_density(*pair)
-            LD.append(ld)
-        return sum(LD) / len(LD)
-
-    def _compute_liquidity_density(self, coin_in, coin_out):
-        """
-        Computes liquidity density for a single pair of coins.
-        """
-        factor = self._factor
-        pool = self._pool
-        post_trade_price = self._post_trade_price
-
-        price_pre = pool.price(coin_in, coin_out, use_fee=False)
-        price_post = post_trade_price(pool, coin_in, coin_out, factor)
-        LD1 = price_pre / ((price_pre - price_post) * factor)
-
-        price_pre = pool.price(coin_out, coin_in, use_fee=False)
-        # pylint: disable-next=arguments-out-of-order
-        price_post = post_trade_price(pool, coin_out, coin_in, factor)
-        LD2 = price_pre / ((price_pre - price_post) * factor)
-
-        return (LD1 + LD2) / 2
-
-    @staticmethod
-    def _post_trade_price(pool, coin_in, coin_out, factor, use_fee=False):
-        """
-        Computes price after executing a trade of size coin_in balances / factor.
-        """
-
-        size = pool.asset_balances[coin_in] // factor
-
-        with pool.use_snapshot_context():
-            pool.trade(coin_in, coin_out, size)
-            price = pool.price(coin_in, coin_out, use_fee=use_fee)
-
-        return price
-
-
-class Timestamp(Metric):
+class Timestamp(MarketMetric):
     """Simple pass-through metric to record timestamps."""
 
     @property

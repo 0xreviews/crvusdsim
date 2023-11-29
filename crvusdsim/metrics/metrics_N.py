@@ -8,23 +8,18 @@ from altair import Axis
 from curvesim.exceptions import MetricError
 from curvesim.utils import cache, override
 
-from curvesim.metrics.base import Metric
+from .base import MarketMetric
 
 
-class RangeNReturns(Metric):
+class RangeNReturns(MarketMetric):
     """
     Records annualized returns for different range N.
     """
 
-    def __init__(self, pool, controller, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._pool = pool
-        self._controller = controller
-
     @property
     @cache
     def config(self):
-        config = {
+        return {
             "functions": {
                 "summary": {
                     "user_value": {
@@ -51,8 +46,6 @@ class RangeNReturns(Metric):
                 },
             },
         }
-
-        return config
 
     def get_user_value(self, **kwargs):
         """
