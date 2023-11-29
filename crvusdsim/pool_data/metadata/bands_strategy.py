@@ -132,7 +132,19 @@ class BandsStrategy(ABC):
         assert abs(amm_p / p_o - 1) < 5e-3, "init pool price faild."
 
 
-class OneUserBandsStrategy(BandsStrategy):
+class SimpleUsersBandsStrategy(BandsStrategy):
+
+    def __init__(
+        self,
+        pool: SimLLAMMAPool,
+        prices,
+        controller=None,
+        parameters=None,
+        collateral_amount: int = 10 * 10**18
+    ):
+        super().__init__(pool, prices, controller, parameters)
+        self.collateral_amount = collateral_amount
+
     def do_strategy(self):
         # reset controller loans
         self.controller.n_loans = 0
@@ -154,20 +166,20 @@ class OneUserBandsStrategy(BandsStrategy):
 
         N = self.parameters["N"]
         user_address: str = DEFAULT_USER_ADDRESS
-        collateral: int = 100 * 10**18
-        max_debt = self.controller.max_borrowable(collateral, N, 0)
+
+        max_debt = self.controller.max_borrowable(self.collateral_amount, N, 0)
         count = 100
 
         for i in range(count):
             user_address = "%s_%d" % (DEFAULT_USER_ADDRESS, i)
             debt = int(max_debt * (1 - 0.005 * i))
 
-            self.controller.COLLATERAL_TOKEN._mint(user_address, collateral)
-            self.controller.create_loan(user_address, collateral, debt, N)
+            self.controller.COLLATERAL_TOKEN._mint(user_address, self.collateral_amount)
+            self.controller.create_loan(user_address, self.collateral_amount, debt, N)
 
         assert (
             self.pool.COLLATERAL_TOKEN.balanceOf[self.pool.address]
-            == collateral * count
+            == self.collateral_amount * count
         ), "deposit collateral faild."
 
 

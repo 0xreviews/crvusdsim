@@ -13,7 +13,7 @@ class Strategy(ABC):
 
     Class Attributes
     ----------------
-    trader_class : :class:`~curvesim.pipelines.templates.Trader`
+    llamma_trader_class : :class:`~crvusdsim.pipelines.templates.Trader`
         Class for creating trader instances.
     state_log_class : :class:`~curvesim.metrics.StateLog`
         Class for creating state logger instances.
@@ -26,7 +26,9 @@ class Strategy(ABC):
 
     # These classes should be injected in child classes
     # to create the desired behavior.
-    trader_class = None
+    llamma_trader_class = None
+    stableswap_trader_class = None
+    pegkeeper_caller_class = None
     state_log_class = None
 
     def __init__(self, metrics, sim_mode="pool", bands_strategy_class=None):
@@ -70,7 +72,7 @@ class Strategy(ABC):
         assert pool.BORROWED_TOKEN == controller.STABLECOIN
         assert pool.COLLATERAL_TOKEN == controller.COLLATERAL_TOKEN
 
-        trader = self.trader_class(pool)
+        llamma_trader = self.llamma_trader_class(pool)
         state_log = self.state_log_class(
             pool,
             controller,
@@ -78,6 +80,7 @@ class Strategy(ABC):
             parameters=parameters,
             sim_mode=self.sim_mode,
         )
+        # TODO: stableswap_trader_class, pegkeeper_caller_class
 
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
@@ -91,22 +94,20 @@ class Strategy(ABC):
                 parameters,
             )
             bands_strategy.do_strategy()
-            
+
             pool.fees_switch = True
 
         pool.prepare_for_run(price_sampler.prices)
         controller.prepare_for_run(price_sampler.prices)
-
 
         for sample in price_sampler:
             _p = int(list(sample.prices.values())[0] * 10**18)
             pool.price_oracle_contract.set_price(_p)
             pool.prepare_for_trades(sample.timestamp)
             controller.prepare_for_trades(sample.timestamp)
-            
 
             trader_args = self._get_trader_inputs(sample)
-            trade_data = trader.process_time_sample(*trader_args)
+            trade_data = llamma_trader.process_time_sample(*trader_args)
 
             controller.after_trades(do_liquidate=self.sim_mode == "controller")
             state_log.update(price_sample=sample, trade_data=trade_data)

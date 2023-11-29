@@ -1,7 +1,7 @@
 __all__ = [
     "MarketMetaData",
     "BandsStrategy",
-    "OneUserBandsStrategy",
+    "SimpleUsersBandsStrategy",
     "IinitYBandsStrategy",
     "UserLoansBandsStrategy",
     "CurveStableSwapPoolMetaData",
@@ -11,7 +11,7 @@ from .market import MarketMetaData
 from .stableswap import CurveStableSwapPoolMetaData
 from .bands_strategy import (
     BandsStrategy,
-    OneUserBandsStrategy,
+    SimpleUsersBandsStrategy,
     IinitYBandsStrategy,
     UserLoansBandsStrategy,
 )

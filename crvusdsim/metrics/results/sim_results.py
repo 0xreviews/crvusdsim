@@ -64,16 +64,17 @@ class SimResults(BaseSimResults):
         altair.VConcatChart
 
         """
-        if self.sim_mode == "N":
-            chart = super().plot(summary, data, save_as=None)
-            bands_arb_profits_chart = make_bands_arb_profits_plot(self.state_data, self.prices)
-            page = vconcat(chart, bands_arb_profits_chart).resolve_scale(
-                color="independent"
-            )
+        # TODO: fix bands_arb_profits_plot
+        # if self.sim_mode == "N":
+        #     chart = super().plot(summary, data, save_as=None)
+        #     bands_arb_profits_chart = make_bands_arb_profits_plot(self.state_data, self.prices)
+        #     page = vconcat(chart, bands_arb_profits_chart).resolve_scale(
+        #         color="independent"
+        #     )
             
-            if save_as:
-                page.save(save_as)
+        #     if save_as:
+        #         page.save(save_as)
 
-            return page
-        else:
-            return super().plot(summary, data, save_as=save_as)
+        #     return page
+        # else:
+        return super().plot(summary, data, save_as=save_as)

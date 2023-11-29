@@ -17,7 +17,7 @@ from crvusdsim.pipelines.simple import pipeline
 from crvusdsim.pool_data import get_metadata
 from crvusdsim.pool_data.metadata.bands_strategy import (
     IinitYBandsStrategy,
-    OneUserBandsStrategy,
+    SimpleUsersBandsStrategy,
     UserLoansBandsStrategy,
 )
 
@@ -141,7 +141,7 @@ def _parse_arguments(pool_metadata, sim_mode, **kwargs):
         bands_strategy_class = UserLoansBandsStrategy
     elif sim_mode == "N":
         input_args = ["N"]
-        bands_strategy_class = OneUserBandsStrategy
+        bands_strategy_class = SimpleUsersBandsStrategy
 
     variable_params = {}
     rest_of_params = {}

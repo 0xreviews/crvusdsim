@@ -412,7 +412,7 @@ Other helpful parameters for :func:`.autosim` are:
     - ``bands_strategy_class``: Strategy used to initialize liquidity in LLAMMA pool bands
 
       - 1: :class:`class::crvusdsim.pool_data.metadata.BandsStrategy`
-      - 2: valid input: :class:`OneUserBandsStrategy`, :class:`IinitYBandsStrategy`, :class:`UserLoansBandsStrategy`,
+      - 2: valid input: :class:`SimpleUsersBandsStrategy`, :class:`IinitYBandsStrategy`, :class:`UserLoansBandsStrategy`,
       - 3: or a custom strategy that inherits :class:`class::crvusdsim.pool_data.metadata.BandsStrategy`
 
     - ``prices_max_interval``: The maximum interval for pricing data. If the time interval between two 
