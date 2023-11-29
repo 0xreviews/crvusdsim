@@ -1,3 +1,4 @@
+from typing import Tuple
 from curvesim.templates import SimAssets
 from curvesim.exceptions import SimPoolError
 from curvesim.templates.sim_pool import SimPool
@@ -90,7 +91,7 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         if size == 0:
             return 0
         self.coins[i]._mint(user, size)
-        amount_out = self.exchange(i, j, size)
+        amount_out = self.exchange(i, j, size, _receiver=user)
         return amount_out
 
     @override
@@ -150,3 +151,36 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
             SimAssets object that stores the properties of the pool's assets.
         """
         return SimAssets(self.coin_names, self.coin_addresses, self.chain)
+
+    def get_amount_for_price(self, p: int) -> Tuple[int, bool]:
+        amm_p = self.get_p()
+        pump = amm_p <= p
+
+        pool_snapshot = self.get_snapshot()
+
+        if pump:
+            i, j = 0, 1
+        else:
+            i, j = 1, 0
+
+        diff = abs(amm_p / p) - 1
+
+        if diff < 1e-3:
+            self.revert_to_snapshot(pool_snapshot)
+            return (0, True)
+
+        delta_dx = self.balances[0] // 100 if pump else self.balances[1] // 100
+        dx = delta_dx
+
+        while diff > 1e-3:
+            self.trade(i, j, dx)
+            amm_p = self.get_p()
+            diff = abs(amm_p / p) - 1
+            if pump != amm_p <= p:
+                break
+            if diff < 1e-2:
+                delta_dx /= 10
+            dx += delta_dx
+
+        self.revert_to_snapshot(pool_snapshot)
+        return (dx, pump)

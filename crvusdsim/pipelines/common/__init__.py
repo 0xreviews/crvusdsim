@@ -115,3 +115,37 @@ def get_arb_trades(
         trades.append((amount_in, amount_out, fees, profit, (coin_in, coin_out), price))
     
     return trades
+
+
+def get_stableswap_pools_trades(stableswap_pools, prices, profit_threshold=0):
+    trades = []
+
+    for pair in prices:
+        p_o = int(prices[pair] * 10**18)
+        pool = stableswap_pools[pair]
+        amount, pump = pool.get_amount_for_price(p_o)
+
+        if pump:
+            price = prices[pair]
+            coin_in, coin_out = pool.asset_names
+            amount_in, amount_out, fees = pool.get_dxdy(0, 1, amount)
+        else:
+            price = 1 / prices[pair]
+            coin_out, coin_in = pool.asset_names
+            amount_in, amount_out, fees = pool.get_dxdy(1, 0, amount)
+
+        if pump:
+            profit = amount_out * p_o / 10**18 - amount_in
+        else:
+            profit = amount_out - amount_in * p_o / 10**18
+
+        # do exchange if profit enough, except for last round
+        # (we need amm p to approximate p_out in order to calculate loss)
+        if profit < profit_threshold:
+            # trades.append((0, 0, 0, 0, pair, prices[pair]))
+            continue
+
+        trades.append((amount_in, amount_out, fees, profit, (coin_in, coin_out), price))
+
+    return trades
+

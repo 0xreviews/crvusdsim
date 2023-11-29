@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import List, Union
 
 from curvesim.logging import get_logger
 from curvesim.utils import dataclass
+from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
+from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
 
 logger = get_logger(__name__)
 
@@ -60,7 +62,6 @@ class Trader(ABC):
         """
         self.pool = pool
 
-
     @abstractmethod
     def compute_trades(self, *args):
         """
@@ -94,7 +95,9 @@ class Trader(ABC):
 
         trade_results = []
         for trade in trades:
-            dx, dy, fee = self.pool.trade(trade.coin_in, trade.coin_out, trade.amount_in)
+            dx, dy, fee = self.pool.trade(
+                trade.coin_in, trade.coin_out, trade.amount_in
+            )
             trade_results.append(TradeResult.from_trade(trade, amount_out=dy, fee=fee))
 
         return trade_results
@@ -111,3 +114,28 @@ class Trader(ABC):
         trade_results = self.do_trades(trades)
 
         return {"trades": trade_results, **additional_data}
+
+
+class PegcoinTrader(Trader):
+    """
+    Computes, executes, and reports out arbitrage trades
+    on Stableswap Pools of Pegcoins.
+    """
+
+    def __init__(
+        self, pool: SimLLAMMAPool, stableswap_pools: List[CurveStableSwapPool]
+    ):
+        """
+        Parameters
+        ----------
+        pool : SimLLAMMAPool
+            Simulation interface to a subclass of :class:`.Pool`.
+
+        stableswap_pools : List[CurveStableSwapPool]
+
+        """
+        super().__init__(pool)
+        pools = {}
+        for _pool in stableswap_pools:
+            pools[_pool.assets.symbols] = _pool
+        self.stableswap_pools = pools

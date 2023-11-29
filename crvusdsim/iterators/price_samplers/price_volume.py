@@ -22,9 +22,12 @@ class PriceVolumeSample(PriceSample):
         Price for each pairwise coin combination.
     volumes : dict
         Volume for each pairwise coin combination.
+    peg_prices : dict
+        Price for each peg coin combination.
     """
 
     volumes: dict
+    peg_prices: dict
 
 
 class PriceVolume(PriceSampler):
@@ -36,6 +39,7 @@ class PriceVolume(PriceSampler):
         self,
         assets,
         *,
+        pegcoins=None,
         days=60,
         max_interval=5 * 60,
         data_dir="data",
@@ -66,10 +70,12 @@ class PriceVolume(PriceSampler):
         """
         addresses = assets.addresses
         if assets.symbols[0] == "crvUSD":
-            addresses.reverse() # should reverse address here
+            addresses.reverse()  # should reverse address here
 
         if src == "local":
-            filename = f"{assets.addresses[0].lower()}-{assets.addresses[1].lower()}.csv"
+            filename = (
+                f"{assets.addresses[0].lower()}-{assets.addresses[1].lower()}.csv"
+            )
             filepath = os.path.join(data_dir, filename)
 
             try:
@@ -81,11 +87,43 @@ class PriceVolume(PriceSampler):
 
             except Exception:
                 raise NetworkError("Load or parse local prices data faild.")
+
+            if pegcoins is None:
+                self.peg_prices = None
+                self.peg_volumes = None
+            else:
+                peg_prices = {}
+                peg_volumes = {}
+                for pegcoin_asset in pegcoins:
+                    _addresses = pegcoin_asset.addresses
+                    if pegcoin_asset.symbols[0] == "crvUSD":
+                        _addresses.reverse()  # should reverse address here
+                    filename = f"{_addresses[0].lower()}-{_addresses[1].lower()}.csv"
+                    filepath = os.path.join(data_dir, filename)
+
+                    try:
+                        local_data = pd.read_csv(filepath, index_col=0)
+                        local_data.index = pd.to_datetime(local_data.index)
+
+                        peg_prices[pegcoin_asset.symbol_pairs[0]] = pd.DataFrame(
+                            local_data["price"]
+                        )
+                        peg_volumes[pegcoin_asset.symbol_pairs[0]] = pd.DataFrame(
+                            local_data["volume"]
+                        )
+
+                    except Exception:
+                        raise NetworkError(
+                            "Load or parse local pegcoin prices data faild."
+                        )
+
+                self.peg_prices = peg_prices
+                self.peg_volumes = peg_volumes
         else:
-            # Over 60 days, the interval between price data returned 
+            # Over 60 days, the interval between price data returned
             # by Coingecko API will increase significantly.
             prices, volumes, _ = get(
-                assets.addresses, # [collateral_address, crvUSD_address]
+                assets.addresses,  # [collateral_address, crvUSD_address]
                 chain=assets.chain,
                 days=days,
                 data_dir=data_dir,
@@ -93,11 +131,35 @@ class PriceVolume(PriceSampler):
                 end=end,
             )
 
+            if pegcoins is None:
+                self.peg_prices = None
+                self.peg_volumes = None
+            else:
+                peg_prices = {}
+                peg_volumes = {}
+                for pegcoin_asset in pegcoins:
+                    _prices, _volumes, _ = get(
+                        pegcoin_asset.addresses,  # [pegcoin_address, crvUSD_address]
+                        chain=assets.chain,
+                        days=days,
+                        data_dir=data_dir,
+                        src=src,
+                        end=end,
+                    )
+                    peg_prices[pegcoin_asset.symbol_pairs[0]] = _prices
+                    peg_volumes[pegcoin_asset.symbol_pairs[0]] = _volumes
+
+                self.peg_prices = peg_prices
+                self.peg_volumes = peg_volumes
 
         self.assets = assets
         self.max_interval = max_interval
-        self.original_prices = prices.dropna().set_axis(assets.symbol_pairs, axis="columns")
-        self.original_volumes = volumes.dropna().set_axis(assets.symbol_pairs, axis="columns")
+        self.original_prices = prices.dropna().set_axis(
+            assets.symbol_pairs, axis="columns"
+        )
+        self.original_volumes = volumes.dropna().set_axis(
+            assets.symbol_pairs, axis="columns"
+        )
 
         self.insert_prices_volumes()
 
@@ -120,7 +182,18 @@ class PriceVolume(PriceSampler):
             prices = prices.to_dict()
             volumes = volumes.to_dict()
 
-            yield PriceVolumeSample(price_timestamp, prices, volumes)
+            peg_prices = None
+            if self.peg_prices is not None:
+                peg_prices = {}
+                for symbol, price_data in self.peg_prices.items():
+                    if price_timestamp in price_data.index:
+                        peg_prices[symbol] = price_data.iloc[
+                            price_data.index == price_timestamp, 0
+                        ][0]
+                    else:
+                        peg_prices[symbol] = None
+
+            yield PriceVolumeSample(price_timestamp, prices, volumes, peg_prices)
 
     def total_volumes(self):
         """
@@ -132,7 +205,6 @@ class PriceVolume(PriceSampler):
         return self.volumes.sum().to_dict()
 
     def insert_prices_volumes(self):
-
         last_ts = None
         last_price = None
         last_volume = None
@@ -177,4 +249,3 @@ class PriceVolume(PriceSampler):
         self.volumes = pd.DataFrame(
             volumes, index=ts_list, columns=self.assets.symbol_pairs
         )
-

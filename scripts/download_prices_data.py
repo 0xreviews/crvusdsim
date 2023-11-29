@@ -7,9 +7,14 @@ from curvesim.price_data import get
 
 crvUSD_address = "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E".lower()
 wstETH_address = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".lower()
+USDT_address = "0xdAC17F958D2ee523a2206206994597C13D831ec7".lower()
+USDC_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48".lower()
+TUSD_address = "0x0000000000085d4780B73119b644AE5ecd22b376".lower()
+USDP_address = "0x8E870D67F660D95d5be530380D0eC0bd388289E1".lower()
 
-def download_prices_data(collateral_address, days=60, data_dir="data"):
-    filename = f"{collateral_address.lower()}-{crvUSD_address.lower()}.csv"
+
+def download_prices_data(token_address, days=60, data_dir="data"):
+    filename = f"{token_address.lower()}-{crvUSD_address.lower()}.csv"
     filepath = os.path.join(data_dir, filename)
 
     try:
@@ -20,16 +25,11 @@ def download_prices_data(collateral_address, days=60, data_dir="data"):
         curr_file = None
 
     prices, volumes, _ = get(
-        [collateral_address, crvUSD_address],
+        [token_address, crvUSD_address],
         chain="mainnet",
         days=days,
         data_dir=data_dir,
         src="coingecko",
-        # end=int(
-        #     mktime(
-        #         datetime.strptime("2023-10-20", "%Y-%m-%d").timetuple()
-        #     )
-        # ),
     )
 
     # Create the pandas DataFrame
@@ -43,4 +43,8 @@ def download_prices_data(collateral_address, days=60, data_dir="data"):
 
 
 if __name__ == "__main__":
-    download_prices_data(wstETH_address, days=120)
+    download_prices_data(wstETH_address, days=60)
+    download_prices_data(USDT_address, days=60)
+    download_prices_data(USDC_address, days=60)
+    download_prices_data(TUSD_address, days=60)
+    download_prices_data(USDP_address, days=60)
