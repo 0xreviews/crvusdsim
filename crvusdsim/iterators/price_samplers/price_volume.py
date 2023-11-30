@@ -7,6 +7,8 @@ from curvesim.templates.price_samplers import PriceSample, PriceSampler
 from curvesim.utils import dataclass, override
 import pandas as pd
 
+from crvusdsim.pool.crvusd.conf import ALIAS_TO_ADDRESS
+
 
 logger = get_logger(__name__)
 
@@ -96,26 +98,33 @@ class PriceVolume(PriceSampler):
                 peg_volumes = {}
                 for pegcoin_asset in pegcoins:
                     _addresses = pegcoin_asset.addresses
-                    if pegcoin_asset.symbols[0] == "crvUSD":
-                        _addresses.reverse()  # should reverse address here
-                    filename = f"{_addresses[0].lower()}-{_addresses[1].lower()}.csv"
+                    if _addresses[1].lower() == ALIAS_TO_ADDRESS["crvUSD"].lower():
+                        filename = (
+                            f"{_addresses[1].lower()}-{_addresses[0].lower()}.csv"
+                        )
+                    else:
+                        filename = (
+                            f"{_addresses[0].lower()}-{_addresses[1].lower()}.csv"
+                        )
+
                     filepath = os.path.join(data_dir, filename)
 
                     try:
                         local_data = pd.read_csv(filepath, index_col=0)
-                        local_data.index = pd.to_datetime(local_data.index)
-
-                        peg_prices[pegcoin_asset.symbol_pairs[0]] = pd.DataFrame(
-                            local_data["price"]
-                        )
-                        peg_volumes[pegcoin_asset.symbol_pairs[0]] = pd.DataFrame(
-                            local_data["volume"]
-                        )
 
                     except Exception:
                         raise NetworkError(
                             "Load or parse local pegcoin prices data faild."
                         )
+
+                    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
+                    local_data.index = pd.to_datetime(local_data.index)
+                    peg_prices[_symbols] = pd.DataFrame(
+                        local_data["price"]
+                    )
+                    peg_volumes[_symbols] = pd.DataFrame(
+                        local_data["volume"]
+                    )
 
                 self.peg_prices = peg_prices
                 self.peg_volumes = peg_volumes
@@ -146,8 +155,9 @@ class PriceVolume(PriceSampler):
                         src=src,
                         end=end,
                     )
-                    peg_prices[pegcoin_asset.symbol_pairs[0]] = _prices
-                    peg_volumes[pegcoin_asset.symbol_pairs[0]] = _volumes
+                    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
+                    peg_prices[_symbols] = _prices
+                    peg_volumes[_symbols] = _volumes
 
                 self.peg_prices = peg_prices
                 self.peg_volumes = peg_volumes
@@ -187,9 +197,7 @@ class PriceVolume(PriceSampler):
                 peg_prices = {}
                 for symbol, price_data in self.peg_prices.items():
                     if price_timestamp in price_data.index:
-                        peg_prices[symbol] = price_data.iloc[
-                            price_data.index == price_timestamp, 0
-                        ][0]
+                        peg_prices[symbol] = price_data[price_data.index == price_timestamp].iloc[0]
                     else:
                         peg_prices[symbol] = None
 

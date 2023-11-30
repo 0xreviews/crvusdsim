@@ -13,8 +13,8 @@ TUSD_address = "0x0000000000085d4780B73119b644AE5ecd22b376".lower()
 USDP_address = "0x8E870D67F660D95d5be530380D0eC0bd388289E1".lower()
 
 
-def download_prices_data(token_address, days=60, data_dir="data"):
-    filename = f"{token_address.lower()}-{crvUSD_address.lower()}.csv"
+def download_prices_data(token0, token1, days=60, data_dir="data"):
+    filename = f"{token0.lower()}-{token1.lower()}.csv"
     filepath = os.path.join(data_dir, filename)
 
     try:
@@ -25,7 +25,7 @@ def download_prices_data(token_address, days=60, data_dir="data"):
         curr_file = None
 
     prices, volumes, _ = get(
-        [token_address, crvUSD_address],
+        [token0, token1],
         chain="mainnet",
         days=days,
         data_dir=data_dir,
@@ -42,9 +42,15 @@ def download_prices_data(token_address, days=60, data_dir="data"):
     df.to_csv(filepath)
 
 
+def download_collateral_prices_data(collateral_address, days=60, data_dir="data"):
+    download_prices_data(
+        collateral_address, crvUSD_address, days=days, data_dir=data_dir
+    )
+
+
 if __name__ == "__main__":
-    download_prices_data(wstETH_address, days=60)
-    download_prices_data(USDT_address, days=60)
-    download_prices_data(USDC_address, days=60)
-    download_prices_data(TUSD_address, days=60)
-    download_prices_data(USDP_address, days=60)
+    download_collateral_prices_data(wstETH_address, days=60)
+    download_prices_data(crvUSD_address, USDT_address, days=60)
+    download_prices_data(crvUSD_address, USDC_address, days=60)
+    download_prices_data(crvUSD_address, TUSD_address, days=60)
+    download_prices_data(crvUSD_address, USDP_address, days=60)

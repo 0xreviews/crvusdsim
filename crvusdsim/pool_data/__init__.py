@@ -46,7 +46,7 @@ def get_metadata(
 
     if src == "local" and data_dir is not None:
         if use_symbol:
-            address = ALIAS_TO_ADDRESS[address.lower()]
+            address = ALIAS_TO_ADDRESS["llamma_%s" % address.lower()]
         with open(data_dir + "/pool_metadata_%s.json" % (address)) as openfile:
             metadata_dict = json.load(openfile)
     else:

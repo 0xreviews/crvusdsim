@@ -3,8 +3,7 @@ __all__ = [
     "Trade",
     "Trader",
     "Trader",
-    "PegcoinTrader",
 ]
 
 from .Strategy import Strategy
-from .Trader import Trade, Trader, PegcoinTrader
+from .Trader import Trade, Trader
