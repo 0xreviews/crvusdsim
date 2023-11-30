@@ -250,7 +250,6 @@ class CurveStableSwapPoolSnapshot(Snapshot):
         self,
         balances,
         admin_balances,
-        coins,
         last_price,
         ma_price,
         ma_last_time,
@@ -259,12 +258,11 @@ class CurveStableSwapPoolSnapshot(Snapshot):
     ):
         self.balances = balances
         self.admin_balances = admin_balances
-        self.coins = coins
         self.last_price = last_price
         self.ma_price = ma_price
         self.ma_last_time = ma_last_time
-        self._block_timestamp = _block_timestamp
         self.coin_snapshots = coin_snapshots
+        self._block_timestamp = _block_timestamp
 
     @classmethod
     def create(cls, pool):
@@ -288,7 +286,6 @@ class CurveStableSwapPoolSnapshot(Snapshot):
     def restore(self, pool):
         pool.balances = self.balances.copy()
         pool.admin_balances = self.admin_balances.copy()
-        pool.coins = [deepcopy(c) for c in self.coins]
         pool.last_price = self.last_price
         pool.ma_price = self.ma_price
         pool.ma_last_time = self.ma_last_time
