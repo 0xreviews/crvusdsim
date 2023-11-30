@@ -1,12 +1,12 @@
 from curvesim.logging import get_logger
-from crvusdsim.templates import Trade, Trader, PegcoinTrader
+from crvusdsim.templates import Trade, Trader
 
-from ..common import get_arb_trades, get_stableswap_pools_trades
+from ..common import get_arb_trades
 
 logger = get_logger(__name__)
 
 
-class SimpleLLAMMAArbitrageur(Trader):
+class SimpleArbitrageur(Trader):
     """
     Computes, executes, and reports out arbitrage trades.
     """
@@ -57,40 +57,4 @@ class SimpleLLAMMAArbitrageur(Trader):
             return [], {"price_errors": []}
 
         return [best_trade], {"price_errors": [price_error]}
-
-
-class SimplePegCoinArbitrageur(PegcoinTrader):
-    """
-    Computes, executes, and reports out arbitrage trades 
-    on Stableswap Pools of Pegcoins.
-    """
-
-    # pylint: disable-next=arguments-differ,too-many-locals
-    def compute_trades(self, prices):
-        """
-        Compute trades to arbitrage the pool, as follows:
-            1. For each coin pair i and j, calculate size of coin i
-               needed to move price of coin i w.r.t. to j to the
-               target price.
-            2. Calculate the profit from each such swap.
-            3. Take the swap that gives the largest profit.
-
-        Parameters
-        ----------
-        prices : pandas.Series
-            Current market prices from the price_sampler.
-
-        Returns
-        -------
-        trades : list of :class:`Trade` objects
-            List of trades to perform.
-
-        additional_data: dict
-            Dict of additional data to be passed to the state log as part of trade_data.
-        """
-        stableswap_pools = self.stableswap_pools
-        trades = get_stableswap_pools_trades(stableswap_pools, prices)
-        price_error = None
-
-        return trades, {"price_errors": [price_error]}
 

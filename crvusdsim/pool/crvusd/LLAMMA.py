@@ -1402,7 +1402,7 @@ class LLAMMAPool(
         """
         return self._get_dxdy(i, j, in_amount, True).out_amount
 
-    def get_dxdy(self, i: int, j: int, in_amount: int) -> Tuple[int, int]:
+    def get_dxdy(self, i: int, j: int, in_amount: int) -> Tuple[int, int, int]:
         """
         Method to use to calculate out amount and spent in amount
 
@@ -1417,8 +1417,8 @@ class LLAMMAPool(
 
         Returns
         -------
-        Tuple[int, int]
-            A tuple with in_amount used and out_amount returned
+        Tuple[int, int, int]
+            A tuple with in_amount used, out_amount and fees returned
         """
         out: DetailedTrade = self._get_dxdy(i, j, in_amount, True)
         return (out.in_amount, out.out_amount, sum(out.fees))

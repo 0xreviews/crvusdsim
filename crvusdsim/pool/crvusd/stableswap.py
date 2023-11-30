@@ -31,6 +31,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
 
     __slots__ = (
         "address",
+        "chain",
         "name",
         "symbol",
         "A",
@@ -66,6 +67,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         decimals=18,
         name: str = "crvUSD/USDC",
         symbol: str = "crvUSD-USDC",
+        chain: str = "mainnet",
         coins: List[StableCoin] = None,
     ):
         """
@@ -139,6 +141,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         self.totalSupply = self.get_D_mem(rates, balances, self.A)
         self.decimals = decimals
 
+        self.chain = chain
         # mint token for init liquidity
         for i in range(len(self.balances)):
             if self.balances[i] > 0:
@@ -453,6 +456,33 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         x: int = self.get_y(j, i, y, xp, 0, 0)
         return (x - xp[i]) * PRECISION // rates[i]
 
+    def get_dxdy(self, i: int, j: int, dx: int) -> Tuple[int, int, int]:
+        """
+        Method to use to calculate out amount and spent in amount
+
+        Parameters
+        ----------
+        i : int
+            Input coin index
+        j : int
+            Output coin index
+        dx : int
+            Amount of input coin to swap
+
+        Returns
+        -------
+        Tuple[int, int, int]
+            A tuple with in_amount used, out_amount and fees returned
+        """
+        rates: List[int] = self.rates
+        xp: List[int] = self._xp_mem(rates, self.balances)
+
+        x: int = xp[i] + (dx * rates[i] // PRECISION)
+        y: int = self.get_y(i, j, x, xp, 0, 0)
+        dy: int = xp[j] - y - 1
+        fee: int = self.fee * dy // FEE_DENOMINATOR
+        return (dx, (dy - fee) * PRECISION // rates[j], fee)
+
     def exchange(
         self, i: int, j: int, _dx: int, _receiver: str = ARBITRAGUR_ADDRESS, _min_dy: int = 0
     ):
@@ -512,7 +542,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         ), "failed transfer"
         assert self.coins[j].transfer(self.address, _receiver, dy), "failed transfer"
 
-        return dy
+        return dy, dy_fee
 
     def remove_liquidity(
         self, _burn_amount: int, _min_amounts: List[int], _receiver: str = LP_PROVIDER

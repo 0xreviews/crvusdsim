@@ -59,10 +59,14 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         float
             Price of `coin_in` quoted in `coin_out`
         """
-        return self.dydx(i, j, use_fee=use_fee)
+        p = self.get_p()
+        if j == 1 or j == "crvUSD":
+            return p
+        else:
+            return 10**36 // p
 
     @override
-    def trade(self, i, j, size, user=ARBITRAGUR_ADDRESS):
+    def trade(self, coin_in, coin_out, size, user=ARBITRAGUR_ADDRESS):
         """
         Perform an exchange between two coins.
 
@@ -76,9 +80,9 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
 
         Parameters
         ----------
-        i : int
+        coin_in : int, str
             ID of "in" coin.
-        j : int
+        coin_out : int, str
             ID of "out" coin.
         size : int
             Amount of coin `i` being exchanged.
@@ -90,9 +94,16 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         """
         if size == 0:
             return 0
+
+        pump = coin_out == "crvUSD" or coin_in == 0
+
+        i, j = 0, 1
+        if not pump:
+            i, j = 1, 0
+            
         self.coins[i]._mint(user, size)
-        amount_out = self.exchange(i, j, size, _receiver=user)
-        return amount_out
+        amount_out, fees = self.exchange(i, j, size, _receiver=user)
+        return (size, amount_out, fees)
 
     @override
     def get_max_trade_size(self, i, j, out_balance_perc=0.01):
@@ -163,24 +174,73 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         else:
             i, j = 1, 0
 
-        diff = abs(amm_p / p) - 1
+        diff = abs(abs(amm_p / p) - 1)
 
-        if diff < 1e-3:
+        if diff < 1e-5:
             self.revert_to_snapshot(pool_snapshot)
             return (0, True)
 
-        delta_dx = self.balances[0] // 100 if pump else self.balances[1] // 100
-        dx = delta_dx
-
-        while diff > 1e-3:
-            self.trade(i, j, dx)
+        coin_in_balance = self.balances[0] if pump else self.balances[1]
+        dx = 0
+        while diff > 1e-4:
             amm_p = self.get_p()
-            diff = abs(amm_p / p) - 1
-            if pump != amm_p <= p:
+            if pump != (amm_p <= p):
                 break
-            if diff < 1e-2:
-                delta_dx /= 10
-            dx += delta_dx
+            diff = abs(abs(amm_p / p) - 1)
+            delta_dx = coin_in_balance // 100
+            if diff < 5e-3:
+                delta_dx = coin_in_balance // 1000
 
+            dx += delta_dx
+            self.trade(i, j, delta_dx)
+
+        amm_p = self.get_p()
+        assert abs(abs(amm_p / p) - 1) <= 1e-4
         self.revert_to_snapshot(pool_snapshot)
+
         return (dx, pump)
+
+    def prepare_for_run(self, prices):
+        """
+        Sets price parameters to the first simulation price and updates
+        balances to be equally-valued.
+
+        Parameters
+        ----------
+        prices : pandas.DataFrame
+            The price time_series, price_sampler.prices.
+        """
+        # Get/set initial prices
+        initial_price = int(prices.iloc[0, :].tolist()[0] * 10**18)
+        init_ts = int(prices.index[0].timestamp())
+
+        amount, pump = self.get_amount_for_price(initial_price)
+        amm_p_before = self.get_p()
+        if pump:
+            self.trade(0, 1, amount)
+        else:
+            self.trade(1, 0, amount)
+
+        amm_p = self.get_p()
+        assert abs(abs(amm_p / initial_price) - 1) < 1e-4
+
+        self._increment_timestamp(timestamp=init_ts)
+        self.last_price = amm_p
+        self.ma_price = amm_p
+        self.ma_last_time = init_ts
+
+    def prepare_for_trades(self, timestamp):
+        """
+        Updates the pool's _block_timestamp attribute to current sim time.
+
+        Parameters
+        ----------
+        timestamp : datetime.datetime
+            The current timestamp in the simulation.
+        """
+
+        if isinstance(timestamp, float):
+            timestamp = int(timestamp)
+        if not isinstance(timestamp, int):
+            timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
+        self._increment_timestamp(timestamp=timestamp)
