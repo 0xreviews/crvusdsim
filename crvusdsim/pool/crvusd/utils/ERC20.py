@@ -2,10 +2,15 @@
 crvUSD Stablecoin
 """
 from collections import defaultdict
-from typing import List
+from typing import List, Optional, Type
+from curvesim.pool.snapshot import Snapshot, SnapshotMixin
+from ...snapshot import ERC20Snapshot
 
 
-class ERC20:
+class ERC20(SnapshotMixin):
+
+    snapshot_class: Optional[Type[Snapshot]] = ERC20Snapshot
+
     __slots__ = (
         "address",
         "name",

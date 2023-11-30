@@ -32,6 +32,8 @@ class LLAMMASnapshot(Snapshot):
         bands_x_benchmark,
         bands_y_benchmark,
         bands_delta_snapshot,
+        stablecoin_snapshot,
+        collateral_snapshot,
     ):
         self.active_band = active_band
         self.min_band = min_band
@@ -57,6 +59,9 @@ class LLAMMASnapshot(Snapshot):
         self.bands_y_benchmark = bands_y_benchmark
 
         self.bands_delta_snapshot = bands_delta_snapshot
+
+        self.stablecoin_snapshot = stablecoin_snapshot
+        self.collateral_snapshot = collateral_snapshot
 
     @classmethod
     def create(cls, pool):
@@ -85,6 +90,9 @@ class LLAMMASnapshot(Snapshot):
 
         bands_delta_snapshot = pool.bands_delta_snapshot.copy()
 
+        stablecoin_snapshot = pool.BORROWED_TOKEN.get_snapshot()
+        collateral_snapshot = pool.COLLATERAL_TOKEN.get_snapshot()
+
         return cls(
             active_band,
             min_band,
@@ -107,6 +115,8 @@ class LLAMMASnapshot(Snapshot):
             bands_x_benchmark,
             bands_y_benchmark,
             bands_delta_snapshot,
+            stablecoin_snapshot,
+            collateral_snapshot,
         )
 
     def restore(self, pool):
@@ -134,6 +144,9 @@ class LLAMMASnapshot(Snapshot):
 
         pool.bands_delta_snapshot = self.bands_delta_snapshot.copy()
 
+        pool.BORROWED_TOKEN.revert_to_snapshot(self.stablecoin_snapshot)
+        pool.COLLATERAL_TOKEN.revert_to_snapshot(self.collateral_snapshot)
+
 
 class ControllerSnapshot(Snapshot):
     """Snapshot that saves Controller loans, loan_ix, n_loans, etc..."""
@@ -150,6 +163,8 @@ class ControllerSnapshot(Snapshot):
         redeemed,
         liquidation_discount,
         loan_discount,
+        stablecoin_snapshot,
+        collateral_snapshot,
     ):
         self.loan = loan
         self.liquidation_discounts = liquidation_discounts
@@ -165,6 +180,9 @@ class ControllerSnapshot(Snapshot):
 
         self.liquidation_discount = liquidation_discount
         self.loan_discount = loan_discount
+
+        self.stablecoin_snapshot = stablecoin_snapshot
+        self.collateral_snapshot = collateral_snapshot
 
     @classmethod
     def create(cls, controller):
@@ -183,6 +201,9 @@ class ControllerSnapshot(Snapshot):
         liquidation_discount = controller.liquidation_discount
         loan_discount = controller.loan_discount
 
+        stablecoin_snapshot = controller.STABLECOIN.get_snapshot()
+        collateral_snapshot = controller.COLLATERAL_TOKEN.get_snapshot()
+
         return cls(
             loan,
             liquidation_discounts,
@@ -194,6 +215,8 @@ class ControllerSnapshot(Snapshot):
             redeemed,
             liquidation_discount,
             loan_discount,
+            stablecoin_snapshot,
+            collateral_snapshot,
         )
 
     def restore(self, controller):
@@ -211,23 +234,45 @@ class ControllerSnapshot(Snapshot):
         controller.liquidation_discount = self.liquidation_discount
         controller.loan_discount = self.loan_discount
 
+        controller.STABLECOIN.revert_to_snapshot(self.stablecoin_snapshot)
+        controller.COLLATERAL_TOKEN.revert_to_snapshot(self.collateral_snapshot)
+
 
 class CurveStableSwapPoolSnapshot(Snapshot):
     """Snapshot that saves pool balances and admin balances."""
 
-    def __init__(self, balances, admin_balances, coins):
+    def __init__(self, balances, admin_balances, coin_snapshots):
         self.balances = balances
         self.admin_balances = admin_balances
-        self.coins = coins
+        self.coin_snapshots = coin_snapshots
 
     @classmethod
     def create(cls, pool):
         balances = pool.balances.copy()
         admin_balances = pool.admin_balances.copy()
-        coins = [deepcopy(c) for c in pool.coins]
-        return cls(balances, admin_balances, coins)
+        coin_snapshots = [coin.get_snapshot() for coin in pool.coins]
+        return cls(balances, admin_balances, coin_snapshots)
 
     def restore(self, pool):
         pool.balances = self.balances.copy()
         pool.admin_balances = self.admin_balances.copy()
-        pool.coins = [deepcopy(c) for c in self.coins]
+        for coin, coin_snapshot in zip(pool.coins, self.coin_snapshots):
+            coin.revert_to_snapshot(coin_snapshot)
+
+
+class ERC20Snapshot(Snapshot):
+    """Snapshot that saves ERC20 supply and balances."""
+
+    def __init__(self, balanceOf, totalSupply):
+        self.balanceOf = balanceOf
+        self.totalSupply = totalSupply
+    
+    @classmethod
+    def create(cls, erc20):
+        balanceOf = erc20.balanceOf.copy()
+        totalSupply = erc20.totalSupply
+        return cls(balanceOf, totalSupply)
+
+    def restore(self, erc20):
+        erc20.balanceOf = self.balanceOf.copy()
+        erc20.totalSupply = self.totalSupply
