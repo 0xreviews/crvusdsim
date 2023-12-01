@@ -37,7 +37,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
 
         sim_mode: str
             For different modes, the comparison dimensions are different.
-            Supported values are: "pool", "controller", "N"
+            Supported values are: "pool", "controller", "N", "rate"
 
         Returns
         -------
@@ -91,6 +91,9 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
                 self.set_pool_attributes(sim_market.pool, params)
             elif self.sim_mode == "controller":
                 self.set_controller_attributes(sim_market.controller, params)
+            elif self.sim_mode == "rate":
+                self.set_rate_attributes(sim_market, params)
+                
             yield sim_market, params
 
     def make_parameter_sequence(self, variable_params):
@@ -159,6 +162,16 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         for attribute, value in attribute_dict.items():
             self._set_controller_attribute(controller, attribute, value)
 
+    def set_rate_attributes(self, sim_market: SimMarketInstance, attribute_dict):
+        """
+        Sets the policy attributes defined in attribute_dict.
+        """
+        if attribute_dict is None:
+            return
+
+        for attribute, value in attribute_dict.items():
+            self._set_rate_attribute(sim_market, attribute, value)
+
     def _set_pool_attribute(self, pool, attr, value):
         """
         Sets a single pool attribute.
@@ -183,7 +196,6 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         """
         if attr in self.setters:
             self.setters[attr](pool, value)
-
         else:
             pool_attr = (pool, attr)
             setattr(*pool_attr, value)
@@ -191,10 +203,16 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
     def _set_controller_attribute(self, controller, attr, value):
         if attr in self.controller_setters:
             self.controller_setters[attr](controller, value)
-
         else:
             controller_attr = (controller, attr)
             setattr(*controller_attr, value)
+
+    def _set_rate_attribute(self, sim_market: SimMarketInstance, attr, value):
+        if attr in self.rate_setters:
+            self.rate_setters[attr](sim_market.policy, value)
+        else:
+            rate_attr = (sim_market.policy, attr)
+            setattr(*rate_attr, value)
 
     def _validate_attributes(self, pool, attributes):
         """
