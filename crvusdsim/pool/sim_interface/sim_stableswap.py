@@ -5,6 +5,7 @@ from curvesim.templates.sim_pool import SimPool
 from curvesim.utils import cache, override
 from curvesim.pool.sim_interface.asset_indices import AssetIndicesMixin
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
+from curvesim.exceptions import CurvesimValueError
 
 from ..crvusd.stableswap import CurveStableSwapPool, PRECISION
 
@@ -100,7 +101,7 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         i, j = 0, 1
         if not pump:
             i, j = 1, 0
-            
+
         self.coins[i]._mint(user, size)
         amount_out, fees = self.exchange(i, j, size, _receiver=user)
         return (size, amount_out, fees)
@@ -163,9 +164,22 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         """
         return SimAssets(self.coin_names, self.coin_addresses, self.chain)
 
-    def get_amount_for_price(self, p: int) -> Tuple[int, bool]:
-        amm_p = self.get_p()
-        pump = amm_p <= p
+    def get_amount_for_price(self, target_price: int) -> Tuple[int, bool]:
+        """
+        Binary search to find the amount to trade to achieve the target price.
+
+        Parameters
+        ----------
+        target_price : int
+            The desired target price.
+
+        Returns
+        -------
+        (amount_in, pump): Tuple[int, bool]
+            A tuple containing the trade amount and trade direction.
+        """
+        current_price = self.get_p()
+        pump = current_price <= target_price
 
         pool_snapshot = self.get_snapshot()
 
@@ -174,31 +188,38 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         else:
             i, j = 1, 0
 
-        diff = abs(abs(amm_p / p) - 1)
+        # Tolerance for the target price
+        epsilon = 10**12
 
-        if diff < 1e-5:
+        if abs(current_price - target_price) <= epsilon:
             self.revert_to_snapshot(pool_snapshot)
-            return (0, True)
+            return 0, True
 
-        coin_in_balance = self.balances[0] if pump else self.balances[1]
-        dx = 0
-        while diff > 1e-4:
-            amm_p = self.get_p()
-            if pump != (amm_p <= p):
-                break
-            diff = abs(abs(amm_p / p) - 1)
-            delta_dx = coin_in_balance // 100
-            if diff < 5e-3:
-                delta_dx = coin_in_balance // 1000
+        # Initial bounds for binary search
+        lower_bound = 0
+        upper_bound = sum(self._xp()) * 10**18 // self.rates[i]
 
-            dx += delta_dx
-            self.trade(i, j, delta_dx)
+        while lower_bound < upper_bound:
+            amount = (lower_bound + upper_bound) // 2
+            self.trade(i, j, amount)
+            current_price = self.get_p()
 
-        amm_p = self.get_p()
-        assert abs(abs(amm_p / p) - 1) <= 1e-4
-        self.revert_to_snapshot(pool_snapshot)
+            if abs(current_price - target_price) <= epsilon:
+                self.revert_to_snapshot(pool_snapshot)
+                return amount, pump
 
-        return (dx, pump)
+            if pump:
+                adjust_flag = current_price < target_price
+            else:
+                adjust_flag = current_price > target_price
+
+            if adjust_flag:
+                lower_bound = amount + 1
+            else:
+                upper_bound = amount
+            self.revert_to_snapshot(pool_snapshot)
+
+        raise CurvesimValueError("get_amount_for_price faild.")
 
     def prepare_for_run(self, prices):
         """
@@ -215,7 +236,6 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
         init_ts = int(prices.index[0].timestamp())
 
         amount, pump = self.get_amount_for_price(initial_price)
-        amm_p_before = self.get_p()
         if pump:
             self.trade(0, 1, amount)
         else:
