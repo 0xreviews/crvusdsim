@@ -119,12 +119,8 @@ class PriceVolume(PriceSampler):
 
                     _symbols = (pegcoin_asset.symbols[0], "crvUSD")
                     local_data.index = pd.to_datetime(local_data.index)
-                    peg_prices[_symbols] = pd.DataFrame(
-                        local_data["price"]
-                    )
-                    peg_volumes[_symbols] = pd.DataFrame(
-                        local_data["volume"]
-                    )
+                    peg_prices[_symbols] = pd.DataFrame(local_data["price"])
+                    peg_volumes[_symbols] = pd.DataFrame(local_data["volume"])
 
                 self.peg_prices = peg_prices
                 self.peg_volumes = peg_volumes
@@ -197,7 +193,11 @@ class PriceVolume(PriceSampler):
                 peg_prices = {}
                 for symbol, price_data in self.peg_prices.items():
                     if price_timestamp in price_data.index:
-                        peg_prices[symbol] = price_data[price_data.index == price_timestamp]
+                        peg_prices[symbol] = {
+                            symbol: price_data[
+                                price_data.index == price_timestamp
+                            ].iloc[0, 0]
+                        }
                     else:
                         peg_prices[symbol] = None
 

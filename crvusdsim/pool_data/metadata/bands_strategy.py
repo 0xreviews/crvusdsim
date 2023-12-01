@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import timedelta
 from math import floor, isqrt, log, log2, sqrt
 from abc import ABC, abstractmethod
+from typing import List
 from pandas import DataFrame
 from crvusdsim.pool.crvusd.controller import Controller
 from crvusdsim.pool.crvusd.vyper_func import unsafe_sub
@@ -139,10 +140,12 @@ class SimpleUsersBandsStrategy(BandsStrategy):
         prices,
         controller=None,
         parameters=None,
-        collateral_amount: int = 10 * 10**18,
+        collateral_amount=10 * 10**18,
+        debt_ratios: List[float] = [(1 - 0.005 * i) for i in range(100)],
     ):
         super().__init__(pool, prices, controller, parameters)
         self.collateral_amount = collateral_amount
+        self.debt_ratios = debt_ratios
 
     def do_strategy(self):
         # reset controller loans
@@ -164,17 +167,18 @@ class SimpleUsersBandsStrategy(BandsStrategy):
         self.pool.min_band = self.pool.active_band
 
         N = self.parameters["N"] if "N" in self.parameters else 10
-        user_address: str = DEFAULT_USER_ADDRESS
 
         max_debt = self.controller.max_borrowable(self.collateral_amount, N, 0)
-        count = 100
+        count = len(self.debt_ratios)
 
         for i in range(count):
             user_address = "%s_%d" % (DEFAULT_USER_ADDRESS, i)
-            debt = int(max_debt * (1 - 0.005 * i))
+            debt = int(max_debt * self.debt_ratios[i])
 
             self.controller.COLLATERAL_TOKEN._mint(user_address, self.collateral_amount)
-            self.controller.create_loan(user_address, self.collateral_amount, debt, N)
+            self.controller.create_loan(
+                user_address, self.collateral_amount, debt, N
+            )
 
         assert (
             self.pool.COLLATERAL_TOKEN.balanceOf[self.pool.address]

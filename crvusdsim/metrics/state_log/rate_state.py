@@ -17,7 +17,7 @@ def get_rate_state(sim_market: SimMarketInstance):
     agg_price = sim_market.aggregator.price() / 1e18
 
     return {
-        "rate0": rate0,
+        "rate0": round((1 + rate0 / 1e18) ** ONE_YEAR - 1, 3),
         "rate": rate,
         "annualized_rate": annualized_rate,
         "pk_debt": pk_debt,

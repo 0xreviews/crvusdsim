@@ -94,7 +94,6 @@ class StateLog:
 
     def compute_metrics(self):
         """Computes metrics from the accumulated log data."""
-
         state_logs = self.get_logs()
         metric_data = [metric.compute(state_logs) for metric in self.metrics]
         data_per_trade, summary_data = tuple(zip(*metric_data))  # transpose tuple list

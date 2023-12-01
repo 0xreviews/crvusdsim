@@ -43,12 +43,15 @@ def get_N_parameters(parameters):
     }
     return params
 
+ONE_YEAR = 365 * 86400
+
 def get_rate_parameters(sim_market: SimMarketInstance):
     """
     Returns controller parameters for the input MonetaryPolicy. Returned values are recorded
     at the start of each simulation run.
     """
+    rate0 = sim_market.policy.rate0
     params = {
-        "rate0": sim_market.policy.rate0,
+        "rate0": round((1 + rate0 / 1e18) ** ONE_YEAR - 1, 3),
     }
     return params

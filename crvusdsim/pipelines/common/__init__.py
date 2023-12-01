@@ -36,9 +36,7 @@ DEFAULT_CONTROLLER_PARAMS = {
     "loan_discount": [int(0.09 * 10**18), int(0.05 * 10**18)]
 }
 DEFAULT_N_PARAMS = {"N": [n for n in range(4, 51)]}
-DEFAULT_RATE_PARAMS = {
-    "rate0": [int(rate * 10**18 / (365 * 86400)) for rate in [5, 10, 15]]
-}
+DEFAULT_RATE_PARAMS = {"rate0": [0.05, 0.10, 0.15]}
 TEST_PARAMS = {
     "A": [50, 100, 150, 200],
     "fee": [
@@ -74,8 +72,6 @@ def get_arb_trades(
     trades = []
 
     for pair in prices:
-        # TODO: FutureWarning: Calling int on a single element Series is deprecated
-        # and will raise a TypeError in the future. Use int(ser.iloc[0]) instead
         p_o = int(prices[pair] * 10**18)
         target_price = p_o
 

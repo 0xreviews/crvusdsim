@@ -93,7 +93,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
                 self.set_controller_attributes(sim_market.controller, params)
             elif self.sim_mode == "rate":
                 self.set_rate_attributes(sim_market, params)
-                
+
             yield sim_market, params
 
     def make_parameter_sequence(self, variable_params):
@@ -209,6 +209,8 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
 
     def _set_rate_attribute(self, sim_market: SimMarketInstance, attr, value):
         if attr in self.rate_setters:
+            if isinstance(value, float) and value < 1:
+                value = int(((1 + value) ** (1 / (365 * 86400)) - 1) * 10**18)
             self.rate_setters[attr](sim_market.policy, value)
         else:
             rate_attr = (sim_market.policy, attr)

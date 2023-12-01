@@ -36,7 +36,7 @@ class RatePegKeeper(MarketMetric):
                         "style": "time_series",
                         "resample": "last",
                         "encoding": {
-                            "y": {"axis": Axis(format="%"), "scale": Scale(zero=True)}
+                            "y": {"axis": Axis(format="%"), "scale": Scale(zero=False)}
                         },
                     },
                     "users_debt": {
@@ -69,10 +69,12 @@ class RatePegKeeper(MarketMetric):
                     "crvusd_price": {
                         "title": f"crvUSD Price",
                         "style": "point_line",
+                        "encoding": {"y": {"scale": Scale(zero=False)}}
                     },
                     "agg_price": {
                         "title": f"Aggregator Price",
                         "style": "point_line",
+                        "encoding": {"y": {"scale": Scale(zero=False)}}
                     },
                 },
             },

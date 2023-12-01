@@ -37,7 +37,7 @@ class Strategy(ABC):
     pegkeeper_caller_class = None
     state_log_class = None
 
-    def __init__(self, metrics, sim_mode="pool", bands_strategy_class=None):
+    def __init__(self, metrics, sim_mode="pool", bands_strategy_class=None, bands_strategy_kwargs=None):
         """
         Parameters
         ----------
@@ -47,6 +47,7 @@ class Strategy(ABC):
         self.metrics = metrics
         self.sim_mode = sim_mode
         self.bands_strategy_class = bands_strategy_class
+        self.bands_strategy_kwargs = bands_strategy_kwargs
 
     def __call__(self, sim_market: SimMarketInstance, parameters, price_sampler):
         """
@@ -106,6 +107,9 @@ class Strategy(ABC):
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
         if self.bands_strategy_class is not None:
+            _kwargs = {}
+            if self.bands_strategy_kwargs is not None:
+                _kwargs = self.bands_strategy_kwargs
             # close exchange fees when adjust bands
             pool.fees_switch = False
             bands_strategy = self.bands_strategy_class(
@@ -113,6 +117,7 @@ class Strategy(ABC):
                 price_sampler.prices,
                 controller,
                 parameters,
+                **_kwargs,
             )
             bands_strategy.do_strategy()
 

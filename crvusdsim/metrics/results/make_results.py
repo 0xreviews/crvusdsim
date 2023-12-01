@@ -3,7 +3,15 @@ from pandas import concat
 from .sim_results import SimResults
 
 
-def make_results(data_per_run, data_per_trade, summary_data, state_data, metrics, prices=None, sim_mode="pool"):
+def make_results(
+    data_per_run,
+    data_per_trade,
+    summary_data,
+    state_data,
+    metrics,
+    prices=None,
+    sim_mode="pool",
+):
     """Initializes a results object from the output of a simulation pipeline."""
 
     for run_n, data in enumerate(data_per_trade):  # add "run" column
@@ -41,6 +49,9 @@ def combine_plot_configs(metrics):
             metrics_config.update(metrics)
             summary_config.update(summary)
     return {"data": metrics_config, "summary": summary_config}
+
+
+ONE_YEAR = 365 * 86400
 
 
 def get_factors(data_per_run):
