@@ -481,7 +481,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         y: int = self.get_y(i, j, x, xp, 0, 0)
         dy: int = xp[j] - y - 1
         fee: int = self.fee * dy // FEE_DENOMINATOR
-        return (dx, (dy - fee) * PRECISION // rates[j], fee)
+        return (dx, (dy - fee) * PRECISION // rates[j], fee * PRECISION // rates[j])
 
     def exchange(
         self, i: int, j: int, _dx: int, _receiver: str = ARBITRAGUR_ADDRESS, _min_dy: int = 0

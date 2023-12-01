@@ -74,7 +74,7 @@ def get_arb_trades(
     trades = []
 
     for pair in prices:
-        # TODO: FutureWarning: Calling int on a single element Series is deprecated 
+        # TODO: FutureWarning: Calling int on a single element Series is deprecated
         # and will raise a TypeError in the future. Use int(ser.iloc[0]) instead
         p_o = int(prices[pair] * 10**18)
         target_price = p_o
@@ -102,9 +102,15 @@ def get_arb_trades(
                 continue
 
         if pump:
-            profit = amount_out * p_o / 10**18 - amount_in
+            profit = (
+                amount_out * pool.rates[1] / 10**18 * p_o / 10**18
+                - amount_in * pool.rates[0] / 10**18
+            )
         else:
-            profit = amount_out - amount_in * p_o / 10**18
+            profit = (
+                amount_out * pool.rates[0] / 10**18
+                - amount_in * pool.rates[1] / 10**18 * p_o / 10**18
+            )
 
         # do exchange if profit enough, except for last round
         # (we need amm p to approximate p_out in order to calculate loss)

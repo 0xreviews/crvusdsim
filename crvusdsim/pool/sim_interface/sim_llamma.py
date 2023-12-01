@@ -45,6 +45,12 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
     def _asset_balances(self):
         """Return list of asset balances in same order as asset_names."""
         return [sum(self.bands_x), sum(self.bands_y)]
+    
+    @property
+    @cache
+    def rates(self):
+        """Return list of precision and rate adjustments."""
+        return [10**(36-int(d)) for d in self.coin_decimals]
 
     def price(self, coin_in, coin_out):
         """
