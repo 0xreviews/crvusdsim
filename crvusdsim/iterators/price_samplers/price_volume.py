@@ -197,7 +197,7 @@ class PriceVolume(PriceSampler):
                 peg_prices = {}
                 for symbol, price_data in self.peg_prices.items():
                     if price_timestamp in price_data.index:
-                        peg_prices[symbol] = price_data[price_data.index == price_timestamp].iloc[0]
+                        peg_prices[symbol] = price_data[price_data.index == price_timestamp]
                     else:
                         peg_prices[symbol] = None
 

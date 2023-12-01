@@ -5,6 +5,7 @@ Used for the `StateLog`.
 """
 
 from curvesim.exceptions import UnregisteredPoolError
+from crvusdsim.pool import SimMarketInstance
 from crvusdsim.pool.sim_interface import SimLLAMMAPool
 
 
@@ -39,5 +40,15 @@ def get_N_parameters(parameters):
     """
     params = {
         "N": parameters["N"],
+    }
+    return params
+
+def get_rate_parameters(sim_market: SimMarketInstance):
+    """
+    Returns controller parameters for the input MonetaryPolicy. Returned values are recorded
+    at the start of each simulation run.
+    """
+    params = {
+        "rate0": sim_market.policy.rate0,
     }
     return params
