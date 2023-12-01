@@ -1,7 +1,7 @@
 from curvesim.logging import get_logger
 
 from ...templates.Strategy import Strategy
-from .trader import SimpleLLAMMAArbitrageur
+from .trader import SimpleArbitrageur
 from ...metrics.state_log import StateLog
 
 
@@ -12,13 +12,14 @@ class SimpleStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Class Attributes
     ----------------
-    trader_class : :class:`~crvusdsim.pipelines.simple.trader.SimpleLLAMMAArbitrageur`
+    trader_class : :class:`~crvusdsim.pipelines.simple.trader.SimpleArbitrageur`
         Class for creating trader instances.
     state_log_class : :class:`~crvusdsim.metrics.StateLog`
         Class for creating state logger instances.
     """
 
-    llamma_trader_class = SimpleLLAMMAArbitrageur
+    llamma_trader_class = SimpleArbitrageur
+    stableswap_trader_class = SimpleArbitrageur
     state_log_class = StateLog
 
     def __init__(self, metrics, profit_threshold=50*10**18, **kwargs):
@@ -27,3 +28,4 @@ class SimpleStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     def _get_trader_inputs(self, sample):
         return (sample.prices, self.profit_threshold)
+ 

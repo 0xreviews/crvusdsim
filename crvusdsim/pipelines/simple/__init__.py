@@ -1,6 +1,7 @@
 import os
 
 from curvesim.logging import get_logger
+from curvesim.templates import SimAssets
 
 from crvusdsim.iterators.params_samplers import (
     CRVUSD_POOL_MAP,
@@ -15,6 +16,8 @@ from crvusdsim.pipelines.common import (
     DEFAULT_N_METRICS,
     DEFAULT_N_PARAMS,
     DEFAULT_POOL_METRICS,
+    DEFAULT_RATE_METRICS,
+    DEFAULT_RATE_PARAMS,
 )
 from crvusdsim.pipelines.common import DEFAULT_POOL_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
@@ -108,9 +111,9 @@ def pipeline(  # pylint: disable=too-many-locals
         Number of cores to use.
 
     prices_max_interval: int, default=10 * 60 (10m)
-        The maximum interval for pricing data. If the time interval between two 
+        The maximum interval for pricing data. If the time interval between two
         adjacent data exceeds this value, interpolation processing will be performed automatically.
-    
+
     profit_threshold: int, default=0
         Profit threshold for arbitrageurs, trades with profits below this value will not be executed
 
@@ -138,6 +141,8 @@ def pipeline(  # pylint: disable=too-many-locals
             variable_params = DEFAULT_CONTROLLER_PARAMS
         elif sim_mode == "N":
             variable_params = DEFAULT_N_PARAMS
+        elif sim_mode == "rate":
+            variable_params = DEFAULT_RATE_PARAMS
 
     sim_market = get_sim_market(
         pool_metadata,
@@ -152,8 +157,10 @@ def pipeline(  # pylint: disable=too-many-locals
         pool_params = TEST_PARAMS
 
     sim_assets = sim_market.pool.assets
+    pegcoins = [stable_pool.assets for stable_pool in sim_market.stableswap_pools]
     price_sampler = PriceVolume(
         sim_assets,
+        pegcoins=pegcoins,
         days=days,
         end=end_ts,
         data_dir=data_dir,
@@ -174,6 +181,8 @@ def pipeline(  # pylint: disable=too-many-locals
         default_metrics = DEFAULT_CONTROLLER_METRICS
     elif sim_mode == "N":
         default_metrics = DEFAULT_N_METRICS
+    elif sim_mode == "rate":
+        default_metrics = DEFAULT_RATE_METRICS
 
     _metrics = init_metrics(default_metrics, sim_market=sim_market)
     strategy = SimpleStrategy(

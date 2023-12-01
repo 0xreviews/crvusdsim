@@ -115,27 +115,3 @@ class Trader(ABC):
 
         return {"trades": trade_results, **additional_data}
 
-
-class PegcoinTrader(Trader):
-    """
-    Computes, executes, and reports out arbitrage trades
-    on Stableswap Pools of Pegcoins.
-    """
-
-    def __init__(
-        self, pool: SimLLAMMAPool, stableswap_pools: List[CurveStableSwapPool]
-    ):
-        """
-        Parameters
-        ----------
-        pool : SimLLAMMAPool
-            Simulation interface to a subclass of :class:`.Pool`.
-
-        stableswap_pools : List[CurveStableSwapPool]
-
-        """
-        super().__init__(pool)
-        pools = {}
-        for _pool in stableswap_pools:
-            pools[_pool.assets.symbols] = _pool
-        self.stableswap_pools = pools

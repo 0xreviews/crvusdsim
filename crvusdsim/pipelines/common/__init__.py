@@ -1,14 +1,16 @@
+from datetime import datetime
 from scipy.optimize import root_scalar
 
 from curvesim.logging import get_logger
 from crvusdsim.metrics import metrics_pool as PoolMetrics
 from crvusdsim.metrics import metrics_N as RangeNMetrics
 from crvusdsim.metrics import metrics_controller as ControllerMetric
+from crvusdsim.metrics import metrics_rate as RateMetric
 from curvesim.templates.trader import Trade, Trader
 
 
-
 logger = get_logger(__name__)
+
 DEFAULT_POOL_METRICS = [
     PoolMetrics.Timestamp,
     PoolMetrics.PoolValue,
@@ -20,10 +22,9 @@ DEFAULT_CONTROLLER_METRICS = [
     ControllerMetric.UsersHealth,
     ControllerMetric.LiquidationVolume,
 ]
-DEFAULT_N_METRICS = [
-    PoolMetrics.Timestamp,
-    RangeNMetrics.RangeNReturns
-]
+DEFAULT_N_METRICS = [PoolMetrics.Timestamp, RangeNMetrics.RangeNReturns]
+DEFAULT_RATE_METRICS = [PoolMetrics.Timestamp, RateMetric.RatePegKeeper]
+
 DEFAULT_POOL_PARAMS = {
     "A": [50, 100, 150, 200],
     "fee": [
@@ -35,6 +36,9 @@ DEFAULT_CONTROLLER_PARAMS = {
     "loan_discount": [int(0.09 * 10**18), int(0.05 * 10**18)]
 }
 DEFAULT_N_PARAMS = {"N": [n for n in range(4, 51)]}
+DEFAULT_RATE_PARAMS = {
+    "rate0": [int(rate * 10**18 / (365 * 86400)) for rate in [5, 10, 15]]
+}
 TEST_PARAMS = {
     "A": [50, 100, 150, 200],
     "fee": [
@@ -69,14 +73,11 @@ def get_arb_trades(
 
     trades = []
 
-    # price_limit_up = pool.p_oracle_up(pool.min_band)
-    # price_limit_down = pool.p_oracle_up(pool.max_band)
-
     for pair in prices:
-
+        # TODO: FutureWarning: Calling int on a single element Series is deprecated 
+        # and will raise a TypeError in the future. Use int(ser.iloc[0]) instead
         p_o = int(prices[pair] * 10**18)
         target_price = p_o
-        # target_price = min(price_limit_up, max(price_limit_down, target_price))
 
         amount, pump = pool.get_amount_for_price(target_price)
 
@@ -112,7 +113,5 @@ def get_arb_trades(
             continue
 
         trades.append((amount_in, amount_out, fees, profit, (coin_in, coin_out), price))
-    
+
     return trades
-
-

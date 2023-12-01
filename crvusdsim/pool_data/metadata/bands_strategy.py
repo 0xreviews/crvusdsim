@@ -163,7 +163,7 @@ class SimpleUsersBandsStrategy(BandsStrategy):
 
         self.pool.min_band = self.pool.active_band
 
-        N = self.parameters["N"]
+        N = self.parameters["N"] if "N" in self.parameters else 10
         user_address: str = DEFAULT_USER_ADDRESS
 
         max_debt = self.controller.max_borrowable(self.collateral_amount, N, 0)
