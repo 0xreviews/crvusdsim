@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 from curvesim.logging import get_logger
+from crvusdsim.iterators.price_samplers.price_volume import PriceVolumeSample
+from crvusdsim.templates import Trader
 
 from crvusdsim.pool import SimMarketInstance
+from crvusdsim.pool.sim_interface.sim_stableswap import SimCurveStableSwapPool
 
 logger = get_logger(__name__)
 
@@ -87,6 +91,11 @@ class Strategy(ABC):
         assert pool.COLLATERAL_TOKEN == controller.COLLATERAL_TOKEN
 
         llamma_trader = self.llamma_trader_class(pool)
+        stableswap_traders = {}
+        for stable_pool in stableswap_pools:
+            _symbols = (stable_pool.assets.symbols[0], "crvUSD")
+            stableswap_traders[_symbols] = self.stableswap_trader_class(stable_pool)
+
         state_log = self.state_log_class(
             sim_market,
             self.metrics,
@@ -113,7 +122,18 @@ class Strategy(ABC):
         pool.prepare_for_run(price_sampler.prices)
         controller.prepare_for_run(price_sampler.prices)
 
+        if price_sampler.peg_prices is not None:
+            for stable_pool in stableswap_pools:
+                _symbols = (stable_pool.assets.symbols[0], "crvUSD")
+                stable_pool.prepare_for_run(price_sampler.peg_prices[_symbols])
+
         for sample in price_sampler:
+            stableswap_trade_datas = []
+            if sample.peg_prices is not None:
+                stableswap_trade_datas = self._process_stableswap(
+                    stableswap_pools, sample, stableswap_traders
+                )
+
             _p = int(list(sample.prices.values())[0] * 10**18)
             pool.price_oracle_contract.set_price(_p)
             pool.prepare_for_trades(sample.timestamp)
@@ -122,8 +142,12 @@ class Strategy(ABC):
             trader_args = self._get_trader_inputs(sample)
             trade_data = llamma_trader.process_time_sample(*trader_args)
 
-            controller.after_trades(do_liquidate=self.sim_mode == "controller")
-            state_log.update(price_sample=sample, trade_data=trade_data)
+            controller.after_trades(do_liquidate=self.sim_mode in ["controller"])
+            state_log.update(
+                price_sample=sample,
+                trade_data=trade_data,
+                stableswap_trade_datas=stableswap_trade_datas,
+            )
 
         return state_log.compute_metrics()
 
@@ -134,3 +158,23 @@ class Strategy(ABC):
         trader instance.
         """
         raise NotImplementedError
+
+    def _process_stableswap(
+        self,
+        stableswap_pools: List[SimCurveStableSwapPool],
+        sample: PriceVolumeSample,
+        traders: dict,
+    ):
+        stableswap_trade_datas = {}
+        for stable_pool in stableswap_pools:
+            _symbols = (stable_pool.assets.symbols[0], "crvUSD")
+            if _symbols not in sample.peg_prices or sample.peg_prices[_symbols] is None:
+                stableswap_trade_datas[_symbols] = []
+                continue
+            _peg_p = sample.peg_prices[_symbols]
+            stable_pool.prepare_for_trades(sample.timestamp)
+            trader_args = (_peg_p, 0)  # profit_threshold = 0
+            trade_data = traders[_symbols].process_time_sample(*trader_args)
+            stableswap_trade_datas[_symbols] = trade_data
+
+        return stableswap_trade_datas

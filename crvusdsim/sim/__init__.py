@@ -142,6 +142,9 @@ def _parse_arguments(pool_metadata, sim_mode, **kwargs):
     elif sim_mode == "N":
         input_args = ["N"]
         bands_strategy_class = SimpleUsersBandsStrategy
+    elif sim_mode == "rate":
+        input_args = ["rate0"]
+        bands_strategy_class = SimpleUsersBandsStrategy
 
     variable_params = {}
     rest_of_params = {}
