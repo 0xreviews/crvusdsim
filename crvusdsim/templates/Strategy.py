@@ -67,7 +67,6 @@ class Strategy(ABC):
             Iterable that for each timestep returns market data used by
             the trader.
 
-
         Returns
         -------
         metrics : tuple of lists
