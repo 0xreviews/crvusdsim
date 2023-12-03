@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 def autosim(
     pool=None,
     pool_metadata=None,
-    sim_mode="pool",
+    sim_mode="rate",
     **kwargs,
 ):
     """
@@ -55,6 +55,10 @@ def autosim(
 
         .. note::
             Either `pool` or `pool_metadata` must be provided.
+
+    sim_mode: str (default=rate)
+        For different modes, the comparison dimensions are different.
+        Supported values are: "rate", "pool", "controller", "N"
 
     A: int or iterable of int, optional
         Amplification coefficient.  This controls the curvature of the
@@ -110,15 +114,19 @@ def autosim(
     # pool_metadata = pool_metadata or get_metadata(
     #     pool, data_dir=data_dir, end_ts=end_ts
     # )
-    p_var, bands_strategy_class, rest_of_params = _parse_arguments(
-        pool_metadata, sim_mode, **kwargs
-    )
+    (
+        p_var,
+        bands_strategy_class,
+        bands_strategy_kwargs,
+        rest_of_params,
+    ) = _parse_arguments(pool_metadata, sim_mode, **kwargs)
 
     results = pipeline(
         pool_metadata=pool if pool else pool_metadata,
         sim_mode=sim_mode,
         variable_params=p_var,
         bands_strategy_class=bands_strategy_class,
+        bands_strategy_kwargs=bands_strategy_kwargs,
         **rest_of_params,
     )
 
@@ -128,8 +136,18 @@ def autosim(
 def _parse_arguments(pool_metadata, sim_mode, **kwargs):
     input_args = []
     bands_strategy_class = None
+    bands_strategy_kwargs = None
 
-    if sim_mode == "pool":
+    if sim_mode == "rate":
+        input_args = [
+            "rate0",
+        ]
+        bands_strategy_class = SimpleUsersBandsStrategy
+        bands_strategy_kwargs = {
+            "debt_ratios": [0.90 for i in range(100)],
+            "collateral_amount": 10 * 10**18,
+        }
+    elif sim_mode == "pool":
         input_args = [
             "A",
             "fee",
@@ -142,20 +160,21 @@ def _parse_arguments(pool_metadata, sim_mode, **kwargs):
     elif sim_mode == "N":
         input_args = ["N"]
         bands_strategy_class = SimpleUsersBandsStrategy
-    elif sim_mode == "rate":
-        input_args = ["rate0"]
-        bands_strategy_class = SimpleUsersBandsStrategy
 
     variable_params = {}
     rest_of_params = {}
 
     for key, val in kwargs.items():
+        valid_type = int
+        if sim_mode == "rate":
+            valid_type = float
+
         if key in input_args:
-            if all(isinstance(v, int) for v in val):
+            if all(isinstance(v, valid_type) for v in val):
                 variable_params[key] = val
             else:
                 raise TypeError(f"Argument {key} must be an int or iterable of ints")
         else:
             rest_of_params[key] = val
 
-    return variable_params, bands_strategy_class, rest_of_params
+    return variable_params, bands_strategy_class, bands_strategy_kwargs, rest_of_params

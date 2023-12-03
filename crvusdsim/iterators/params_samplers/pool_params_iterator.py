@@ -23,7 +23,7 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
     def __new__(
         cls,
         sim_market: SimMarketInstance,
-        sim_mode="pool",
+        sim_mode="rate",
         variable_params=None,
         fixed_params=None,
         pool_map=None,
@@ -35,9 +35,9 @@ class ParameterizedLLAMMAPoolIterator(LLAMMAPoolMixin):
         ----------
         sim_market : :class:`crvusdsim.pool.SimMarketInstance`
 
-        sim_mode: str
+        sim_mode: str (default=rate)
             For different modes, the comparison dimensions are different.
-            Supported values are: "pool", "controller", "N", "rate"
+            Supported values are: "rate", "pool", "controller", "N"
 
         Returns
         -------

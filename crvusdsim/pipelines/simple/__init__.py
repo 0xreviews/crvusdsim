@@ -63,9 +63,9 @@ def pipeline(  # pylint: disable=too-many-locals
         Identifier for blockchain or layer2.  Supported values are:
         "mainnet"
 
-    sim_mode: str
+    sim_mode: str (default=rate)
         For different modes, the comparison dimensions are different.
-        Supported values are: "pool", "controller", "N"
+        Supported values are: "rate", "pool", "controller", "N"
 
     variable_params : dict, defaults to broad range of A/fee values
         Pool parameters to vary across simulations.
