@@ -7,24 +7,8 @@ __all__ = [
 ]
 
 from .ERC20 import ERC20
+from .BlocktimestampMixins import _get_unix_timestamp, BlocktimestampMixins
 
 
-def _get_unix_timestamp():
-    """Get the timestamp in Unix time."""
-    return int(time.time())
 
 
-class BlocktimestampMixins:
-    def __init__(self, **kwargs):
-        self._block_timestamp = _get_unix_timestamp()
-
-    def _increment_timestamp(self, timestamp=None, timedelta=None, blocks=1):
-        """Update the internal clock used to mimic the block timestamp."""
-        if timestamp:
-            self._block_timestamp = timestamp
-            return
-        if timedelta:
-            self._block_timestamp += timedelta
-            return
-
-        self._block_timestamp += 12 * blocks

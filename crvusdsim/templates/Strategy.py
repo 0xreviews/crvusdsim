@@ -106,6 +106,8 @@ class Strategy(ABC):
 
         logger.info("[%s] Simulating with %s", pool.symbol, parameters)
 
+        prices = price_sampler.prices
+
         if self.bands_strategy_class is not None:
             _kwargs = {}
             if self.bands_strategy_kwargs is not None:
@@ -114,7 +116,7 @@ class Strategy(ABC):
             pool.fees_switch = False
             bands_strategy = self.bands_strategy_class(
                 pool,
-                price_sampler.prices,
+                prices,
                 controller,
                 parameters,
                 **_kwargs,
@@ -123,8 +125,11 @@ class Strategy(ABC):
 
             pool.fees_switch = True
 
-        pool.prepare_for_run(price_sampler.prices)
-        controller.prepare_for_run(price_sampler.prices)
+        aggregator.prepare_for_run(price_sampler)
+        for pk in sim_market.peg_keepers:
+            pk.prepare_for_run(prices)
+        pool.prepare_for_run(prices)
+        controller.prepare_for_run(prices)
 
         if price_sampler.peg_prices is not None:
             for stable_pool in stableswap_pools:
@@ -139,9 +144,9 @@ class Strategy(ABC):
                 )
 
             _ts = sample.timestamp.timestamp()
-            aggregator._increment_timestamp(_ts)
+            aggregator.prepare_for_trades(_ts)
             for pk in sim_market.peg_keepers:
-                pk._increment_timestamp(_ts)
+                pk.prepare_for_trades(_ts)
 
             _p = int(list(sample.prices.values())[0] * 10**18)
             pool.price_oracle_contract.set_price(_p)
