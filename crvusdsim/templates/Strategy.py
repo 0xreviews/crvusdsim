@@ -138,10 +138,15 @@ class Strategy(ABC):
                     stableswap_pools, sample, stableswap_traders
                 )
 
+            _ts = sample.timestamp.timestamp()
+            aggregator._increment_timestamp(_ts)
+            for pk in sim_market.peg_keepers:
+                pk._increment_timestamp(_ts)
+
             _p = int(list(sample.prices.values())[0] * 10**18)
             pool.price_oracle_contract.set_price(_p)
-            pool.prepare_for_trades(sample.timestamp)
-            controller.prepare_for_trades(sample.timestamp)
+            pool.prepare_for_trades(_ts)
+            controller.prepare_for_trades(_ts)
 
             trader_args = self._get_trader_inputs(sample)
             trade_data = llamma_trader.process_time_sample(*trader_args)

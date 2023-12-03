@@ -15,7 +15,7 @@ from curvesim.logging import get_logger
 
 from crvusdsim.pipelines.simple import pipeline
 from crvusdsim.pool_data import get_metadata
-from crvusdsim.pool_data.metadata.bands_strategy import (
+from crvusdsim.pipelines.simple.bands_strategy import (
     IinitYBandsStrategy,
     SimpleUsersBandsStrategy,
     UserLoansBandsStrategy,

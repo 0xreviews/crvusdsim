@@ -37,6 +37,7 @@ def pipeline(  # pylint: disable=too-many-locals
     fixed_params=None,
     bands_strategy_class=None,
     bands_strategy_kwargs=None,
+    pegcoins_prices_strategy_class=None,
     test=False,
     end_ts=None,
     days=60,
@@ -158,16 +159,21 @@ def pipeline(  # pylint: disable=too-many-locals
         pool_params = TEST_PARAMS
 
     sim_assets = sim_market.pool.assets
-    pegcoins = [stable_pool.assets for stable_pool in sim_market.stableswap_pools]
     price_sampler = PriceVolume(
         sim_assets,
-        pegcoins=pegcoins,
         days=days,
         end=end_ts,
         data_dir=data_dir,
         src=src,
         max_interval=prices_max_interval,
     )
+
+    if pegcoins_prices_strategy_class:
+        pegcoins_prices_strategy = pegcoins_prices_strategy_class(sim_market, price_sampler)
+        pegcoins_prices_strategy.do_strategy()
+    else:
+        pegcoins = [stable_pool.assets for stable_pool in sim_market.stableswap_pools]
+        price_sampler.load_pegcoins_prices(src=src, pegcoins=pegcoins)
 
     param_sampler = ParameterizedLLAMMAPoolIterator(
         sim_market,
