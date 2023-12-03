@@ -90,12 +90,13 @@ def get_arb_trades(
             coin_out, coin_in = pool.asset_names
             amount_in, amount_out, fees = pool.get_dxdy(1, 0, amount)
 
-        if pump:
-            if amount_in < trade_threshold:
-                continue
-        else:
-            if amount_out < trade_threshold:
-                continue
+        # FIXME: trade_threshold should consider rate_multiplier and usdvalue(price)
+        # if pump:
+        #     if amount_in < trade_threshold * pool.rates[0] / 10**18:
+        #         continue
+        # else:
+        #     if amount_out < trade_threshold * pool.rates[0] / 10**18:
+        #         continue
 
         if pump:
             profit = (
@@ -115,5 +116,7 @@ def get_arb_trades(
             continue
 
         trades.append((amount_in, amount_out, fees, profit, (coin_in, coin_out), price))
+
+    
 
     return trades

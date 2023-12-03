@@ -78,6 +78,7 @@ class SimController(Controller):
             The current timestamp in the simulation.
         """
         super().prepare_for_trades(timestamp)
+        self._rate_mul_w()
 
     @override
     def prepare_for_run(self, prices):
