@@ -45,6 +45,12 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
     def _asset_balances(self):
         """Return list of asset balances in same order as asset_names."""
         return [sum(self.bands_x), sum(self.bands_y)]
+    
+    @property
+    @cache
+    def rates(self):
+        """Return list of precision and rate adjustments."""
+        return [10**(36-int(d)) for d in self.coin_decimals]
 
     def price(self, coin_in, coin_out):
         """
@@ -120,6 +126,7 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
 
         return in_amount_done, out_amount_done, fees
 
+    @override
     def prepare_for_trades(self, timestamp):
         """
         Updates the pool's _block_timestamp attribute to current sim time.
@@ -129,14 +136,11 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         timestamp : datetime.datetime
             The current timestamp in the simulation.
         """
-
-        if isinstance(timestamp, float):
-            timestamp = int(timestamp)
-        if not isinstance(timestamp, int):
-            timestamp = int(timestamp.timestamp())  # unix timestamp in seconds
-        self._increment_timestamp(timestamp=timestamp)
+        super().prepare_for_trades(timestamp)
         self.price_oracle_contract._increment_timestamp(timestamp=timestamp)
 
+    
+    @override
     def prepare_for_run(self, prices):
         """
         Sets price parameters to the first simulation price and updates
@@ -147,13 +151,13 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         prices : pandas.DataFrame
             The price time_series, price_sampler.prices.
         """
+        super().prepare_for_run(prices)
         # Get/set initial prices
         initial_price = int(prices.iloc[0, :].tolist()[0] * 10**18)
         init_ts = int(prices.index[0].timestamp())
         
         self.prev_p_o_time = init_ts
         self.rate_time = init_ts
-        self._increment_timestamp(timestamp=init_ts)
         self.price_oracle_contract.set_price(initial_price)
         self.price_oracle_contract._price_oracle = initial_price
         self.price_oracle_contract._price_last = initial_price

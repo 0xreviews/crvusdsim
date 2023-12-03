@@ -41,7 +41,6 @@ class PriceVolume(PriceSampler):
         self,
         assets,
         *,
-        pegcoins=None,
         days=60,
         max_interval=5 * 60,
         data_dir="data",
@@ -90,44 +89,6 @@ class PriceVolume(PriceSampler):
             except Exception:
                 raise NetworkError("Load or parse local prices data faild.")
 
-            if pegcoins is None:
-                self.peg_prices = None
-                self.peg_volumes = None
-            else:
-                peg_prices = {}
-                peg_volumes = {}
-                for pegcoin_asset in pegcoins:
-                    _addresses = pegcoin_asset.addresses
-                    if _addresses[1].lower() == ALIAS_TO_ADDRESS["crvUSD"].lower():
-                        filename = (
-                            f"{_addresses[1].lower()}-{_addresses[0].lower()}.csv"
-                        )
-                    else:
-                        filename = (
-                            f"{_addresses[0].lower()}-{_addresses[1].lower()}.csv"
-                        )
-
-                    filepath = os.path.join(data_dir, filename)
-
-                    try:
-                        local_data = pd.read_csv(filepath, index_col=0)
-
-                    except Exception:
-                        raise NetworkError(
-                            "Load or parse local pegcoin prices data faild."
-                        )
-
-                    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
-                    local_data.index = pd.to_datetime(local_data.index)
-                    peg_prices[_symbols] = pd.DataFrame(
-                        local_data["price"]
-                    )
-                    peg_volumes[_symbols] = pd.DataFrame(
-                        local_data["volume"]
-                    )
-
-                self.peg_prices = peg_prices
-                self.peg_volumes = peg_volumes
         else:
             # Over 60 days, the interval between price data returned
             # by Coingecko API will increase significantly.
@@ -140,29 +101,9 @@ class PriceVolume(PriceSampler):
                 end=end,
             )
 
-            if pegcoins is None:
-                self.peg_prices = None
-                self.peg_volumes = None
-            else:
-                peg_prices = {}
-                peg_volumes = {}
-                for pegcoin_asset in pegcoins:
-                    _prices, _volumes, _ = get(
-                        pegcoin_asset.addresses,  # [pegcoin_address, crvUSD_address]
-                        chain=assets.chain,
-                        days=days,
-                        data_dir=data_dir,
-                        src=src,
-                        end=end,
-                    )
-                    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
-                    peg_prices[_symbols] = _prices
-                    peg_volumes[_symbols] = _volumes
-
-                self.peg_prices = peg_prices
-                self.peg_volumes = peg_volumes
-
+        self.data_dir = data_dir
         self.assets = assets
+        self.end = end
         self.max_interval = max_interval
         self.original_prices = prices.dropna().set_axis(
             assets.symbol_pairs, axis="columns"
@@ -197,11 +138,79 @@ class PriceVolume(PriceSampler):
                 peg_prices = {}
                 for symbol, price_data in self.peg_prices.items():
                     if price_timestamp in price_data.index:
-                        peg_prices[symbol] = price_data[price_data.index == price_timestamp].iloc[0]
+                        peg_prices[symbol] = {
+                            symbol: price_data[
+                                price_data.index == price_timestamp
+                            ].iloc[0, 0]
+                        }
                     else:
                         peg_prices[symbol] = None
 
             yield PriceVolumeSample(price_timestamp, prices, volumes, peg_prices)
+
+    def load_pegcoins_prices(self, src="coingecko", pegcoins=None, prices=None, volumes=None):
+        if prices is not None:
+            self.peg_prices = prices
+            self.peg_volumes = volumes
+            return
+
+        if src == "local":
+            if pegcoins is None:
+                self.peg_prices = None
+                self.peg_volumes = None
+            else:
+                peg_prices = {}
+                peg_volumes = {}
+                for pegcoin_asset in pegcoins:
+                    _addresses = pegcoin_asset.addresses
+                    if _addresses[1].lower() == ALIAS_TO_ADDRESS["crvUSD"].lower():
+                        filename = (
+                            f"{_addresses[1].lower()}-{_addresses[0].lower()}.csv"
+                        )
+                    else:
+                        filename = (
+                            f"{_addresses[0].lower()}-{_addresses[1].lower()}.csv"
+                        )
+
+                    filepath = os.path.join(self.data_dir, filename)
+
+                    try:
+                        local_data = pd.read_csv(filepath, index_col=0)
+
+                    except Exception:
+                        raise NetworkError(
+                            "Load or parse local pegcoin prices data faild."
+                        )
+
+                    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
+                    local_data.index = pd.to_datetime(local_data.index)
+                    peg_prices[_symbols] = pd.DataFrame(local_data["price"])
+                    peg_volumes[_symbols] = pd.DataFrame(local_data["volume"])
+
+                self.peg_prices = peg_prices
+                self.peg_volumes = peg_volumes
+        else:
+            if pegcoins is None:
+                self.peg_prices = None
+                self.peg_volumes = None
+            else:
+                peg_prices = {}
+                peg_volumes = {}
+                for pegcoin_asset in pegcoins:
+                    _prices, _volumes, _ = get(
+                        pegcoin_asset.addresses,  # [pegcoin_address, crvUSD_address]
+                        chain=self.assets.chain,
+                        days=self.days,
+                        data_dir=self.data_dir,
+                        src=src,
+                        end=self.end,
+                    )
+                    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
+                    peg_prices[_symbols] = _prices
+                    peg_volumes[_symbols] = _volumes
+
+                self.peg_prices = peg_prices
+                self.peg_volumes = peg_volumes
 
     def total_volumes(self):
         """

@@ -1,6 +1,7 @@
 import os
 
 from curvesim.logging import get_logger
+from curvesim.templates import SimAssets
 
 from crvusdsim.iterators.params_samplers import (
     CRVUSD_POOL_MAP,
@@ -15,6 +16,8 @@ from crvusdsim.pipelines.common import (
     DEFAULT_N_METRICS,
     DEFAULT_N_PARAMS,
     DEFAULT_POOL_METRICS,
+    DEFAULT_RATE_METRICS,
+    DEFAULT_RATE_PARAMS,
 )
 from crvusdsim.pipelines.common import DEFAULT_POOL_PARAMS, TEST_PARAMS
 from crvusdsim.pipelines.simple.strategy import SimpleStrategy
@@ -33,6 +36,8 @@ def pipeline(  # pylint: disable=too-many-locals
     variable_params=None,
     fixed_params=None,
     bands_strategy_class=None,
+    bands_strategy_kwargs=None,
+    pegcoins_prices_strategy_class=None,
     test=False,
     end_ts=None,
     days=60,
@@ -58,9 +63,9 @@ def pipeline(  # pylint: disable=too-many-locals
         Identifier for blockchain or layer2.  Supported values are:
         "mainnet"
 
-    sim_mode: str
+    sim_mode: str (default=rate)
         For different modes, the comparison dimensions are different.
-        Supported values are: "pool", "controller", "N"
+        Supported values are: "rate", "pool", "controller", "N"
 
     variable_params : dict, defaults to broad range of A/fee values
         Pool parameters to vary across simulations.
@@ -108,9 +113,9 @@ def pipeline(  # pylint: disable=too-many-locals
         Number of cores to use.
 
     prices_max_interval: int, default=10 * 60 (10m)
-        The maximum interval for pricing data. If the time interval between two 
+        The maximum interval for pricing data. If the time interval between two
         adjacent data exceeds this value, interpolation processing will be performed automatically.
-    
+
     profit_threshold: int, default=0
         Profit threshold for arbitrageurs, trades with profits below this value will not be executed
 
@@ -138,6 +143,8 @@ def pipeline(  # pylint: disable=too-many-locals
             variable_params = DEFAULT_CONTROLLER_PARAMS
         elif sim_mode == "N":
             variable_params = DEFAULT_N_PARAMS
+        elif sim_mode == "rate":
+            variable_params = DEFAULT_RATE_PARAMS
 
     sim_market = get_sim_market(
         pool_metadata,
@@ -161,6 +168,13 @@ def pipeline(  # pylint: disable=too-many-locals
         max_interval=prices_max_interval,
     )
 
+    if pegcoins_prices_strategy_class:
+        pegcoins_prices_strategy = pegcoins_prices_strategy_class(sim_market, price_sampler)
+        pegcoins_prices_strategy.do_strategy()
+    else:
+        pegcoins = [stable_pool.assets for stable_pool in sim_market.stableswap_pools]
+        price_sampler.load_pegcoins_prices(src=src, pegcoins=pegcoins)
+
     param_sampler = ParameterizedLLAMMAPoolIterator(
         sim_market,
         sim_mode=sim_mode,
@@ -174,11 +188,14 @@ def pipeline(  # pylint: disable=too-many-locals
         default_metrics = DEFAULT_CONTROLLER_METRICS
     elif sim_mode == "N":
         default_metrics = DEFAULT_N_METRICS
+    elif sim_mode == "rate":
+        default_metrics = DEFAULT_RATE_METRICS
 
     _metrics = init_metrics(default_metrics, sim_market=sim_market)
     strategy = SimpleStrategy(
         _metrics,
         bands_strategy_class=bands_strategy_class,
+        bands_strategy_kwargs=bands_strategy_kwargs,
         sim_mode=sim_mode,
         profit_threshold=profit_threshold,
     )

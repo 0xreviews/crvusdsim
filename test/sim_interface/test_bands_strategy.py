@@ -3,7 +3,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 import numpy as np
 
-from crvusdsim.pool_data.metadata.bands_strategy import (
+from crvusdsim.pipelines.simple.bands_strategy import (
     IinitYBandsStrategy,
     UserLoansBandsStrategy,
 )

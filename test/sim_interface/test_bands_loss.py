@@ -2,8 +2,8 @@ import pytest
 from datetime import datetime, timedelta
 from random import randint
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
-from crvusdsim.pool_data.metadata import bands_strategy
-from crvusdsim.pool_data.metadata.bands_strategy import IinitYBandsStrategy
+from crvusdsim.pipelines.simple import bands_strategy
+from crvusdsim.pipelines.simple.bands_strategy import IinitYBandsStrategy
 from test.sim_interface.conftest import create_sim_pool
 from test.utils import approx, generate_prices
 import time

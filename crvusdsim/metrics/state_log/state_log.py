@@ -5,12 +5,12 @@ during simulations.
 from pandas import DataFrame, concat
 
 from curvesim.metrics.base import PoolMetric
-from crvusdsim.metrics.state_log.controller_state import get_controller_state
-
-from crvusdsim.metrics.state_log.controller_state import get_controller_state
 from crvusdsim.pool import SimMarketInstance
+from .controller_state import get_controller_state
+from .controller_state import get_controller_state
+from .rate_state import get_rate_state
 
-from .pool_parameters import get_N_parameters, get_pool_parameters, get_controller_parameters
+from .pool_parameters import get_N_parameters, get_pool_parameters, get_controller_parameters, get_rate_parameters
 from .pool_state import get_pool_state
 
 
@@ -51,6 +51,8 @@ class StateLog:
             self.state_per_run = get_parameters_func[sim_mode](controller)
         elif sim_mode == "N":
             self.state_per_run = get_parameters_func[sim_mode](parameters)
+        elif sim_mode == "rate":
+            self.state_per_run = get_parameters_func[sim_mode](sim_market)
 
     def update(self, **kwargs):
         """Records pool state and any keyword arguments provided."""
@@ -71,8 +73,11 @@ class StateLog:
             self.state_per_trade.append({"state_data": get_pool_state(pool), **kwargs})
         elif self.sim_mode == "controller":
             self.state_per_trade.append({"state_data": get_controller_state(pool, controller), **kwargs})
-        if self.sim_mode == "N":
+        elif self.sim_mode == "N":
             self.state_per_trade.append({"state_data": get_controller_state(pool, controller), **kwargs})
+        elif self.sim_mode == "rate":
+            self.state_per_trade.append({"state_data": get_rate_state(self.sim_market), **kwargs})
+        
 
     def get_logs(self):
         """Returns the accumulated log data."""
@@ -89,7 +94,6 @@ class StateLog:
 
     def compute_metrics(self):
         """Computes metrics from the accumulated log data."""
-
         state_logs = self.get_logs()
         metric_data = [metric.compute(state_logs) for metric in self.metrics]
         data_per_trade, summary_data = tuple(zip(*metric_data))  # transpose tuple list
@@ -106,4 +110,5 @@ get_parameters_func = {
     "pool": get_pool_parameters,
     "controller": get_controller_parameters,
     "N": get_N_parameters,
+    "rate": get_rate_parameters,
 }

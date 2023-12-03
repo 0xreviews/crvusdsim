@@ -1,14 +1,16 @@
+from datetime import datetime
 from scipy.optimize import root_scalar
 
 from curvesim.logging import get_logger
 from crvusdsim.metrics import metrics_pool as PoolMetrics
 from crvusdsim.metrics import metrics_N as RangeNMetrics
 from crvusdsim.metrics import metrics_controller as ControllerMetric
+from crvusdsim.metrics import metrics_rate as RateMetric
 from curvesim.templates.trader import Trade, Trader
 
 
-
 logger = get_logger(__name__)
+
 DEFAULT_POOL_METRICS = [
     PoolMetrics.Timestamp,
     PoolMetrics.PoolValue,
@@ -20,10 +22,9 @@ DEFAULT_CONTROLLER_METRICS = [
     ControllerMetric.UsersHealth,
     ControllerMetric.LiquidationVolume,
 ]
-DEFAULT_N_METRICS = [
-    PoolMetrics.Timestamp,
-    RangeNMetrics.RangeNReturns
-]
+DEFAULT_N_METRICS = [PoolMetrics.Timestamp, RangeNMetrics.RangeNReturns]
+DEFAULT_RATE_METRICS = [PoolMetrics.Timestamp, RateMetric.RatePegKeeper]
+
 DEFAULT_POOL_PARAMS = {
     "A": [50, 100, 150, 200],
     "fee": [
@@ -35,6 +36,7 @@ DEFAULT_CONTROLLER_PARAMS = {
     "loan_discount": [int(0.09 * 10**18), int(0.05 * 10**18)]
 }
 DEFAULT_N_PARAMS = {"N": [n for n in range(4, 51)]}
+DEFAULT_RATE_PARAMS = {"rate0": [0.05, 0.10, 0.15]}
 TEST_PARAMS = {
     "A": [50, 100, 150, 200],
     "fee": [
@@ -69,14 +71,9 @@ def get_arb_trades(
 
     trades = []
 
-    # price_limit_up = pool.p_oracle_up(pool.min_band)
-    # price_limit_down = pool.p_oracle_up(pool.max_band)
-
     for pair in prices:
-
         p_o = int(prices[pair] * 10**18)
         target_price = p_o
-        # target_price = min(price_limit_up, max(price_limit_down, target_price))
 
         amount, pump = pool.get_amount_for_price(target_price)
 
@@ -93,17 +90,24 @@ def get_arb_trades(
             coin_out, coin_in = pool.asset_names
             amount_in, amount_out, fees = pool.get_dxdy(1, 0, amount)
 
-        if pump:
-            if amount_in < trade_threshold:
-                continue
-        else:
-            if amount_out < trade_threshold:
-                continue
+        # FIXME: trade_threshold should consider rate_multiplier and usdvalue(price)
+        # if pump:
+        #     if amount_in < trade_threshold * pool.rates[0] / 10**18:
+        #         continue
+        # else:
+        #     if amount_out < trade_threshold * pool.rates[0] / 10**18:
+        #         continue
 
         if pump:
-            profit = amount_out * p_o / 10**18 - amount_in
+            profit = (
+                amount_out * pool.rates[1] / 10**18 * p_o / 10**18
+                - amount_in * pool.rates[0] / 10**18
+            )
         else:
-            profit = amount_out - amount_in * p_o / 10**18
+            profit = (
+                amount_out * pool.rates[0] / 10**18
+                - amount_in * pool.rates[1] / 10**18 * p_o / 10**18
+            )
 
         # do exchange if profit enough, except for last round
         # (we need amm p to approximate p_out in order to calculate loss)
@@ -112,7 +116,7 @@ def get_arb_trades(
             continue
 
         trades.append((amount_in, amount_out, fees, profit, (coin_in, coin_out), price))
+
     
+
     return trades
-
-

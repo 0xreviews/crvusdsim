@@ -4,8 +4,11 @@ AggregatorStablePrice - aggregator of stablecoin prices for crvUSD
 
 from collections import defaultdict
 from typing import List
+from numpy import mean
+from crvusdsim.iterators.price_samplers.price_volume import PriceVolume
 
 from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
+from curvesim.utils import override
 
 from ..utils import BlocktimestampMixins
 from ..vyper_func import (
@@ -226,3 +229,16 @@ class AggregateStablePrice(BlocktimestampMixins):
             p: int = self._price(ema_tvl)
             self.last_price = p
             return p
+
+    @override
+    def prepare_for_run(self, price_sampler: PriceVolume):
+        init_ts = None
+        init_agg_p = []
+        for prices in price_sampler.peg_prices.values():
+            init_agg_p.append(int(prices.iloc[0, :].tolist()[0] * 10**18))
+            if init_ts is None:
+                init_ts = int(prices.index[0].timestamp())
+
+        self._increment_timestamp(init_ts)
+        self.last_price = mean(init_agg_p)
+        self.last_timestamp = init_ts

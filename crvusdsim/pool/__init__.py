@@ -48,7 +48,7 @@ class SimMarketInstance:
         stablecoin: StableCoin,
         aggregator: AggregateStablePrice,
         price_oracle: PriceOracle,
-        stableswap_pools: List[CurveStableSwapPool],
+        stableswap_pools: List[SimCurveStableSwapPool],
         peg_keepers: List[PegKeeper],
         policy: MonetaryPolicy,
         factory: ControllerFactory,

@@ -13,7 +13,7 @@ __all__ = [
 STABLECOIN_TOKEN_CONF = {
     "address": "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
     "symbol": "crvUSD",
-    "name": "Curve.Fi USD Stablecoin (crvUSD)",
+    "name": "crvUSD",
     "decimals": 18,
 }
 

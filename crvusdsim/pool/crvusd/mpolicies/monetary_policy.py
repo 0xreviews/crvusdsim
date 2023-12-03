@@ -33,8 +33,8 @@ class MonetaryPolicy:
 
         Parameters
         ----------
-        price_oracle_contract : PriceOracle
-            Contract PriceOracle
+        price_oracle_contract : AggregateStablePrice
+            Contract AggregateStablePrice
         controller_factory_contract : ControllerFactory
             Contract ControllerFactory
         peg_keepers : List[PegKeeper]

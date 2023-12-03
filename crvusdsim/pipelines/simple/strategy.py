@@ -19,6 +19,7 @@ class SimpleStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
 
     llamma_trader_class = SimpleArbitrageur
+    stableswap_trader_class = SimpleArbitrageur
     state_log_class = StateLog
 
     def __init__(self, metrics, profit_threshold=50*10**18, **kwargs):
@@ -27,3 +28,4 @@ class SimpleStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     def _get_trader_inputs(self, sample):
         return (sample.prices, self.profit_threshold)
+ 

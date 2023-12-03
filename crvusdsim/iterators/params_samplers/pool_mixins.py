@@ -37,6 +37,18 @@ class LLAMMAPoolMixin:
         return {
             "A": controller_A_params,
         }
+    
+    @property
+    def rate_setters(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary containing the special setters for the pool parameters.
+        """
+        return {
+            "rate0": rate_policy_params,
+        }
 
 
 def llamma_A_params(pool, A):
@@ -59,3 +71,7 @@ def controller_A_params(controller, A):
     controller.Aminus1 = A - 1
     controller.SQRT_BAND_RATIO = isqrt(unsafe_div(10**36 * A, unsafe_sub(A, 1)))
     controller.LOG2_A_RATIO = log2(A * 10**18 // unsafe_sub(A, 1))
+
+
+def rate_policy_params(policy, rate0):
+    policy.rate0 = rate0
