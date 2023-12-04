@@ -20,7 +20,6 @@ poetry install
 - run `Hello World`
 
 ```shell
-# hello world
 >>> poetry run python -m crvusdsim
 [INFO][11:29:54][crvusdsim.pipelines.simple]-92751: Simulating mode: rate
 [INFO][11:29:57][curvesim.price_data.sources]-92751: Fetching CoinGecko price data...
@@ -42,7 +41,7 @@ Check out the full documentation at <https://crvusdsim.readthedocs.io/>. We reco
 
 The `autosim()` function simulates existing Curve Stablecoin Market with range of parameters (such like rate0, A, loan_discount). The function fetches pool properties (e.g., current pool size) and 2 months of price/volume data, runs multiple simulations in parallel, and returns a results object that can be introspected or generate charts.
 
-Curve Stablecoin Sim Objects supported by the [Convex Community Subgraphs/crvusd](https://thegraph.com/hosted-service/subgraph/convex-community/crvusd) can be simulated directly by inputting the LLAMMA pool's address or Collateral's Symbol (e.g. "wstETH").
+crvUSDsim supported by the [Convex Community Subgraphs/crvusd](https://thegraph.com/hosted-service/subgraph/convex-community/crvusd) can be simulated directly by inputting the LLAMMA pool's address or Collateral's Symbol (e.g. "wstETH").
 
 ### Example
 
@@ -164,7 +163,7 @@ res.plot(save_as="results.html")
 
 ### Example output
 
-- sim_mode rate
+- `sim_mode="rate"`
 
 ![Alt text](/docs/images/rate_plot_summary_screenshot.png?raw=true "Summary statistics(sim_mode='rate')")
 
@@ -172,7 +171,7 @@ res.plot(save_as="results.html")
 
 ### Summary statistics
 
-- sim_mode rate
+- `sim_mode="rate"`
 
 ```python
 >>> res.summary()

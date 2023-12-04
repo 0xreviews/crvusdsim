@@ -324,12 +324,44 @@ The ``plot()`` method is used to generate and/or save plots::
 Screenshots of resulting plots (truncated):
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: images/plot_summary_screenshot.png
+``sim_mode="rate"``
+
+.. image:: images/rate_plot_summary_screenshot.png
   :width: 700
   :alt: Summary statistics
 
-.. image:: images/plot_timeseries_screenshot.png
+.. image:: images/rate_plot_timeseries_screenshot.png
   :width: 700
+  :alt: Timeseries data
+
+``sim_mode="pool"``
+
+.. image:: images/pool_plot_summary_screenshot.png
+  :width: 700
+  :alt: Summary statistics
+
+.. image:: images/pool_plot_timeseries_screenshot.png
+  :width: 700
+  :alt: Timeseries data
+
+``sim_mode="controller"``
+
+.. image:: images/controller_plot_summary_screenshot.png
+  :width: 700
+  :alt: Summary statistics
+
+.. image:: images/controller_plot_timeseries_screenshot.png
+  :width: 700
+  :alt: Timeseries data
+
+``sim_mode="N"``
+
+.. image:: images/N_plot_summary_screenshot.png
+  :width: 350
+  :alt: Summary statistics
+
+.. image:: images/N_plot_timeseries_screenshot.png
+  :width: 350
   :alt: Timeseries data
 
 Metrics
