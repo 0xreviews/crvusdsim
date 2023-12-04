@@ -36,7 +36,7 @@ Elapsed time: 28.6576099395752
 
 ## Example
 
-Pythonic interaction with curve stablecoin market objects (including LLAMMA pool, Controller, Aggregator, PegKeepers, etc.)::
+Pythonic interaction with Curve Stablecoin market objects (including LLAMMA pool, Controller, Aggregator, PegKeepers, etc.)::
 
 ```shell
 >>> import crvusdsim
@@ -79,7 +79,7 @@ Pythonic interaction with curve stablecoin market objects (including LLAMMA pool
 (9779961749290509154648064, 6785745612366175797248, 1000000000000000000, 1700712599)
 ```
 
-Arbitrage simulations to see results of varying fee and amplification (A) parameters in `LLAMMA pool`::
+Rate simulations to see results of varying `rate0` parameters in `MonetaryPolicy`::
 
 ```python
 >>> import crvusdsim
