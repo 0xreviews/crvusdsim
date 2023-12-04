@@ -152,8 +152,53 @@ the valid value is `pool` or `controller`::
 
 
 
-Run an arbitrage simulation for a proposed A parameter
-------------------------------------------------------
+Run an arbitrage simulation for a proposed parameter
+----------------------------------------------------
+
+
+Rate simulations to see results of varying `rate0` parameters in `MonetaryPolicy`::
+
+    >>> import crvusdsim
+    >>> res = crvusdsim.autosim(pool="wstETH", sim_mode="rate", rate0=[0.05, 0.075, 0.10, 0.125, 0.15])
+
+    [INFO][10:02:42][crvusdsim.pipelines.simple]-84886: Simulating mode: rate
+    [INFO][10:02:50][curvesim.price_data.sources]-84886: Fetching CoinGecko price data...
+    [INFO][10:03:51][curvesim.price_data.sources]-84886: Fetching CoinGecko price data...
+    [INFO][10:03:52][curvesim.price_data.sources]-84886: Fetching CoinGecko price data...
+    [INFO][10:05:44][curvesim.price_data.sources]-84886: Fetching CoinGecko price data...
+    [INFO][10:07:22][curvesim.price_data.sources]-84886: Fetching CoinGecko price data...
+    [INFO][10:07:32][crvusdsim.templates.Strategy]-84936: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.05}
+    [INFO][10:07:32][crvusdsim.templates.Strategy]-84937: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.125}
+    [INFO][10:07:32][crvusdsim.templates.Strategy]-84935: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.075}
+    [INFO][10:07:32][crvusdsim.templates.Strategy]-84934: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.1}
+    [INFO][10:07:33][crvusdsim.templates.Strategy]-84938: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.15}
+
+    >>> res.summary()
+
+    metric	annualized_rate	users_debt	crvusd_price	agg_price
+    stat	mean	mean	mean	mean
+    0	0.044408	1.580274e+06	1.002537	1.002775
+    1	0.066533	1.583135e+06	1.002537	1.002775
+    2	0.088607	1.585936e+06	1.002537	1.002775
+    3	0.110631	1.588681e+06	1.002537	1.002775
+    4	0.132608	1.591372e+06	1.002537	1.002775
+
+    >>> res.data()
+
+      run	timestamp	annualized_rate	users_debt	crvusd_price	agg_price
+    0	0	2023-10-03 23:30:00+00:00	0.046259	1.574365e+06	1.001229	1.001890
+    1	0	2023-10-03 23:38:34+00:00	0.046259	1.574366e+06	1.001229	1.001890
+    2	0	2023-10-03 23:47:08+00:00	0.046259	1.574367e+06	1.001229	1.001890
+    3	0	2023-10-03 23:55:42+00:00	0.046259	1.574368e+06	1.001229	1.001890
+    4	0	2023-10-04 00:04:17+00:00	0.046259	1.574369e+06	1.001229	1.001890
+    ...	...	...	...	...	...	...
+    51240	4	2023-12-03 22:55:42+00:00	0.123962	1.607443e+06	1.003847	1.003959
+    51241	4	2023-12-03 23:04:17+00:00	0.123962	1.607447e+06	1.003847	1.003959
+    51242	4	2023-12-03 23:12:51+00:00	0.123962	1.607450e+06	1.003847	1.003959
+    51243	4	2023-12-03 23:21:25+00:00	0.123962	1.607453e+06	1.003847	1.003959
+    51244	4	2023-12-03 23:30:00+00:00	0.124045	1.607456e+06	1.003847	1.003946
+
+    51245 rows x 6 columns
 
 Tuning a pool parameter, such as the amplification coefficient ``A``.::
 
@@ -167,7 +212,7 @@ Tuning a pool parameter, such as the amplification coefficient ``A``.::
 
 Likely you will want to see the impact over a range of ``A`` values.  The ``A`` and ``fee`` parameters 
 will accept either a integer or iterables of integers; note ``fee`` values are in units of basis points 
-multiplied by 10**6.::
+multiplied by 10**18.::
     
     >>> res = crvusdsim.autosim(pool="wstETH", sim_mode="pool", A=[50, 60, 80, 100], fee=[6 * 10**15, 10 * 10**15])
 
@@ -301,8 +346,6 @@ To simlate ``create_loan`` with different ``N`` parameters, use ``sim_mode="N"``
     71741	6	2023-11-18 23:21:25+00:00	0.996344
     71742	6	2023-11-18 23:30:00+00:00	0.996344
     71743 rows x 3 columns
-
-
 
 
 Results
@@ -490,7 +533,7 @@ Errors and Exceptions
 ---------------------
 
 All exceptions that crvUSDsim explicitly raises inherit from
-:exc:`curvesim.exceptions.crvUSDsimException`.
+:exc:`curvesim.exceptions.curvesimException`.
 
 
 -----------------------

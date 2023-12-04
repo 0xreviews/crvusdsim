@@ -106,7 +106,11 @@ Rate simulations to see results of varying `rate0` parameters in `MonetaryPolicy
 [INFO][10:07:32][crvusdsim.templates.Strategy]-84935: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.075}
 [INFO][10:07:32][crvusdsim.templates.Strategy]-84934: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.1}
 [INFO][10:07:33][crvusdsim.templates.Strategy]-84938: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.15}
+```
 
+Arbitrage simulations to see results of varying fee and amplification (A) parameters in LLAMMA pool:
+
+```python
 >>> res = crvusdsim.autosim(pool="wstETH", sim_mode="pool", A=[50, 60, 80, 100])
 
 [INFO][14:57:58][crvusdsim.pipelines.simple]-82656: Simulating mode: pool
