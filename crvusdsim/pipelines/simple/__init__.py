@@ -166,6 +166,7 @@ def pipeline(  # pylint: disable=too-many-locals
         data_dir=data_dir,
         src=src,
         max_interval=prices_max_interval,
+        ncpu=ncpu, # if coingecko limits the APIs connections, set this 1
     )
 
     if pegcoins_prices_strategy_class:

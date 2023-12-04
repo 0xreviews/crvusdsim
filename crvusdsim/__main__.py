@@ -15,7 +15,7 @@ def hello_world():
     """Simple sim run as a health check."""
     # pylint: disable=redefined-outer-name
     t = time.time()
-    res = autosim(pool="wstETH", sim_mode="pool", A=[50, 100])
+    res = autosim(pool="wstETH", sim_mode="rate", rate0=[0.05, 0.10, 0.15])
     elapsed = time.time() - t
     print("Elapsed time:", elapsed)
     return res

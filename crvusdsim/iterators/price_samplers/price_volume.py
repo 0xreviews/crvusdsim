@@ -9,6 +9,7 @@ import pandas as pd
 
 from crvusdsim.pool.crvusd.conf import ALIAS_TO_ADDRESS
 
+from multiprocessing import Pool as cpu_pool
 
 logger = get_logger(__name__)
 
@@ -46,6 +47,7 @@ class PriceVolume(PriceSampler):
         data_dir="data",
         src="coingecko",
         end=None,
+        ncpu=1,
     ):
         """
         Retrieves price/volume data and prepares it for iteration.
@@ -103,8 +105,11 @@ class PriceVolume(PriceSampler):
 
         self.data_dir = data_dir
         self.assets = assets
+        self.days = days
+        self.src = src
         self.end = end
         self.max_interval = max_interval
+        self.ncpu = ncpu
         self.original_prices = prices.dropna().set_axis(
             assets.symbol_pairs, axis="columns"
         )
@@ -148,7 +153,9 @@ class PriceVolume(PriceSampler):
 
             yield PriceVolumeSample(price_timestamp, prices, volumes, peg_prices)
 
-    def load_pegcoins_prices(self, src="coingecko", pegcoins=None, prices=None, volumes=None):
+    def load_pegcoins_prices(
+        self, src="coingecko", pegcoins=None, prices=None, volumes=None
+    ):
         if prices is not None:
             self.peg_prices = prices
             self.peg_volumes = volumes
@@ -194,23 +201,7 @@ class PriceVolume(PriceSampler):
                 self.peg_prices = None
                 self.peg_volumes = None
             else:
-                peg_prices = {}
-                peg_volumes = {}
-                for pegcoin_asset in pegcoins:
-                    _prices, _volumes, _ = get(
-                        pegcoin_asset.addresses,  # [pegcoin_address, crvUSD_address]
-                        chain=self.assets.chain,
-                        days=self.days,
-                        data_dir=self.data_dir,
-                        src=src,
-                        end=self.end,
-                    )
-                    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
-                    peg_prices[_symbols] = _prices
-                    peg_volumes[_symbols] = _volumes
-
-                self.peg_prices = peg_prices
-                self.peg_volumes = peg_volumes
+                self.query_peg_prices(pegcoins)
 
     def total_volumes(self):
         """
@@ -266,3 +257,56 @@ class PriceVolume(PriceSampler):
         self.volumes = pd.DataFrame(
             volumes, index=ts_list, columns=self.assets.symbol_pairs
         )
+
+    def query_peg_prices(self, pegcoins):
+        peg_prices = {}
+        peg_volumes = {}
+        if self.ncpu > 1:
+            args_list = [
+                (
+                    pegcoin_asset,
+                    self.assets.chain,
+                    self.days,
+                    self.data_dir,
+                    self.src,
+                    self.end,
+                )
+                for pegcoin_asset in pegcoins
+            ]
+            with cpu_pool(self.ncpu) as clust:
+                results = clust.starmap(get_peg_prices, args_list)
+                clust.close()
+                clust.join()  # coverage needs this
+            for _symbols, _prices, _volumes in results:
+                peg_prices[_symbols] = _prices
+                peg_volumes[_symbols] = _volumes
+
+        else:
+            for pegcoin_asset in pegcoins:
+                _symbols, _prices, _volumes = get_peg_prices(
+                    pegcoin_asset,
+                    self.assets.chain,
+                    self.days,
+                    self.data_dir,
+                    self.src,
+                    self.end,
+                )
+                peg_prices[_symbols] = _prices
+                peg_volumes[_symbols] = _volumes
+
+        self.peg_prices = peg_prices
+        self.peg_volumes = peg_volumes
+
+
+def get_peg_prices(pegcoin_asset, chain, days, data_dir, src, end):
+    _prices, _volumes, _ = get(
+        pegcoin_asset.addresses,  # [pegcoin_address, crvUSD_address]
+        chain=chain,
+        days=days,
+        data_dir=data_dir,
+        src=src,
+        end=end,
+    )
+    _symbols = (pegcoin_asset.symbols[0], "crvUSD")
+
+    return (_symbols, _prices, _volumes)
