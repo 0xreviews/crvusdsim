@@ -109,39 +109,33 @@ class MarketMetaData(PoolMetaDataBase):
                     n2 = int(_u["n2"])
                     N = n2 - n1 + 1
                     ticks = []
+
+                    # User and band snapshots are taken at different times
+                    # so it is possible that a user has shares in a band
+                    # but the band is empty. In this case, skip the user.
+                    broken_user = False
                     for b_i in range(n1, n2 + 1):
-                        if total_shares[b_i] == 0:
-                            # init total shares as 100
-                            total_shares[b_i] = 100 * 10**18
-
-                        x = bands_x[b_i]
-                        y = bands_y[b_i]
-
-                        if x > 10**6:
-                            ticks.append(
-                                format_float_to_uint256(_u["stablecoin"])
-                                * total_shares[b_i]
-                                / N
-                                // x
+                        if bands_x[b_i] == 0 and bands_y[b_i] == 0:
+                            logger.warning(
+                                "User %s has shares in band %d but band is empty. Skipping user...", 
+                                user_address, 
+                                b_i
                             )
-                        elif y > 10**3:
-                            ticks.append(
-                                format_float_to_uint256(_u["collateral"])
-                                * total_shares[b_i]
-                                / N
-                                // y
-                            )
-
-                    if ticks == []:
-                        # FIXME bands_x and bands_y do not have updated data with the user's deposits.
-                        # This might be because user snapshot and band snapshot are taken at a different time.
-                        logger.warning(
-                            f"User {user_address} has no shares... Skipping."
-                        )
+                            broken_user = True
+                            break
+                    if broken_user:
                         continue
+
+                    # As in Vyper code, user shares reflect their deposited
+                    # collateral in a band.
+                    for b_i in range(n1, n2 + 1):
+                        deposited_collateral = format_float_to_uint256(_u["depositedCollateral"]) // N
+                        total_shares[b_i] += deposited_collateral
+                        ticks.append(deposited_collateral)
+
                     user_shares[user_address] = UserShares(n1,n2,ticks)
 
-                    init_debt = int(format_float_to_uint256(_u["debt"]) * 10**18 / rate_mul)
+                    init_debt = int(format_float_to_uint256(float(_u["debt"]) / rate_mul_float))
                     init_collateral = format_float_to_uint256(_u["depositedCollateral"])
 
                     # For the convenience of calculation,
