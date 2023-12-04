@@ -94,7 +94,7 @@ class SimCurveStableSwapPool(SimPool, AssetIndicesMixin, CurveStableSwapPool):
             (amount of coin `j` received, trading fee)
         """
         if size == 0:
-            return 0
+            return 0, 0, 0
 
         pump = coin_out == "crvUSD" or coin_in == 0
 

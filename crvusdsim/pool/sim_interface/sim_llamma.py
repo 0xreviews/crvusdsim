@@ -335,3 +335,31 @@ class SimLLAMMAPool(AssetIndicesMixin, LLAMMAPool):
         bands_y_benchmark -= self.bands_y_benchmark[self.max_band] * (1 - self.max_band_liquidity_scale)
 
         return bands_x_sum, bands_y_sum, bands_x_benchmark, bands_y_benchmark
+
+    def get_max_trade_size(self, i: int, j: int) -> int:
+        """
+        Calculate an upper bound of coin we can swap
+        "in" to the pool. The actual amount out done
+        will be less than the `out` used here, given
+        LLAMMA limits (such as `MAX_TICKS`).
+
+        Parameters
+        ----------
+        i : int
+            Index of "in" coin.
+        j : int
+            Index of "out" coin.
+
+        Returns
+        -------
+        int
+            The upper bound on "in" coin.
+        """
+        # Get absolute max amount we could get "out"
+        if i == 0:
+            out = sum(self.bands_y.values())
+        else:
+            out = sum(self.bands_x.values())
+
+        _, in_amt_done, _ = self.get_dydx(i, j, out)
+        return in_amt_done
