@@ -34,7 +34,17 @@ poetry install
 Elapsed time: 28.6576099395752
 ```
 
-## Example
+## Documentation
+
+Check out the full documentation at <https://crvusdsim.readthedocs.io/>. We recommend starting with the "Quickstart" guide.
+
+## Basic Use: Autosim
+
+The `autosim()` function simulates existing Curve Stablecoin Market with range of parameters (such like rate0, A, loan_discount). The function fetches pool properties (e.g., current pool size) and 2 months of price/volume data, runs multiple simulations in parallel, and returns a results object that can be introspected or generate charts.
+
+Curve Stablecoin Sim Objects supported by the [Convex Community Subgraphs/crvusd](https://thegraph.com/hosted-service/subgraph/convex-community/crvusd) can be simulated directly by inputting the LLAMMA pool's address or Collateral's Symbol (e.g. "wstETH").
+
+### Example
 
 Pythonic interaction with Curve Stablecoin market objects (including LLAMMA pool, Controller, Aggregator, PegKeepers, etc.)::
 
@@ -98,6 +108,73 @@ Rate simulations to see results of varying `rate0` parameters in `MonetaryPolicy
 [INFO][10:07:32][crvusdsim.templates.Strategy]-84934: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.1}
 [INFO][10:07:33][crvusdsim.templates.Strategy]-84938: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.15}
 
+>>> res = crvusdsim.autosim(pool="wstETH", sim_mode="pool", A=[50, 60, 80, 100])
+
+[INFO][14:57:58][crvusdsim.pipelines.simple]-82656: Simulating mode: pool
+[INFO][14:58:00][curvesim.price_data.sources]-82656: Fetching CoinGecko price data...
+[INFO][14:58:05][crvusdsim.templates.Strategy]-82729: [Curve.fi Stablecoin wstETH] Simulating with {'A': 50}
+[INFO][14:58:05][crvusdsim.templates.Strategy]-82730: [Curve.fi Stablecoin wstETH] Simulating with {'A': 100}
+[INFO][14:58:05][crvusdsim.templates.Strategy]-82731: [Curve.fi Stablecoin wstETH] Simulating with {'A': 60}
+[INFO][14:58:05][crvusdsim.templates.Strategy]-82732: [Curve.fi Stablecoin wstETH] Simulating with {'A': 80}
+```
+
+Arbitrage simulations to see results of varying loan_discount and liquidation_discount parameters in `Controller`::
+
+```python
+>>> loan_discounts = [int(d * 10**18) for d in [0.09, 0.10, 0.11, 0.12]]
+>>> res = crvusdsim.autosim(pool="wstETH", sim_mode="controller", loan_discount=loan_discounts, liquidation_discount=[int(0.06 * 10**18)])
+
+[INFO][17:01:13][crvusdsim.pipelines.simple]-91016: Simulating mode: controller
+[INFO][17:01:15][curvesim.price_data.sources]-91016: Fetching CoinGecko price data...
+[INFO][17:02:56][crvusdsim.templates.Strategy]-91050: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 60000000000000000}
+[INFO][17:02:56][crvusdsim.templates.Strategy]-91052: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 110000000000000000, 'liquidation_discount': 60000000000000000}
+[INFO][17:02:56][crvusdsim.templates.Strategy]-91049: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 60000000000000000}
+[INFO][17:02:56][crvusdsim.templates.Strategy]-91053: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 120000000000000000, 'liquidation_discount': 60000000000000000}
+```
+
+Arbitrage simulations to see results of varying N of user's position::
+
+```python
+>>> res = crvusdsim.autosim(pool="wstETH", sim_mode="N", N=[4, 6, 8, 10, 20, 40, 50])
+
+[INFO][17:17:50][crvusdsim.pipelines.simple]-91016: Simulating mode: N
+[INFO][17:17:53][curvesim.price_data.sources]-91016: Fetching CoinGecko price data...
+[INFO][17:17:59][crvusdsim.templates.Strategy]-91351: [Curve.fi Stablecoin wstETH] Simulating with {'N': 8}
+[INFO][17:18:01][crvusdsim.templates.Strategy]-91354: [Curve.fi Stablecoin wstETH] Simulating with {'N': 40}
+[INFO][17:18:01][crvusdsim.templates.Strategy]-91349: [Curve.fi Stablecoin wstETH] Simulating with {'N': 4}
+[INFO][17:18:01][crvusdsim.templates.Strategy]-91355: [Curve.fi Stablecoin wstETH] Simulating with {'N': 50}
+[INFO][17:18:01][crvusdsim.templates.Strategy]-91352: [Curve.fi Stablecoin wstETH] Simulating with {'N': 10}
+[INFO][17:18:01][crvusdsim.templates.Strategy]-91353: [Curve.fi Stablecoin wstETH] Simulating with {'N': 20}
+[INFO][17:18:01][crvusdsim.templates.Strategy]-91350: [Curve.fi Stablecoin wstETH] Simulating with {'N': 6}
+```
+
+## Simulation Results
+
+The simulation returns a SimResults object that can plot simulation metrics or return them as DataFrames.
+
+### Plotting results
+
+```python
+#Plot results using Altair
+res.plot()
+
+#Save plot results as results.html
+res.plot(save_as="results.html")
+```
+
+### Example output
+
+- sim_mode rate
+
+![Alt text](/docs/images/rate_plot_summary_screenshot.png?raw=true "Summary statistics(sim_mode='rate')")
+
+![Alt text](/docs/images/rate_plot_timeseries_screenshot.png?raw=true "Timeseries data(sim_mode='rate')")
+
+### Summary statistics
+
+- sim_mode rate
+
+```python
 >>> res.summary()
 
 metric	annualized_rate	users_debt	crvusd_price	agg_price
@@ -150,126 +227,8 @@ rate0	annualized_rate mean	users_debt mean	crvusd_price mean	agg_price mean
 51243	0.15	4	2023-12-03 23:21:25+00:00	0.123962	1.607453e+06	1.003847	1.003959
 51244	0.15	4	2023-12-03 23:30:00+00:00	0.124045	1.607456e+06	1.003847	1.003946
 51245 rows × 7 columns
-
->>> res = crvusdsim.autosim(pool="wstETH", sim_mode="pool", A=[50, 60, 80, 100])
-
-[INFO][14:57:58][crvusdsim.pipelines.simple]-82656: Simulating mode: pool
-[INFO][14:58:00][curvesim.price_data.sources]-82656: Fetching CoinGecko price data...
-[INFO][14:58:05][crvusdsim.templates.Strategy]-82729: [Curve.fi Stablecoin wstETH] Simulating with {'A': 50}
-[INFO][14:58:05][crvusdsim.templates.Strategy]-82730: [Curve.fi Stablecoin wstETH] Simulating with {'A': 100}
-[INFO][14:58:05][crvusdsim.templates.Strategy]-82731: [Curve.fi Stablecoin wstETH] Simulating with {'A': 60}
-[INFO][14:58:05][crvusdsim.templates.Strategy]-82732: [Curve.fi Stablecoin wstETH] Simulating with {'A': 80}
-
->>> res.summary()
-
-metric pool_value arb_profits_percent pool_volume arb_profit pool_fees
-stat annualized_returns annualized_arb_profits sum sum sum
-0 0.411643 -0.027450 4.558058e+09 9.609988e+06 6.034716e+07
-1 0.417621 -0.027471 4.510472e+09 9.859186e+06 5.982183e+07
-2 0.415172 -0.027779 4.576752e+09 1.003158e+07 6.063303e+07
-3 0.409765 -0.028545 4.521058e+09 1.003305e+07 5.995173e+07
-
->>> res.data()
-
-run timestamp pool_value arb_profits_percent pool_volume arb_profit pool_fees
-0 0 2023-09-18 23:30:00+00:00 1.799787e+09 -0.000552 40480.098668 993516.570233 455541.247191
-1 0 2023-09-18 23:38:34+00:00 1.799580e+09 -0.000552 0.000000 0.000000 0.000000
-2 0 2023-09-18 23:47:08+00:00 1.799374e+09 -0.000552 0.000000 0.000000 0.000000
-3 0 2023-09-18 23:55:42+00:00 1.799167e+09 -0.000552 0.000000 0.000000 0.000000
-4 0 2023-09-19 00:04:17+00:00 1.798961e+09 -0.000552 0.000000 0.000000 0.000000
-... ... ... ... ... ... ... ...
-40991 3 2023-11-18 22:55:42+00:00 1.922090e+09 -0.005379 0.000000 0.000000 0.000000
-40992 3 2023-11-18 23:04:17+00:00 1.922090e+09 -0.005379 0.000000 0.000000 0.000000
-40993 3 2023-11-18 23:12:51+00:00 1.922090e+09 -0.005379 0.000000 0.000000 0.000000
-40994 3 2023-11-18 23:21:25+00:00 1.922090e+09 -0.005379 0.000000 0.000000 0.000000
-40995 3 2023-11-18 23:30:00+00:00 1.922090e+09 -0.005379 0.000000 0.000000 0.000000
-40996 rows x 7 columns
 ```
 
-Arbitrage simulations to see results of varying loan_discount and liquidation_discount parameters in `Controller`::
-
-```python
->>> loan_discounts = [int(d * 10**18) for d in [0.09, 0.10, 0.11, 0.12]]
->>> res = crvusdsim.autosim(pool="wstETH", sim_mode="controller", loan_discount=loan_discounts, liquidation_discount=[int(0.06 * 10**18)])
-
-[INFO][17:01:13][crvusdsim.pipelines.simple]-91016: Simulating mode: controller
-[INFO][17:01:15][curvesim.price_data.sources]-91016: Fetching CoinGecko price data...
-[INFO][17:02:56][crvusdsim.templates.Strategy]-91050: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 60000000000000000}
-[INFO][17:02:56][crvusdsim.templates.Strategy]-91052: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 110000000000000000, 'liquidation_discount': 60000000000000000}
-[INFO][17:02:56][crvusdsim.templates.Strategy]-91049: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 60000000000000000}
-[INFO][17:02:56][crvusdsim.templates.Strategy]-91053: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 120000000000000000, 'liquidation_discount': 60000000000000000}
-
->>> res.summary()
-
-metric averange_user_health liquidations_count liquidation_volume
-stat mean max sum
-0 0.027328 0.0 0.0
-1 0.038743 0.0 0.0
-2 0.050414 0.0 0.0
-3 0.062351 0.0 0.0
-
->>> res.data()
-
-run timestamp averange_user_health liquidations_count liquidation_volume
-0 0 2023-09-18 23:30:00+00:00 0.036745 0.0 0.0
-1 0 2023-09-18 23:38:34+00:00 0.036745 0.0 0.0
-2 0 2023-09-18 23:47:08+00:00 0.036743 0.0 0.0
-3 0 2023-09-18 23:55:42+00:00 0.036739 0.0 0.0
-4 0 2023-09-19 00:04:17+00:00 0.036733 0.0 0.0
-... ... ... ... ... ...
-40991 3 2023-11-18 22:55:42+00:00 0.045240 0.0 0.0
-40992 3 2023-11-18 23:04:17+00:00 0.045240 0.0 0.0
-40993 3 2023-11-18 23:12:51+00:00 0.045240 0.0 0.0
-40994 3 2023-11-18 23:21:25+00:00 0.045240 0.0 0.0
-40995 3 2023-11-18 23:30:00+00:00 0.045240 0.0 0.0
-
-40996 rows x 5 columns
-```
-
-Arbitrage simulations to see results of varying N of user's position::
-
-```python
->>> res = crvusdsim.autosim(pool="wstETH", sim_mode="N", N=[4, 6, 8, 10, 20, 40, 50])
-
-[INFO][17:17:50][crvusdsim.pipelines.simple]-91016: Simulating mode: N
-[INFO][17:17:53][curvesim.price_data.sources]-91016: Fetching CoinGecko price data...
-[INFO][17:17:59][crvusdsim.templates.Strategy]-91351: [Curve.fi Stablecoin wstETH] Simulating with {'N': 8}
-[INFO][17:18:01][crvusdsim.templates.Strategy]-91354: [Curve.fi Stablecoin wstETH] Simulating with {'N': 40}
-[INFO][17:18:01][crvusdsim.templates.Strategy]-91349: [Curve.fi Stablecoin wstETH] Simulating with {'N': 4}
-[INFO][17:18:01][crvusdsim.templates.Strategy]-91355: [Curve.fi Stablecoin wstETH] Simulating with {'N': 50}
-[INFO][17:18:01][crvusdsim.templates.Strategy]-91352: [Curve.fi Stablecoin wstETH] Simulating with {'N': 10}
-[INFO][17:18:01][crvusdsim.templates.Strategy]-91353: [Curve.fi Stablecoin wstETH] Simulating with {'N': 20}
-[INFO][17:18:01][crvusdsim.templates.Strategy]-91350: [Curve.fi Stablecoin wstETH] Simulating with {'N': 6}
-
->>> res.summary()
-
-metric user_value
-stat annualized_returns
-0 -0.228595
-1 -0.168579
-2 -0.129110
-3 -0.104466
-4 -0.053433
-5 -0.027022
-6 -0.021667
-
->>> res.data()
-
-run timestamp user_value
-0 0 2023-09-18 23:30:00+00:00 1.000000
-1 0 2023-09-18 23:38:34+00:00 1.000000
-2 0 2023-09-18 23:47:08+00:00 1.000000
-3 0 2023-09-18 23:55:42+00:00 1.000000
-4 0 2023-09-19 00:04:17+00:00 1.000000
-... ... ... ...
-71738 6 2023-11-18 22:55:42+00:00 0.996344
-71739 6 2023-11-18 23:04:17+00:00 0.996344
-71740 6 2023-11-18 23:12:51+00:00 0.996344
-71741 6 2023-11-18 23:21:25+00:00 0.996344
-71742 6 2023-11-18 23:30:00+00:00 0.996344
-
-71743 rows x 3 columns
-```
 
 ## Support
 

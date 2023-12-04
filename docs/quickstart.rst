@@ -22,12 +22,17 @@ Hello world
 Before digging into more interesting examples, let's check the installed package can
 run without issues.  In the console, run::
 
-   $ python3 -m crvusdsim
-   [INFO][12:46:49][crvusdsim.pipelines.simple]-31028: Simulating mode: pool
-   [INFO][12:46:52][curvesim.price_data.sources]-31028: Fetching CoinGecko price data...
-   [INFO][12:46:57][crvusdsim.templates.Strategy]-31041: [Curve.fi Stablecoin wstETH] Simulating with {'A': 50}
-   [INFO][12:46:57][crvusdsim.templates.Strategy]-31044: [Curve.fi Stablecoin wstETH] Simulating with {'A': 100}
-   Elapsed time: 9.923296928405762
+    $ python3 -m crvusdsim
+    [INFO][11:29:54][crvusdsim.pipelines.simple]-92751: Simulating mode: rate
+    [INFO][11:29:57][curvesim.price_data.sources]-92751: Fetching CoinGecko price data...
+    [INFO][11:30:08][curvesim.price_data.sources]-92751: Fetching CoinGecko price data...
+    [INFO][11:30:08][curvesim.price_data.sources]-92751: Fetching CoinGecko price data...
+    [INFO][11:30:08][curvesim.price_data.sources]-92751: Fetching CoinGecko price data...
+    [INFO][11:30:09][curvesim.price_data.sources]-92751: Fetching CoinGecko price data...
+    [INFO][11:30:16][crvusdsim.templates.Strategy]-92883: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.15}
+    [INFO][11:30:16][crvusdsim.templates.Strategy]-92880: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.1}
+    [INFO][11:30:16][crvusdsim.templates.Strategy]-92877: [Curve.fi Stablecoin wstETH] Simulating with {'rate0': 0.05}
+    Elapsed time: 28.6576099395752
 
 
 Fetch a series of objects from Curve stablecoin `wstETH` market

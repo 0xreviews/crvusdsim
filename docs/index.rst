@@ -14,7 +14,7 @@ Release v\ |version|. (:ref:`Installation <install>`)
 
 --------------------------
 
-Pythonic interaction with curve stablecoin market objects (include LLAMMA pool, controller, aggregator, PegKeepers, etc.)::
+Pythonic interaction with Curve Stablecoin market objects (include LLAMMA pool, controller, aggregator, PegKeepers, etc.)::
 
    >>> import crvusdsim
 
@@ -227,4 +227,4 @@ If you are having issues, please let us know.  You can reach us via the followin
 License
 -------
 
-Portions of the codebase are authorized derivatives of code owned by Curve.fi (Swiss Stake GmbH).  These are the vyper snippets used for testing and the python code derived from them (`curvesim/pool/crvusd`); there are copyright notices placed appropriately.  The rest of the codebase has an MIT license.
+Portions of the codebase are authorized derivatives of code owned by Curve.fi (Swiss Stake GmbH).  These are the vyper snippets used for testing and the python code derived from them (`crvusdsim/pool/crvusd`); there are copyright notices placed appropriately.  The rest of the codebase has an MIT license.
