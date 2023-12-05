@@ -22,6 +22,7 @@ from crvusdsim.pool.sim_interface.sim_stableswap import SimCurveStableSwapPool
 from crvusdsim.pool.sim_interface.sim_controller import SimController
 from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 from crvusdsim.pool_data import get_metadata
+from crvusdsim.network.subgraph import debt_ceiling_sync
 from curvesim.pool_data.metadata import PoolMetaDataInterface
 from crvusdsim.pool_data.metadata import MarketMetaData, CurveStableSwapPoolMetaData
 from curvesim.logging import get_logger
@@ -264,8 +265,9 @@ def get_sim_market(
 
         aggregator.add_price_pair(spool)
 
-    peg_keepers = [
-        PegKeeper(
+    peg_keepers = []
+    for i in range(len(peg_keepers_kwargs)):
+        pk = PegKeeper(
             _pool=stableswap_pools[i],
             _index=int(PEG_KEEPER_CONF["index"]),
             _caller_share=int(PEG_KEEPER_CONF["caller_share"]),
@@ -274,8 +276,11 @@ def get_sim_market(
             _address=peg_keepers_kwargs[i]["address"],
             debt=int(peg_keepers_kwargs[i]["debt"]),
         )
-        for i in range(len(peg_keepers_kwargs))
-    ]
+        pk_debt_ceiling = debt_ceiling_sync(pk.address)
+        factory.set_debt_ceiling(pk.address, pk_debt_ceiling)
+        stablecoin.burnFrom(pk.address, pk.debt)
+        peg_keepers.append(pk)
+
     policy = MonetaryPolicy(
         price_oracle_contract=aggregator,
         controller_factory_contract=factory,
@@ -294,9 +299,12 @@ def get_sim_market(
     )
 
     # add_market in factory
+    controller_debt_ceiling = debt_ceiling_sync(controller.address)
     factory._add_market_without_creating(
-        pool, controller, policy, collateral_token, MARKET_DEBT_CEILING
+        pool, controller, policy, collateral_token, controller_debt_ceiling
     )
+    controller_debt = sum([loan.initial_debt for loan in controller.loan.values()])
+    stablecoin.burnFrom(controller.address, controller_debt)
 
     pool.metadata = pool_metadata._dict  # pylint: disable=protected-access
     pool.metadata["address"] = pool_metadata._dict["llamma_params"]["address"]
