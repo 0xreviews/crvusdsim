@@ -22,7 +22,6 @@ from crvusdsim.pool.sim_interface.sim_stableswap import SimCurveStableSwapPool
 from crvusdsim.pool.sim_interface.sim_controller import SimController
 from crvusdsim.pool.sim_interface.sim_llamma import SimLLAMMAPool
 from crvusdsim.pool_data import get_metadata
-from crvusdsim.network.subgraph import debt_ceiling_sync
 from curvesim.pool_data.metadata import PoolMetaDataInterface
 from crvusdsim.pool_data.metadata import MarketMetaData, CurveStableSwapPoolMetaData
 from curvesim.logging import get_logger
@@ -276,7 +275,7 @@ def get_sim_market(
             _address=peg_keepers_kwargs[i]["address"],
             debt=int(peg_keepers_kwargs[i]["debt"]),
         )
-        pk_debt_ceiling = debt_ceiling_sync(pk.address)
+        pk_debt_ceiling = pool_metadata._dict["debt_ceilings"][pk.address]
         factory.set_debt_ceiling(pk.address, pk_debt_ceiling)
         stablecoin.burnFrom(pk.address, pk.debt)
         peg_keepers.append(pk)
@@ -299,7 +298,7 @@ def get_sim_market(
     )
 
     # add_market in factory
-    controller_debt_ceiling = debt_ceiling_sync(controller.address)
+    controller_debt_ceiling = pool_metadata._dict["debt_ceilings"][controller.address]
     factory._add_market_without_creating(
         pool, controller, policy, collateral_token, controller_debt_ceiling
     )

@@ -581,6 +581,13 @@ async def market_snapshot(
         [p["pool"] for p in peg_keepers_params]
     )
 
+    # debt ceilings for controller and pks
+    debt_ceilings = {}
+    for address in [r["market"]["controller"]] + [
+        p["address"] for p in peg_keepers_params
+    ]:
+        debt_ceilings[address] = await get_debt_ceiling(address)
+
     # Output
     data = {
         "llamma_params": {
@@ -653,6 +660,7 @@ async def market_snapshot(
         "timestamp": r["timestamp"],
         "index": r["market"]["index"],
         "coins": coins,
+        "debt_ceilings": debt_ceilings
     }
 
     return data
