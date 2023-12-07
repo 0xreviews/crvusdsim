@@ -265,6 +265,8 @@ async def get_debt_ceiling(address):
     int
 
     """
+    address = address.lower()
+
     # pylint: disable=consider-using-f-string
     q = """
         query GetDebtCeiling {
@@ -292,7 +294,7 @@ async def get_debt_ceiling(address):
     if len(data["debtCeilings"]) < 1:
         raise SubgraphResultError("No debt ceiling found for symbol query.")
 
-    ceiling = int(data["debtCeilings"][0])
+    ceiling = int(data["debtCeilings"][0]["debtCeiling"])
 
     return ceiling
 
@@ -579,6 +581,13 @@ async def market_snapshot(
         [p["pool"] for p in peg_keepers_params]
     )
 
+    # debt ceilings for controller and pks
+    debt_ceilings = {}
+    for address in [r["market"]["controller"]] + [
+        p["address"] for p in peg_keepers_params
+    ]:
+        debt_ceilings[address] = await get_debt_ceiling(address)
+
     # Output
     data = {
         "llamma_params": {
@@ -651,6 +660,7 @@ async def market_snapshot(
         "timestamp": r["timestamp"],
         "index": r["market"]["index"],
         "coins": coins,
+        "debt_ceilings": debt_ceilings
     }
 
     return data
@@ -658,3 +668,4 @@ async def market_snapshot(
 
 symbol_address_sync = sync(symbol_address)
 market_snapshot_sync = sync(market_snapshot)
+debt_ceiling_sync = sync(get_debt_ceiling)

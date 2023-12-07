@@ -209,8 +209,8 @@ class PegKeeper(BlocktimestampMixins):
         if self.last_change + ACTION_DELAY > self._block_timestamp:
             return 0
 
-        balance_pegged: int = self.POOL.balances(self.I)
-        balance_peg: int = self.POOL.balances(1 - self.I) * self.PEG_MUL
+        balance_pegged: int = self.POOL.balances[self.I]
+        balance_peg: int = self.POOL.balances[1 - self.I] * self.PEG_MUL
 
         initial_profit: int = self._calc_profit()
 
