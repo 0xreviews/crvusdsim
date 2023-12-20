@@ -315,64 +315,64 @@ multiplied by 10**18.::
 To simlate controller's parameters, such as ``loan_discount`` and ``liquidation_discount``, use ``sim_mode="controller"``::
 
     >>> res = crvusdsim.autosim(pool="wstETH", sim_mode="controller",
-    >>>    loan_discount=[int(0.09 * 10**18), int(0.10 * 10**18), int(0.11 * 10**18), int(0.12 * 10**18)],
+    >>>    loan_discount=[int(0.07 * 10**18), int(0.08 * 10**18), int(0.09 * 10**18), int(0.10 * 10**18)],
     >>>    liquidation_discount=[int(0.04 * 10**18), int(0.06 * 10**18)])
 
-    [INFO][13:50:55][crvusdsim.pipelines.simple]-7441: Simulating mode: controller
-    [INFO][13:50:59][curvesim.price_data.sources]-7441: Fetching CoinGecko price data...
-    [INFO][13:51:15][crvusdsim.templates.Strategy]-9436: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 120000000000000000, 'liquidation_discount': 60000000000000000}
-    [INFO][13:51:15][crvusdsim.templates.Strategy]-9431: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 110000000000000000, 'liquidation_discount': 40000000000000000}
-    [INFO][13:51:16][crvusdsim.templates.Strategy]-9432: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 60000000000000000}
-    [INFO][13:51:16][crvusdsim.templates.Strategy]-9430: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 40000000000000000}
-    [INFO][13:51:16][crvusdsim.templates.Strategy]-9433: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 40000000000000000}
-    [INFO][13:51:16][crvusdsim.templates.Strategy]-9435: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 120000000000000000, 'liquidation_discount': 40000000000000000}
-    [INFO][13:51:16][crvusdsim.templates.Strategy]-9429: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 60000000000000000}
-    [INFO][13:51:16][crvusdsim.templates.Strategy]-9434: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 110000000000000000, 'liquidation_discount': 60000000000000000}
+    [INFO][14:56:36][crvusdsim.pipelines.simple]-7441: Simulating mode: controller
+    [INFO][14:56:36][curvesim.price_data.sources]-7441: Fetching CoinGecko price data...
+    [INFO][14:57:15][crvusdsim.templates.Strategy]-41713: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 80000000000000000, 'liquidation_discount': 60000000000000000}
+    [INFO][14:57:16][crvusdsim.templates.Strategy]-41710: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 70000000000000008, 'liquidation_discount': 40000000000000000}
+    [INFO][14:57:16][crvusdsim.templates.Strategy]-41712: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 80000000000000000, 'liquidation_discount': 40000000000000000}
+    [INFO][14:57:16][crvusdsim.templates.Strategy]-41714: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 40000000000000000}
+    [INFO][14:57:16][crvusdsim.templates.Strategy]-41711: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 70000000000000008, 'liquidation_discount': 60000000000000000}
+    [INFO][14:57:16][crvusdsim.templates.Strategy]-41716: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 90000000000000000, 'liquidation_discount': 60000000000000000}
+    [INFO][14:57:16][crvusdsim.templates.Strategy]-41717: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 60000000000000000}
+    [INFO][14:57:16][crvusdsim.templates.Strategy]-41715: [Curve.fi Stablecoin wstETH] Simulating with {'loan_discount': 100000000000000000, 'liquidation_discount': 40000000000000000}
 
     >>> res.summary()
     
     metric	averange_user_health	liquidations_count	liquidation_volume
     stat	mean	max	sum
-    0	0.039849	0.0	0.000000e+00
-    1	0.018384	14.0	1.510470e+10
-    2	0.051448	0.0	0.000000e+00
-    3	0.029543	0.0	0.000000e+00
-    4	0.063286	0.0	0.000000e+00
-    5	0.041135	0.0	0.000000e+00
-    6	0.075394	0.0	0.000000e+00
-    7	0.052990	0.0	0.000000e+00
+    0	0.017705	14.0	1.835876e+10
+    1	0.003404	20.0	1.097029e+11
+    2	0.028522	0.0	0.000000e+00
+    3	0.009494	20.0	6.023163e+10
+    4	0.039849	0.0	0.000000e+00
+    5	0.018384	14.0	1.510470e+10
+    6	0.051448	0.0	0.000000e+00
+    7	0.029543	0.0	0.000000e+00
 
     >>> res.summary(full=True)
 
         loan_discount	liquidation_discount	averange_user_health mean	liquidations_count max	liquidation_volume sum
-    0	0.09	0.04	0.039849	0.0	0.000000e+00
-    1	0.09	0.06	0.018384	14.0	1.510470e+10
-    2	0.10	0.04	0.051448	0.0	0.000000e+00
-    3	0.10	0.06	0.029543	0.0	0.000000e+00
-    4	0.11	0.04	0.063286	0.0	0.000000e+00
-    5	0.11	0.06	0.041135	0.0	0.000000e+00
-    6	0.12	0.04	0.075394	0.0	0.000000e+00
-    7	0.12	0.06	0.052990	0.0	0.000000e+00
+    0	0.07	0.04	0.017705	14.0	1.835876e+10
+    1	0.07	0.06	0.003404	20.0	1.097029e+11
+    2	0.08	0.04	0.028522	0.0	0.000000e+00
+    3	0.08	0.06	0.009494	20.0	6.023163e+10
+    4	0.09	0.04	0.039849	0.0	0.000000e+00
+    5	0.09	0.06	0.018384	14.0	1.510470e+10
+    6	0.10	0.04	0.051448	0.0	0.000000e+00
+    7	0.10	0.06	0.029543	0.0	0.000000e+00
 
     >>> res.data()
 
-    run	timestamp	averange_user_health	liquidations_count	liquidation_volume
-    0	0	2023-09-29 23:30:00+00:00	0.059287	0.0	0.0
-    1	0	2023-09-29 23:38:34+00:00	0.059286	0.0	0.0
-    2	0	2023-09-29 23:47:08+00:00	0.059284	0.0	0.0
-    3	0	2023-09-29 23:55:42+00:00	0.059281	0.0	0.0
-    4	0	2023-09-30 00:04:17+00:00	0.059277	0.0	0.0
+    	run	timestamp	averange_user_health	liquidations_count	liquidation_volume
+    0	0	2023-09-29 23:30:00+00:00	0.036510	0.0	0.0
+    1	0	2023-09-29 23:38:34+00:00	0.036509	0.0	0.0
+    2	0	2023-09-29 23:47:08+00:00	0.036507	0.0	0.0
+    3	0	2023-09-29 23:55:42+00:00	0.036504	0.0	0.0
+    4	0	2023-09-30 00:04:17+00:00	0.036500	0.0	0.0
     ...	...	...	...	...	...
-    81987	7	2023-11-29 22:55:42+00:00	0.032402	0.0	0.0
-    81988	7	2023-11-29 23:04:17+00:00	0.032401	0.0	0.0
-    81989	7	2023-11-29 23:12:51+00:00	0.032401	0.0	0.0
-    81990	7	2023-11-29 23:21:25+00:00	0.032400	0.0	0.0
-    81991	7	2023-11-29 23:30:00+00:00	0.032400	0.0	0.0
-    81992 rows x 5 columns
+    81987	7	2023-11-29 22:55:42+00:00	0.009380	0.0	0.0
+    81988	7	2023-11-29 23:04:17+00:00	0.009379	0.0	0.0
+    81989	7	2023-11-29 23:12:51+00:00	0.009379	0.0	0.0
+    81990	7	2023-11-29 23:21:25+00:00	0.009379	0.0	0.0
+    81991	7	2023-11-29 23:30:00+00:00	0.009378	0.0	0.0
+    81992 rows × 5 columns
 
     >>> res.data(full=True)
 
-    	loan_discount	liquidation_discount	run	timestamp	averange_user_health	liquidations_count	liquidation_volume
+        loan_discount	liquidation_discount	run	timestamp	averange_user_health	liquidations_count	liquidation_volume
     0	0.09	0.04	0	2023-09-29 23:30:00+00:00	0.059287	0.0	0.0
     1	0.09	0.04	0	2023-09-29 23:38:34+00:00	0.059286	0.0	0.0
     2	0.09	0.04	0	2023-09-29 23:47:08+00:00	0.059284	0.0	0.0
@@ -384,7 +384,7 @@ To simlate controller's parameters, such as ``loan_discount`` and ``liquidation_
     81989	0.12	0.06	7	2023-11-29 23:12:51+00:00	0.032401	0.0	0.0
     81990	0.12	0.06	7	2023-11-29 23:21:25+00:00	0.032400	0.0	0.0
     81991	0.12	0.06	7	2023-11-29 23:30:00+00:00	0.032400	0.0	0.0
-    81992 rows x 7 columns
+    81992 rows × 7 columns
 
 
 
