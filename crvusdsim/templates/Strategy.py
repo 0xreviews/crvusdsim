@@ -37,7 +37,7 @@ class Strategy(ABC):
     pegkeeper_caller_class = None
     state_log_class = None
 
-    def __init__(self, metrics, sim_mode="pool", bands_strategy_class=None, bands_strategy_kwargs=None):
+    def __init__(self, metrics, sim_mode="rate", bands_strategy_class=None, bands_strategy_kwargs=None):
         """
         Parameters
         ----------
