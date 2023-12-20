@@ -71,6 +71,7 @@ def get_controller_state(pool, controller):
         "users_y": users_y,
         "users_health": users_health,
         "users_init_y": users_init_y,
+        "users_value": sum(pool.bands_y.values()) / 1e18 * last_out_price + sum(pool.bands_x.values()) / 1e18,
 
         # liquidation
         "liquidation_count": liquidation_count,

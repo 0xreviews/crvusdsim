@@ -31,7 +31,7 @@ class RangeNReturns(MarketMetric):
             "plot": {
                 "metrics": {
                     "user_value": {
-                        "title": f"User Value",
+                        "title": f"User's Collateral Amount",
                         "style": "time_series",
                         "resample": "last",
                         "encoding": {"y": {"axis": Axis(format="%")}},
