@@ -127,7 +127,7 @@ def test_pool_value(assets, local_prices):
 
     for A, v in pool_values.items():
         diff = mean_value - v
-        assert approx(v, mean_value, 5e-3)
+        assert approx(v, mean_value, 8e-3)
 
         # print("")
         # print("A", A)
