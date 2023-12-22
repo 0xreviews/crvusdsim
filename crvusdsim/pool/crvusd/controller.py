@@ -150,7 +150,7 @@ class Controller(
         self.liquidation_discounts = (
             liquidation_discounts
             if liquidation_discounts is not None
-            else defaultdict(int)
+            else defaultdict(lambda: liquidation_discount)
         )
 
         self._total_debt = total_debt if total_debt is not None else Loan()
