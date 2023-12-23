@@ -126,12 +126,10 @@ class MarketMetaData(PoolMetaDataBase):
                     if broken_user:
                         continue
 
-                    # As in Vyper code, user shares reflect their deposited
-                    # collateral in a band.
                     for b_i in range(n1, n2 + 1):
-                        deposited_collateral = format_float_to_uint256(_u["depositedCollateral"]) // N
-                        total_shares[b_i] += deposited_collateral
-                        ticks.append(deposited_collateral)
+                        collateral_up = format_float_to_uint256(_u["collateralUp"]) // N
+                        total_shares[b_i] += collateral_up
+                        ticks.append(collateral_up)
 
                     user_shares[user_address] = UserShares(n1,n2,ticks)
 
