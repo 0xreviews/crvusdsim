@@ -76,9 +76,15 @@ class MarketMetaData(PoolMetaDataBase):
             bands_y = defaultdict(int)
 
             for b in data["llamma_params"]["bands_x"]:
-                bands_x[int(b)] = int(data["llamma_params"]["bands_x"][b])
-            for b in data["llamma_params"]["bands_y"]:
-                bands_y[int(b)] = int(data["llamma_params"]["bands_y"][b])
+                b = int(b)
+                b_x = int(data["llamma_params"]["bands_x"][b])
+                b_y = int(data["llamma_params"]["bands_y"][b])
+                bands_x[b] = b_x
+                bands_y[b] = b_y
+                # override active_band since bands data is 
+                # snapshot at a different time
+                if b_x > 0 and b_y > 0:
+                    pool_kwargs["active_band"] = b  
 
             pool_kwargs["bands_x"] = bands_x
             pool_kwargs["bands_y"] = bands_y
