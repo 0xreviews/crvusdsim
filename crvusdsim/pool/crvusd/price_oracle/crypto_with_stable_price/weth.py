@@ -1,40 +1,11 @@
 """Provides the WETH price oracle."""
 from typing import List
-from curvesim.pool.sim_interface import SimCurveCryptoPool
 from .base import Oracle
-from ..aggregate_stable_price import AggregateStablePrice
-from ... import ControllerFactory
-from ...utils import BlocktimestampMixins
-from ....sim_interface import SimCurveStableSwapPool
 
 PRECISION = 10**18
 
 
-class OracleWETH(Oracle, BlocktimestampMixins):
-    def __init__(
-        self,
-        tricrypto: List[SimCurveCryptoPool],
-        ix: List[int],  # 1 = ETH
-        stableswap: List[SimCurveStableSwapPool],
-        stable_aggregator: AggregateStablePrice,
-        factory: ControllerFactory,
-        # chainlink_aggregator_eth: ChainlinkAggregator,
-        # bound_size: int,  # 1.5% sounds ok before we turn it off
-        n_pools=2,
-        tvl_ma_time=50000,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            tricrypto,
-            ix,
-            stableswap,
-            stable_aggregator,
-            factory,
-            n_pools,
-            tvl_ma_time,
-            **kwargs,
-        )
-
+class OracleWETH(Oracle):
     def _raw_price(self, tvls: List[int], agg_price: int, **kwargs) -> int:
         weighted_price = 0
         weights = 0

@@ -37,13 +37,3 @@ def generate_prices(price_max, price_min, trade_count, columns):
 def increment_timestamps(objects: List[Any], ts: int) -> None:
     for obj in objects:
         obj._increment_timestamp(ts)
-
-def trade(oracle, pool, i, j, frac):
-    amount = pool.get_max_trade_size(i, j, frac)
-    pool.exchange(i, j, amount)  # sell crvUSD for stablecoin
-
-    objects = oracle.stableswap + oracle.tricrypto + [oracle.stable_aggregator]
-    ts = oracle.last_timestamp + 60 * 60
-    increment_timestamps(objects, ts)
-
-    return oracle.price_w()

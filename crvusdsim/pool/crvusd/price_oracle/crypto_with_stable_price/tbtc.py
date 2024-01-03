@@ -1,4 +1,5 @@
 """Provides the TBTC price oracle."""
+from typing import List
 from curvesim.pool.sim_interface import SimCurveCryptoPool
 from .base import Oracle
 from ..aggregate_stable_price import AggregateStablePrice
@@ -9,11 +10,11 @@ from ...stablecoin import StableCoin
 PRECISION = 10**18
 
 
-class OracleTBTC(Oracle, BlocktimestampMixins):
+class OracleTBTC(Oracle):
     def __init__(
         self,
-        tricrypto: SimCurveCryptoPool,
-        ix: int,  # 0 = TBTC
+        tricrypto: List[SimCurveCryptoPool],
+        ix: List[int],  # 0 = TBTC
         stable_aggregator: AggregateStablePrice,
         factory: ControllerFactory,
         # chainlink_aggregator_eth: ChainlinkAggregator,
@@ -21,16 +22,19 @@ class OracleTBTC(Oracle, BlocktimestampMixins):
         n_pools=1,
         **kwargs,
     ) -> None:
-        super(BlocktimestampMixins, self).__init__()
+        BlocktimestampMixins.__init__(self)
         # Turn into list for compatibility with parent class
-        self.tricrypto = [tricrypto]
-        self.tricrypto_ix = [ix]
+        self.tricrypto = tricrypto
+        self.tricrypto_ix = ix
         self.stable_aggregator = stable_aggregator
         self.factory = factory
         self._stablecoin: StableCoin = stable_aggregator.STABLECOIN
         self.n_pools = n_pools
         assert (
-            tricrypto.coin_addresses[0].lower() == self._stablecoin
+            tricrypto[0].coin_addresses[0].lower() == self._stablecoin.address.lower()
+        ), (
+            tricrypto[0].coin_addresses[0].lower(),
+            self._stablecoin.address.lower(),
         )  # TriCryptoLLAMMA has crvUSD as first coin
 
         # self.use_chainlink = True

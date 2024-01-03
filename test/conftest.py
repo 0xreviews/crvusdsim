@@ -13,13 +13,21 @@ from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
     AggregateStablePrice,
 )
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
-from crvusdsim.pool.crvusd.price_oracle.weth import (
-    CryptoWithStablePrice
+from crvusdsim.pool.crvusd.price_oracle.crypto_with_stable_price import (
+    make_kwargs as make_oracle_kwargs, MAP
 )
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
 from crvusdsim.pool.crvusd.stableswap import LP_PROVIDER, CurveStableSwapPool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.sim_interface import SimCurveStableSwapPool
+from crvusdsim.pool.crvusd.conf import (
+    ALIAS_TO_ADDRESS, 
+    LLAMMA_TBTC, 
+    LLAMMA_WETH, 
+    LLAMMA_SFRXETH, 
+    LLAMMA_WBTC, 
+    LLAMMA_WSTETH
+)
 
 INIT_PRICE = 2000 * 10**18
 INIT_PRICE_D1 = INIT_PRICE // 10**18
@@ -55,7 +63,6 @@ PEG_KEEPER_RECEIVER = "PEG_KEEPER_RECEIVER"
 PEG_KEEPER_ADMIN = "PEG_KEEPER_ADMIN"
 INIT_PEG_KEEPER_CEILING = MARKET_DEBT_CEILING // len(STABLE_COINS)
 # TriCrypto
-TRICRYPTO_COINS = [["USDC", "WBTC", "WETH"], ["USDT", "WBTC", "WETH"]]
 TRICRYPTO_A = 1707629
 TRICRYPTO_PRECISIONS = [1, 1, 1]
 TRICRYPTO_GAMMA = 11809167828997
@@ -88,17 +95,6 @@ TRICRYPTO_KWARGS = {
 }
 # Aggregator
 AGGREGATOR_SIGMA = 10**15
-# Crypto with Stable Price
-CRYPTO_WITH_STABLE_PRICE_N = 2
-CRYPTO_WITH_STABLE_PRICE_COINS = ["USDC", "USDT"]
-CRYPTO_WITH_STABLE_PRICE_IX = {
-    "weth": [1, 1],
-    "wbtc": [0, 0],
-}
-CRYPTO_WITH_STABLE_PRICE_COLLAT_IX = {
-    "weth": [2, 2],
-    "wbtc": [1, 1]
-} # TODO is this just ix + 1?
 
 def _create_stablecoin():
     coin = StableCoin()
@@ -225,9 +221,16 @@ def create_amm():
     return amm, price_oracle
 
 
-def _create_tricrypto():
+def _tricrypto_coins(market: str):
+    if market in [LLAMMA_WETH, LLAMMA_WSTETH, LLAMMA_SFRXETH, LLAMMA_WBTC]:
+        return [["USDC", "WBTC", "WETH"], ["USDT", "WBTC", "WETH"]]
+    elif market == LLAMMA_TBTC:
+        return [["crvUSD", "tBTC", "wstETH"]]
+
+
+def _create_tricrypto(market: str):
     tricrypto = []
-    for coins in TRICRYPTO_COINS:
+    for coins in _tricrypto_coins(market):
         tpool = SimCurveCryptoPool(**TRICRYPTO_KWARGS)
         coins = [
             _create_other_stablecoin(symbol) 
@@ -245,20 +248,20 @@ def _create_tricrypto():
 
 
 def create_crypto_with_stable_price_oracle(market="weth"):
+    if "0x" not in market:
+        market = ALIAS_TO_ADDRESS[f"llamma_{market}"]
     stablecoin = _create_stablecoin()
-    other_coins = _create_other_coins(CRYPTO_WITH_STABLE_PRICE_COINS)
+    stablecoin.address = "crvusd_address"
+    if market in [LLAMMA_WETH, LLAMMA_WSTETH, LLAMMA_SFRXETH, LLAMMA_WBTC]:
+        other_coins = _create_other_coins([x[0] for x in _tricrypto_coins(market)])  # e.g. [USDC, USDT]
+    elif market == LLAMMA_TBTC:
+        other_coins = []
     factory = _create_factory(stablecoin)
-    stableswaps = _create_stableswaps(stablecoin, other_coins, sim=True)
-    aggregator = _create_aggregator(stablecoin, stableswaps)
-    tricrypto = _create_tricrypto()
-    ix = CRYPTO_WITH_STABLE_PRICE_IX[market]
-    return CryptoWithStablePrice(
-        tricrypto=tricrypto,
-        ix=ix,
-        stableswap=stableswaps,
-        stable_aggregator=aggregator,
-        factory=factory,
-    )
+    stableswap = _create_stableswaps(stablecoin, other_coins, sim=True)
+    aggregator = _create_aggregator(stablecoin, stableswap)
+    tricrypto = _create_tricrypto(market)
+    kwargs = make_oracle_kwargs(market, aggregator, factory, tricrypto, stableswap)
+    return MAP[market.lower()](**kwargs)
 
 
 def create_controller_amm():
