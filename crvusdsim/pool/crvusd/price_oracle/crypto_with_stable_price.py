@@ -3,6 +3,7 @@ Provides a price oracle class that uses Tricrypto-ng
 and StableSwap pools to calculate collateral prices.
 
 TODO - add Chainlink price limits.
+TODO - add functionality for staked coins.
 """
 from typing import List
 from curvesim.pool.sim_interface import SimCurveCryptoPool
@@ -20,7 +21,7 @@ class CryptoWithStablePrice(BlocktimestampMixins):
     def __init__(
         self,
         tricrypto: List[SimCurveCryptoPool],
-        ix: List[int],  # 1 = ETH
+        ix: List[int],  # 0 = WBTC, 1 = ETH
         stableswap: List[SimCurveStableSwapPool],
         stable_aggregator: AggregateStablePrice,
         factory: ControllerFactory,
@@ -51,8 +52,12 @@ class CryptoWithStablePrice(BlocktimestampMixins):
                 self._redeemable.append(coins[0])
                 self._is_inverse.append(False)
                 assert coins[1] is self._stablecoin
-            assert tricrypto[i].coin_addresses[0] == self._redeemable[i].address
-            self.last_tvl[i] = (
+            assert len(tricrypto[i].coin_addresses) == 3, tricrypto[i].coin_addresses
+            assert (
+                tricrypto[i].coin_addresses[0].lower()
+                == self._redeemable[i].address.lower()
+            )
+            self.last_tvl.append(
                 tricrypto[i].tokens * tricrypto[i].virtual_price // PRECISION
             )
 
@@ -77,7 +82,7 @@ class CryptoWithStablePrice(BlocktimestampMixins):
             # alpha = 0.0 when dt = inf
             for i in range(self.n_pools):
                 tricrypto = self.tricrypto[i]
-                tvl = tricrypto.tokens * tricrypto.virtual_price() // PRECISION
+                tvl = tricrypto.tokens * tricrypto.virtual_price // PRECISION
                 last_tvl[i] = (
                     tvl * (PRECISION - alpha) + last_tvl[i] * alpha
                 ) // PRECISION
@@ -91,9 +96,9 @@ class CryptoWithStablePrice(BlocktimestampMixins):
         weighted_price = 0
         weights = 0
         for i in range(self.n_pools):
-            p_crypto_r = self.tricrypto[i].price_oracle(
+            p_crypto_r = self.tricrypto[i].price_oracle()[
                 self.tricrypto_ix[i]
-            )  # d_usdt/d_eth
+            ]  # d_usdt/d_eth
             p_stable_r = self.stableswap[i].price_oracle()  # d_usdt/d_st
             p_stable_agg = agg_price  # d_usd/d_st
             if self._is_inverse[i]:
@@ -115,7 +120,7 @@ class CryptoWithStablePrice(BlocktimestampMixins):
         #         upper = chainlink_p * (PRECISION + BOUND_SIZE) / PRECISION
         #         crv_p = min(max(crv_p, lower), upper)
 
-        return crv_p
+        return int(crv_p)
 
     def raw_price(self) -> int:
         return self._raw_price(self._ema_tvl(), self.stable_aggregator.price())
