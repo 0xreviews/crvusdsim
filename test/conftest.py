@@ -13,7 +13,7 @@ from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
     AggregateStablePrice,
 )
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
-from crvusdsim.pool.crvusd.price_oracle.crypto_with_stable_price import (
+from crvusdsim.pool.crvusd.price_oracle.weth import (
     CryptoWithStablePrice
 )
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper

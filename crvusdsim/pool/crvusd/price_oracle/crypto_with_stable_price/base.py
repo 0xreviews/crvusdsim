@@ -1,23 +1,25 @@
 """
-Provides a price oracle class that uses Tricrypto-ng
-and StableSwap pools to calculate collateral prices.
+Provides the base implementation for the 
+`crypto_with_stable_price` oracles.
+
+Each child class must implement its own price methods.
 
 TODO - add Chainlink price limits.
-TODO - add functionality for staked coins.
 """
 from typing import List
+from abc import ABC, abstractmethod
 from curvesim.pool.sim_interface import SimCurveCryptoPool
-from . import AggregateStablePrice
-from .. import ControllerFactory
-from ..stablecoin import StableCoin
-from ..clac import exp
-from ..utils import BlocktimestampMixins, ERC20
-from ...sim_interface import SimCurveStableSwapPool
+from .. import AggregateStablePrice
+from ... import ControllerFactory
+from ...stablecoin import StableCoin
+from ...clac import exp
+from ...utils import BlocktimestampMixins, ERC20
+from ....sim_interface import SimCurveStableSwapPool
 
 PRECISION = 10**18
 
 
-class CryptoWithStablePrice(BlocktimestampMixins):
+class Oracle(ABC, BlocktimestampMixins):
     def __init__(
         self,
         tricrypto: List[SimCurveCryptoPool],
@@ -29,8 +31,10 @@ class CryptoWithStablePrice(BlocktimestampMixins):
         # bound_size: int,  # 1.5% sounds ok before we turn it off
         n_pools=2,
         tvl_ma_time=50000,
+        **kwargs,
     ) -> None:
         super().__init__()
+
         self.tricrypto = tricrypto
         self.tricrypto_ix = ix
         self.stableswap = stableswap
@@ -62,12 +66,16 @@ class CryptoWithStablePrice(BlocktimestampMixins):
             )
 
         self.last_timestamp = self._block_timestamp
+
         # self.use_chainlink = False
         # CHAINLINK_AGGREGATOR_ETH = chainlink_aggregator_eth
         # CHAINLINK_PRICE_PRECISION_ETH = 10**convert(chainlink_aggregator_eth.decimals(), uint256)
         # BOUND_SIZE = bound_size
 
     def _ema_tvl(self) -> List[int]:
+        """
+        Get the EMA for the TVL of each TriCrypto pool.
+        """
         last_timestamp = self.last_timestamp
         last_tvl = self.last_tvl
 
@@ -90,50 +98,36 @@ class CryptoWithStablePrice(BlocktimestampMixins):
         return last_tvl
 
     def ema_tvl(self) -> List[int]:
+        """Public wrapper for EMA TVL."""
         return self._ema_tvl()
 
-    def _raw_price(self, tvls: List[int], agg_price: int) -> int:
-        weighted_price = 0
-        weights = 0
-        for i in range(self.n_pools):
-            p_crypto_r = self.tricrypto[i].price_oracle()[
-                self.tricrypto_ix[i]
-            ]  # d_usdt/d_eth
-            p_stable_r = self.stableswap[i].price_oracle()  # d_usdt/d_st
-            p_stable_agg = agg_price  # d_usd/d_st
-            if self._is_inverse[i]:
-                p_stable_r = 10**36 // p_stable_r
-            weight = tvls[i]
-            # Prices are already EMA but weights - not so much
-            weights += weight
-            weighted_price += (
-                p_crypto_r * p_stable_agg // p_stable_r * weight
-            )  # d_usd/d_eth
-        crv_p = weighted_price // weights
+    @abstractmethod
+    def _raw_price(self, *args, **kwargs) -> int:
+        """
+        Return the oracle price.
+        Implemented by the child class.
+        """
 
-        # Limit BTC price
-        # if self.use_chainlink:
-        #     chainlink_lrd: ChainlinkAnswer = CHAINLINK_AGGREGATOR_ETH.latestRoundData()
-        #     if block.timestamp - min(chainlink_lrd.updated_at, block.timestamp) <= CHAINLINK_STALE_THRESHOLD:
-        #         chainlink_p = convert(chainlink_lrd.answer, uint256) * PRECISION / CHAINLINK_PRICE_PRECISION_ETH
-        #         lower = chainlink_p * (PRECISION - BOUND_SIZE) / PRECISION
-        #         upper = chainlink_p * (PRECISION + BOUND_SIZE) / PRECISION
-        #         crv_p = min(max(crv_p, lower), upper)
+    @abstractmethod
+    def raw_price(self, *args, **kwargs) -> int:
+        """
+        Public method for getting the oracle price.
+        Implemented by the child class.
+        """
 
-        return int(crv_p)
+    def price(self, *args, **kwargs) -> int:
+        """
+        Wrapper for compatibility with vyper implementation.
+        """
+        return self.raw_price(*args, **kwargs)
 
-    def raw_price(self) -> int:
-        return self._raw_price(self._ema_tvl(), self.stable_aggregator.price())
-
-    def price(self) -> int:
-        return self._raw_price(self._ema_tvl(), self.stable_aggregator.price())
-
-    def price_w(self) -> int:
-        tvls = self._ema_tvl()
-        if self.last_timestamp < self._block_timestamp:
-            self.last_timestamp = self._block_timestamp
-            self.last_tvl = tvls
-        return self._raw_price(tvls, self.stable_aggregator.price_w())
+    @abstractmethod
+    def price_w(self, *args, **kwargs) -> int:
+        """
+        Return the oracle price and modify state attributes
+        (like internal timestamp) if appropriate for child class.
+        """
 
     def set_use_chainlink(self, do_it: bool) -> None:
+        """Whether to truncate using Chainlink prices."""
         self.use_chainlink = do_it
