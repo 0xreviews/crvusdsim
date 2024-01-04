@@ -57,7 +57,7 @@ class SimMarketInstance:
         peg_keepers: List[PegKeeper],
         policy: MonetaryPolicy,
         factory: ControllerFactory,
-        tricrypto: SimCurveCryptoPool | None = None
+        tricrypto: List[SimCurveCryptoPool] = [],
     ):
         self.pool = pool
         self.controller = controller
@@ -332,7 +332,7 @@ def get_sim_market(
         peg_keepers,
         policy,
         factory,
-        None,  # tricrypto
+        [],  # tricrypto
     )
 
     if not use_simple_oracle:
