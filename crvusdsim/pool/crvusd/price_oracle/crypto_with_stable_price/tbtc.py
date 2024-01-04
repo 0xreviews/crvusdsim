@@ -11,6 +11,10 @@ PRECISION = 10**18
 
 
 class OracleTBTC(Oracle):
+    """
+    TBTC Oracle. Overrides most base Oracle functionality.
+    """
+
     def __init__(
         self,
         tricrypto: List[SimCurveCryptoPool],
@@ -42,7 +46,7 @@ class OracleTBTC(Oracle):
         # CHAINLINK_PRICE_PRECISION_BTC = 10**convert(chainlink_aggregator_btc.decimals(), uint256)
         # BOUND_SIZE = bound_size
 
-    def _raw_price(self, agg_price: int, **kwargs) -> int:
+    def _raw_price(self, agg_price: int, *args, **kwargs) -> int:
         p_crypto_stable = self.tricrypto[0].price_oracle()[
             self.tricrypto_ix[0]
         ]  # d_crvusd/d_tbtc

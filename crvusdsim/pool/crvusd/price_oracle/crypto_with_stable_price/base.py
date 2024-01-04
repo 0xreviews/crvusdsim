@@ -7,7 +7,8 @@ Each child class must implement its own price methods.
 TODO - add Chainlink price limits.
 """
 from typing import List
-from abc import ABC, abstractmethod
+from abc import ABC
+from dataclasses import dataclass
 from curvesim.pool.sim_interface import SimCurveCryptoPool
 from .. import AggregateStablePrice
 from ... import ControllerFactory
@@ -19,7 +20,29 @@ from ....sim_interface import SimCurveStableSwapPool
 PRECISION = 10**18
 
 
+@dataclass
+class StakedOracle:
+    """
+    Simple interface for tracking conversions
+    for staked derivatives.
+    """
+
+    price: int = 10**18
+
+    def update(self, new: int) -> None:
+        """Update the price."""
+        self.price = new
+
+
 class Oracle(ABC, BlocktimestampMixins):
+    """
+    Base Oracle implementation is equivalent
+    to WBTC and WETH oracles. The sfrxETH and
+    wstETH oracle add a staked oracle conversion.
+    The TBTC oracle is a special case and overrides
+    many methods.
+    """
+
     def __init__(
         self,
         tricrypto: List[SimCurveCryptoPool],
@@ -101,32 +124,56 @@ class Oracle(ABC, BlocktimestampMixins):
         """Public wrapper for EMA TVL."""
         return self._ema_tvl()
 
-    @abstractmethod
     def _raw_price(self, *args, **kwargs) -> int:
         """
-        Return the oracle price.
-        Implemented by the child class.
+        Base raw price implementation. Child classes may override
+        (tBTC) or extend (sfrxETH, wstETH) this method.
         """
+        tvls = args[0]
+        agg_price = args[1]
 
-    @abstractmethod
-    def raw_price(self, *args, **kwargs) -> int:
+        weighted_price = 0
+        weights = 0
+        for i in range(self.n_pools):
+            p_crypto_r = self.tricrypto[i].price_oracle()[
+                self.tricrypto_ix[i]
+            ]  # d_usdt/d_collat
+            p_stable_r = self.stableswap[i].price_oracle()  # d_usdt/d_crvusd
+            p_stable_agg = agg_price  # d_usd/d_crvusd
+            if self._is_inverse[i]:
+                p_stable_r = 10**36 // p_stable_r
+            weight = tvls[i]
+            weights += weight
+            weighted_price += (
+                p_crypto_r * p_stable_agg // p_stable_r * weight
+            )  # d_usd/d_collat
+        crv_p = weighted_price // weights
+
+        return crv_p
+
+    def raw_price(self) -> int:
         """
         Public method for getting the oracle price.
         Implemented by the child class.
         """
+        return self._raw_price(self._ema_tvl(), self.stable_aggregator.price())
 
-    def price(self, *args, **kwargs) -> int:
+    def price(self) -> int:
         """
         Wrapper for compatibility with vyper implementation.
         """
-        return self.raw_price(*args, **kwargs)
+        return self.raw_price()
 
-    @abstractmethod
-    def price_w(self, *args, **kwargs) -> int:
+    def price_w(self) -> int:
         """
         Return the oracle price and modify state attributes
         (like internal timestamp) if appropriate for child class.
         """
+        tvls = self._ema_tvl()
+        if self.last_timestamp < self._block_timestamp:
+            self.last_timestamp = self._block_timestamp
+            self.last_tvl = tvls
+        return self._raw_price(tvls, self.stable_aggregator.price_w())
 
     def set_use_chainlink(self, do_it: bool) -> None:
         """Whether to truncate using Chainlink prices."""
