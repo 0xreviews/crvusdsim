@@ -21,7 +21,9 @@ class OracleSFRXETH(Oracle):
         (e.g. ETH -> sfrxETH).
         """
         crv_p = super()._raw_price(tvls, agg_price, *args, **kwargs)
-        return int(self.staked_oracle.price * crv_p // 10**18)
+        crv_p = int(self.staked_oracle.price * crv_p // 10**18)
+        self.last_price = crv_p
+        return crv_p
 
     def update_staked_oracle(self, new: int) -> None:
         """Update the staked oracle price."""

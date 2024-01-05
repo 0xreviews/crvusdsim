@@ -89,11 +89,19 @@ class Oracle(ABC, BlocktimestampMixins):
             )
 
         self.last_timestamp = self._block_timestamp
+        self.frozen = False  # SIM INTERFACE
 
         # self.use_chainlink = False
         # CHAINLINK_AGGREGATOR_ETH = chainlink_aggregator_eth
         # CHAINLINK_PRICE_PRECISION_ETH = 10**convert(chainlink_aggregator_eth.decimals(), uint256)
         # BOUND_SIZE = bound_size
+
+    @property
+    def _price_last(self):
+        """
+        For compatibility.
+        """
+        return self.price()
 
     def _ema_tvl(self) -> List[int]:
         """
@@ -149,6 +157,8 @@ class Oracle(ABC, BlocktimestampMixins):
             )  # d_usd/d_collat
         crv_p = weighted_price // weights
 
+        self.last_price = crv_p
+
         return crv_p
 
     def raw_price(self) -> int:
@@ -156,6 +166,8 @@ class Oracle(ABC, BlocktimestampMixins):
         Public method for getting the oracle price.
         Implemented by the child class.
         """
+        if self.frozen:
+            return self.last_price
         return self._raw_price(self._ema_tvl(), self.stable_aggregator.price())
 
     def price(self) -> int:
@@ -169,12 +181,34 @@ class Oracle(ABC, BlocktimestampMixins):
         Return the oracle price and modify state attributes
         (like internal timestamp) if appropriate for child class.
         """
+        if self.frozen:
+            return self.last_price
         tvls = self._ema_tvl()
         if self.last_timestamp < self._block_timestamp:
             self.last_timestamp = self._block_timestamp
             self.last_tvl = tvls
-        return self._raw_price(tvls, self.stable_aggregator.price_w())
+        return self._raw_price(
+            tvls, self.stable_aggregator.price()
+        )  # NOTE the Vyper implementation uses `price_w`
 
     def set_use_chainlink(self, do_it: bool) -> None:
         """Whether to truncate using Chainlink prices."""
         self.use_chainlink = do_it
+
+    def freeze(self):
+        """
+        Freeze the oracle price.
+
+        A user may `freeze()` or `unfreeze()` the oracle to prevent
+        price changes. This is useful if the user wants to keep the oracle
+        price constant through a series of trades. It is also useful as
+        a form of caching.
+
+        If `frozen` is false, the
+        oracle will behave exaclty like the Vyper implementation.
+        """
+        self.frozen = True
+
+    def unfreeze(self):
+        """Unfreeze the oracle price."""
+        self.frozen = False
