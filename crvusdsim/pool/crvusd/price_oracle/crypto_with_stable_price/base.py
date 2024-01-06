@@ -2,8 +2,6 @@
 Provides the base implementation for the 
 `crypto_with_stable_price` oracles.
 
-Each child class must implement its own price methods.
-
 TODO - add Chainlink price limits.
 """
 from typing import List

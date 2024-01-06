@@ -13,9 +13,6 @@ Each market has its own implementation:
     and the staking contract.
 3. tBTC: Uses just the crvUSD/tBTC/wstETH TriCrypto-ng pool to provide
     prices.
-
-TODO - add Chainlink price limits.
-TODO - proper documentation here.
 """
 from curvesim.pool import get_sim_pool
 from .base import Oracle

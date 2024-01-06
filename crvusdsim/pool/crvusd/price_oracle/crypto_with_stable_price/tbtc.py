@@ -7,8 +7,6 @@ from ... import ControllerFactory
 from ...utils import BlocktimestampMixins
 from ...stablecoin import StableCoin
 
-PRECISION = 10**18
-
 
 class OracleTBTC(Oracle):
     """
