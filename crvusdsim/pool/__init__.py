@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import List
 from curvesim.exceptions import CurvesimValueError
+from curvesim.pool.sim_interface import SimCurveCryptoPool
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
 from crvusdsim.pool.crvusd.conf import (
     AGGREGATOR_CONF,
@@ -15,6 +16,10 @@ from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
 )
 from crvusdsim.pool.crvusd.stableswap import CurveStableSwapPool
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+from crvusdsim.pool.crvusd.price_oracle.crypto_with_stable_price import (
+    Oracle,
+    get_oracle,
+)
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
@@ -47,11 +52,12 @@ class SimMarketInstance:
         collateral_token: ERC20,
         stablecoin: StableCoin,
         aggregator: AggregateStablePrice,
-        price_oracle: PriceOracle,
+        price_oracle: PriceOracle | Oracle,
         stableswap_pools: List[SimCurveStableSwapPool],
         peg_keepers: List[PegKeeper],
         policy: MonetaryPolicy,
         factory: ControllerFactory,
+        tricrypto: List[SimCurveCryptoPool] = [],
     ):
         self.pool = pool
         self.controller = controller
@@ -63,6 +69,7 @@ class SimMarketInstance:
         self.peg_keepers = peg_keepers
         self.policy = policy
         self.factory = factory
+        self.tricrypto = tricrypto
 
     def __iter__(self):
         return iter((
@@ -143,6 +150,7 @@ def get_sim_market(
     end_ts=None,
     src=None,
     data_dir=None,
+    use_simple_oracle=True,
 ):
     """
     Factory function for creating related entities (e.g. SimLLAMMAPool, SimController)
@@ -166,6 +174,10 @@ def get_sim_market(
     end_ts: int, optional
         Posix timestamp indicating the datetime of the metadata snapshot.
         Only used when `pool_metadata` is an address.
+
+    use_simple_oracle: bool, default=True
+        If True, use the simple oracle. Otherwise, use an oracle specific to the given
+        market and fetch necessary TriCrypto-ng pools.
 
     Returns
     -------
@@ -309,7 +321,7 @@ def get_sim_market(
     pool.metadata["address"] = pool_metadata._dict["llamma_params"]["address"]
     pool.metadata["chain"] = "mainnet"
 
-    return SimMarketInstance(
+    sim_market = SimMarketInstance(
         pool,
         controller,
         collateral_token,
@@ -320,7 +332,25 @@ def get_sim_market(
         peg_keepers,
         policy,
         factory,
+        [],  # tricrypto
     )
+
+    if not use_simple_oracle:
+        # Override simple oracle
+        oracle = get_oracle(
+            sim_market.pool.address, 
+            sim_market.factory, 
+            sim_market.aggregator, 
+            sim_market.stableswap_pools, 
+            end_ts=end_ts
+        )
+        tricrypto = oracle.tricrypto
+        # rebind
+        sim_market.tricrypto = tricrypto
+        sim_market.price_oracle = oracle
+        sim_market.pool.price_oracle_contract = oracle
+    
+    return sim_market
 
 
 get = get_sim_market
