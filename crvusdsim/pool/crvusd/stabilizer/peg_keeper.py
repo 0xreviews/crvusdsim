@@ -11,6 +11,7 @@ from ..controller_factory import ControllerFactory
 from ..price_oracle.aggregate_stable_price import (
     AggregateStablePrice,
 )
+from ..stablecoin import StableCoin
 
 # Time between providing/withdrawing coins
 ACTION_DELAY = 15 * 60
@@ -88,7 +89,7 @@ class PegKeeper(BlocktimestampMixins):
         assert _index < 2
         self.POOL = _pool
         self.I = _index
-        pegged: str = _pool.coins[_index]
+        pegged: StableCoin = _pool.coins[_index]
         self.PEGGED = pegged
 
         self.PEG_MUL = _pool.precisions[1 - _index]
@@ -125,6 +126,9 @@ class PegKeeper(BlocktimestampMixins):
         # ERC20(PEGGED).mint(self, _amount)
         if _amount == 0:
             return
+
+        # Prevent error from transfer
+        _amount = min(_amount, self.PEGGED.balanceOf[self.address])
 
         amounts: List[int] = [0, 0]
         amounts[self.I] = _amount
@@ -163,7 +167,9 @@ class PegKeeper(BlocktimestampMixins):
         lp_balance: int = self.POOL.balanceOf[self.address]
         debt: int = self.debt
         amount: int = _amount
-        if not _is_deposit:
+        if _is_deposit:
+            amount = min(_amount, self.PEGGED.balanceOf[self.address])
+        else:
             amount = min(_amount, debt)
 
         amounts: List[int] = [0, 0]

@@ -58,6 +58,12 @@ AGGREGATOR_CONF = {
 
 ARBITRAGUR_ADDRESS = "ARBITRAGUR"
 
+LLAMMA_WETH = "0x1681195c176239ac5e72d9aebacf5b2492e0c4ee"
+LLAMMA_WBTC = "0xe0438eb3703bf871e31ce639bd351109c88666ea"
+LLAMMA_SFRXETH = "0xfa96ad0a9e64261db86950e2da362f5572c5c6fd"
+LLAMMA_WSTETH = "0x37417b2238aa52d0dd2d6252d989e728e8f706e4"
+LLAMMA_TBTC = "0xf9bd9da2427a50908c4c6d1599d8e62837c2bcb0"
+
 ALIAS_TO_ADDRESS = {
     "crvUSD": "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
     "wstETH": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
@@ -66,10 +72,10 @@ ALIAS_TO_ADDRESS = {
     "TUSD": "0x0000000000085d4780B73119b644AE5ecd22b376",
     "USDP": "0x8E870D67F660D95d5be530380D0eC0bd388289E1",
     "llamma_sfrxeth_v1": "0x136e783846ef68c8bd00a3369f787df8d683a696",
-    "llamma_sfrxeth": "0xfa96ad0a9e64261db86950e2da362f5572c5c6fd",
-    "llamma_sfrxeth_v2": "0xfa96ad0a9e64261db86950e2da362f5572c5c6fd",
-    "llamma_wsteth": "0x37417b2238aa52d0dd2d6252d989e728e8f706e4",
-    "llamma_weth": "0x1681195c176239ac5e72d9aebacf5b2492e0c4ee",
-    "llamma_wbtc": "0xe0438eb3703bf871e31ce639bd351109c88666ea",
-    "llamma_tbtc": "0xf9bd9da2427a50908c4c6d1599d8e62837c2bcb0",
+    "llamma_sfrxeth": LLAMMA_SFRXETH,
+    "llamma_sfrxeth_v2": LLAMMA_SFRXETH,
+    "llamma_wsteth": LLAMMA_WSTETH,
+    "llamma_weth": LLAMMA_WETH,
+    "llamma_wbtc": LLAMMA_WBTC,
+    "llamma_tbtc": LLAMMA_TBTC,
 }

@@ -2,6 +2,7 @@
 Mainly a module to house the `Curve Stablecoin`, a Controller implementation in Python.
 """
 from collections import defaultdict
+from functools import partial
 from typing import Callable, List, Tuple
 from math import floor, sqrt, isqrt, log as math_log
 
@@ -150,7 +151,7 @@ class Controller(
         self.liquidation_discounts = (
             liquidation_discounts
             if liquidation_discounts is not None
-            else defaultdict(int)
+            else defaultdict(partial(type(liquidation_discount), liquidation_discount))
         )
 
         self._total_debt = total_debt if total_debt is not None else Loan()

@@ -616,7 +616,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         old_balances: List[int] = self.balances.copy()
         D0: int = self.get_D_mem(rates, old_balances, amp)
 
-        new_balances: List[int] = old_balances
+        new_balances: List[int] = old_balances.copy()
         for i in range(self.n):
             amount: int = _amounts[i]
             if amount != 0:
@@ -901,7 +901,7 @@ class CurveStableSwapPool(Pool, BlocktimestampMixins):
         D0: int = self.get_D_mem(rates, old_balances, amp)
 
         total_supply: int = self.totalSupply
-        new_balances: List[int] = old_balances
+        new_balances: List[int] = old_balances.copy()
         for i in range(self.n):
             amount: int = _amounts[i]
             if _is_deposit:
