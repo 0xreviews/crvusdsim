@@ -2,6 +2,7 @@ from typing import Tuple
 import pytest
 from math import log
 
+from curvesim.pool.sim_interface import SimCurveCryptoPool
 from crvusdsim.pool.crvusd.conf import ARBITRAGUR_ADDRESS
 from crvusdsim.pool.crvusd.utils.ERC20 import ERC20
 from crvusdsim.pool.crvusd.LLAMMA import LLAMMAPool
@@ -12,9 +13,21 @@ from crvusdsim.pool.crvusd.price_oracle.aggregate_stable_price import (
     AggregateStablePrice,
 )
 from crvusdsim.pool.crvusd.price_oracle.price_oracle import PriceOracle
+from crvusdsim.pool.crvusd.price_oracle.crypto_with_stable_price import (
+    make_kwargs as make_oracle_kwargs, MAP
+)
 from crvusdsim.pool.crvusd.stabilizer.peg_keeper import PegKeeper
 from crvusdsim.pool.crvusd.stableswap import LP_PROVIDER, CurveStableSwapPool
 from crvusdsim.pool.crvusd.stablecoin import StableCoin
+from crvusdsim.pool.sim_interface import SimCurveStableSwapPool
+from crvusdsim.pool.crvusd.conf import (
+    ALIAS_TO_ADDRESS, 
+    LLAMMA_TBTC, 
+    LLAMMA_WETH, 
+    LLAMMA_SFRXETH, 
+    LLAMMA_WBTC, 
+    LLAMMA_WSTETH
+)
 
 INIT_PRICE = 2000 * 10**18
 INIT_PRICE_D1 = INIT_PRICE // 10**18
@@ -49,10 +62,39 @@ PEG_KEEPER_CALLER_SHARE = 2 * 10**4
 PEG_KEEPER_RECEIVER = "PEG_KEEPER_RECEIVER"
 PEG_KEEPER_ADMIN = "PEG_KEEPER_ADMIN"
 INIT_PEG_KEEPER_CEILING = MARKET_DEBT_CEILING // len(STABLE_COINS)
-
+# TriCrypto
+TRICRYPTO_A = 1707629
+TRICRYPTO_PRECISIONS = [1, 1, 1]
+TRICRYPTO_GAMMA = 11809167828997
+TRICRYPTO_N_COINS = 3
+TRICRYPTO_MID_FEE = 3000000
+TRICRYPTO_OUT_FEE = 30000000
+TRICRYPTO_ALLOWED_EXTRA_PROFIT = 2000000000000
+TRICRYPTO_FEE_GAMMA = 500000000000000
+TRICRYPTO_ADJUSTMENT_STEP = 490000000000000
+TRICRYPTO_MA_HALF_TIME = 600
+TRICRYPTO_PRICE_SCALE = [44912882696470104260465, 2357733641392764512005]
+TRICRYPTO_BALANCES = [
+    25709017706486000000000000, 
+    567766370730000000000, 
+    10916847916467958574912
+]
+TRICRYPTO_KWARGS = {
+        "A": TRICRYPTO_A,
+        "gamma": TRICRYPTO_GAMMA,
+        "n": TRICRYPTO_N_COINS,
+        "precisions": TRICRYPTO_PRECISIONS,
+        "mid_fee": TRICRYPTO_MID_FEE,
+        "out_fee": TRICRYPTO_OUT_FEE,
+        "allowed_extra_profit": TRICRYPTO_ALLOWED_EXTRA_PROFIT,
+        "fee_gamma": TRICRYPTO_FEE_GAMMA,
+        "adjustment_step": TRICRYPTO_ADJUSTMENT_STEP,
+        "ma_half_time": TRICRYPTO_MA_HALF_TIME,
+        "price_scale": TRICRYPTO_PRICE_SCALE,
+        "balances": TRICRYPTO_BALANCES,
+}
 # Aggregator
 AGGREGATOR_SIGMA = 10**15
-
 
 def _create_stablecoin():
     coin = StableCoin()
@@ -63,11 +105,11 @@ def _create_stablecoin():
     return coin
 
 
-def _create_collteral():
+def _create_collteral(symbol = "wstETH"):
     coin = ERC20(
-        address="wstETH_address",
-        name="Wrapped stETH",
-        symbol="wstETH",
+        address="%s_address" % (symbol),
+        name="%s" % (symbol),
+        symbol=symbol,
         decimals=18,
     )
     coin._mint(LP_PROVIDER, 10**6 * 10**18)
@@ -75,26 +117,31 @@ def _create_collteral():
     return coin
 
 
-def _create_other_coins():
-    coins = []
-    for symbol in STABLE_COINS:
-        _coin = StableCoin(
-            address="%s_address" % (symbol),
-            symbol=symbol,
-            name="%s" % (symbol),
-            decimals=18,
-        )
-        _coin._mint(LP_PROVIDER, 10**6 * 10**18)
-        _coin._mint(ARBITRAGUR_ADDRESS, 10**6 * 10**18)
-        coins.append(_coin)
+def _create_other_stablecoin(symbol):
+    _coin = StableCoin(
+        address="%s_address" % (symbol),
+        symbol=symbol,
+        name="%s" % (symbol),
+        decimals=18,
+    )
+    _coin._mint(LP_PROVIDER, 10**6 * 10**18)
+    _coin._mint(ARBITRAGUR_ADDRESS, 10**6 * 10**18)
+    return _coin
 
+
+def _create_other_coins(other_coins=STABLE_COINS):
+    coins = []
+    for symbol in other_coins:
+        _coin = _create_other_stablecoin(symbol)
+        coins.append(_coin)
     return coins
 
 
-def _create_stableswaps(stablecoin, other_coins):
+def _create_stableswaps(stablecoin, other_coins, sim = False):
     pools = []
+    constructor = CurveStableSwapPool if not sim else SimCurveStableSwapPool
     for peg_coin in other_coins:
-        _pool = CurveStableSwapPool(
+        _pool = constructor(
             name="crvUSD/%s" % (peg_coin.symbol),
             symbol="crvUSD-%s" % (peg_coin.symbol),
             A=STABLE_A,
@@ -174,6 +221,49 @@ def create_amm():
     return amm, price_oracle
 
 
+def _tricrypto_coins(market: str):
+    if market in [LLAMMA_WETH, LLAMMA_WSTETH, LLAMMA_SFRXETH, LLAMMA_WBTC]:
+        return [["USDC", "WBTC", "WETH"], ["USDT", "WBTC", "WETH"]]
+    elif market == LLAMMA_TBTC:
+        return [["crvUSD", "tBTC", "wstETH"]]
+
+
+def _create_tricrypto(market: str):
+    tricrypto = []
+    for coins in _tricrypto_coins(market):
+        tpool = SimCurveCryptoPool(**TRICRYPTO_KWARGS)
+        coins = [
+            _create_other_stablecoin(symbol) 
+            if symbol in STABLE_COINS 
+            else _create_collteral(symbol) 
+            for symbol in coins
+        ]
+        tpool.metadata = {
+            "coins": {
+                "addresses": [c.address for c in coins]
+            }
+        }  # for `coin_addresses`
+        tricrypto.append(tpool)
+    return tricrypto
+
+
+def create_crypto_with_stable_price_oracle(market="weth"):
+    if "0x" not in market:
+        market = ALIAS_TO_ADDRESS[f"llamma_{market}"]
+    stablecoin = _create_stablecoin()
+    stablecoin.address = "crvusd_address"
+    if market in [LLAMMA_WETH, LLAMMA_WSTETH, LLAMMA_SFRXETH, LLAMMA_WBTC]:
+        other_coins = _create_other_coins([x[0] for x in _tricrypto_coins(market)])  # e.g. [USDC, USDT]
+    elif market == LLAMMA_TBTC:
+        other_coins = []
+    factory = _create_factory(stablecoin)
+    stableswap = _create_stableswaps(stablecoin, other_coins, sim=True)
+    aggregator = _create_aggregator(stablecoin, stableswap)
+    tricrypto = _create_tricrypto(market)
+    kwargs = make_oracle_kwargs(market, aggregator, factory, tricrypto, stableswap)
+    return MAP[market.lower()](**kwargs)
+
+
 def create_controller_amm():
     stablecoin = _create_stablecoin()
     other_coins = _create_other_coins()
@@ -251,3 +341,13 @@ def monetary_policy(price_oracle, pegkeepers, factory):
 @pytest.fixture(scope="module")
 def controller_and_amm():
     return create_controller_amm()
+
+
+@pytest.fixture(scope="module")
+def crypto_with_stable_price_oracle(market="weth"):
+    return create_crypto_with_stable_price_oracle(market)
+
+
+@pytest.fixture(scope="module")
+def tricrypto():
+    return _create_tricrypto()

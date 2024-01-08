@@ -1,3 +1,4 @@
+from typing import List, Any
 from datetime import datetime, timedelta
 from math import log
 import pandas as pd
@@ -32,3 +33,7 @@ def generate_prices(price_max, price_min, trade_count, columns):
 
     prices = pd.DataFrame(prices, columns=columns, index=ts_list)
     return prices
+
+def increment_timestamps(objects: List[Any], ts: int) -> None:
+    for obj in objects:
+        obj._increment_timestamp(ts)
