@@ -131,6 +131,11 @@ async def get_all(template, key, llamma_address, end_ts=None, first=1000):
 
         r = await convex_crvusd(q)
 
+        if not len(r[key]) and not res:
+            raise SubgraphResultError(
+                f"No data for template: {template}."
+            )
+
         try:
             r = r[key]
 
@@ -169,7 +174,7 @@ async def get_band_snapshots(llamma_address, end_ts=None, first=1000):
         end_ts = int(end_date.timestamp())
 
     # Using timestamp_gte in query because we can't sort by timestamp :(
-    end_ts -= 86400
+    end_ts -= 115200  # 32 hours
 
     # pylint: disable=consider-using-f-string
     template_query = """
@@ -485,10 +490,10 @@ async def _market_snapshot(
     return res
 
 
-async def _stableswap_snapshot(pool_addresses, chain = "mainnet"):
+async def _stableswap_snapshot(pool_addresses, chain = "mainnet", end_ts = None):
     pools_params = []
     for addr in pool_addresses:
-        r = await _pool_snapshot(address=addr, chain=chain, env="prod")
+        r = await _pool_snapshot(address=addr, chain=chain, env="prod", end_ts=end_ts)
         coins = []
         for i in range(len(r["pool"]["coins"])):
             coins.append(
@@ -578,7 +583,8 @@ async def market_snapshot(
 
     # stableswap pools
     stableswap_pools_params = await _stableswap_snapshot(
-        [p["pool"] for p in peg_keepers_params]
+        [p["pool"] for p in peg_keepers_params],
+        end_ts=end_ts,
     )
 
     # debt ceilings for controller and pks
