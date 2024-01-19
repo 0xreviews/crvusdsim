@@ -122,13 +122,13 @@ class PegKeeper(BlocktimestampMixins):
         return self.AGGREGATOR
 
     def _provide(self, _amount: int):
+        # Prevent error from transfer
+        _amount = min(_amount, self.PEGGED.balanceOf[self.address])
+
         # We already have all reserves here
         # ERC20(PEGGED).mint(self, _amount)
         if _amount == 0:
             return
-
-        # Prevent error from transfer
-        _amount = min(_amount, self.PEGGED.balanceOf[self.address])
 
         amounts: List[int] = [0, 0]
         amounts[self.I] = _amount
@@ -139,11 +139,11 @@ class PegKeeper(BlocktimestampMixins):
         self.debt += _amount
 
     def _withdraw(self, _amount: int):
-        if _amount == 0:
-            return
-
         debt: int = self.debt
         amount: int = min(_amount, debt)
+
+        if _amount == 0:
+            return
 
         amounts: List[int] = [0, 0]
         amounts[self.I] = amount
