@@ -76,7 +76,7 @@ class ControllerFactory:
 
         if debt_ceiling < old_debt_residual:
             diff: int = min(
-                old_debt_residual - debt_ceiling, self.STABLECOIN.balanceOf(addr)
+                old_debt_residual - debt_ceiling, self.STABLECOIN.balanceOf[addr]
             )
             self.STABLECOIN.burnFrom(addr, diff)
             self.debt_ceiling_residual[addr] = old_debt_residual - diff
