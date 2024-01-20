@@ -19,11 +19,11 @@ PRECISION = 10**18
 
 
 @dataclass
-class SimpleOracle:
+class StakedOracle:
     """
     Simple object for tracking simulated prices.
 
-    Serves as the Chainlink Oracle.
+    Serves as the Staking/Chainlink Oracle.
     """
 
     def __init__(self, price: int = 1e18, decimals: int = 18) -> None:
@@ -32,7 +32,7 @@ class SimpleOracle:
 
     def update(self, new: int) -> None:
         """Update the price."""
-        self.price = new
+        self.price = int(new)
 
 
 class Oracle(ABC, BlocktimestampMixins):
@@ -51,7 +51,7 @@ class Oracle(ABC, BlocktimestampMixins):
         stableswap: List[SimCurveStableSwapPool],
         stable_aggregator: AggregateStablePrice,
         factory: ControllerFactory,
-        chainlink_aggregator: SimpleOracle | None = None,
+        chainlink_aggregator: StakedOracle | None = None,
         bound_size: int | None = None,
         n_pools=2,
         tvl_ma_time=50000,
@@ -165,7 +165,7 @@ class Oracle(ABC, BlocktimestampMixins):
             chainlink_p = chainlink_lrd * 10**18 // self.chainlink_price_precision
             lower = chainlink_p * (10**18 - self.bound_size) // 10**18
             upper = chainlink_p * (10**18 + self.bound_size) // 10**18
-            crv_p = min(max(crv_p, lower), upper)
+            crv_p = int(min(max(crv_p, lower), upper))
 
         self.last_price = crv_p
 
@@ -231,7 +231,7 @@ class Oracle(ABC, BlocktimestampMixins):
 
     def set_chainlink(self, price: int, decimals: int, bound_size: int) -> None:
         """Configure a chainlink aggregator."""
-        self.chainlink_aggregator = SimpleOracle(price, decimals)
+        self.chainlink_aggregator = StakedOracle(price, decimals)
         self.chainlink_price_precision = int(10**decimals)
         self.bound_size = bound_size
         self.use_chainlink = True

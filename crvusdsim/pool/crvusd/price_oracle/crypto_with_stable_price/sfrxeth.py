@@ -1,6 +1,6 @@
 """Provides the sfrxETH price oracle."""
 from typing import List
-from .base import Oracle, SimpleOracle
+from .base import Oracle, StakedOracle
 
 PRECISION = 10**18
 
@@ -8,9 +8,9 @@ PRECISION = 10**18
 class OracleSFRXETH(Oracle):
     """Oracle for sfrxETH"""
 
-    def __init__(self, staked_oracle: SimpleOracle | None = None, **kwargs):
+    def __init__(self, staked_oracle: StakedOracle | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.staked_oracle = staked_oracle or SimpleOracle()
+        self.staked_oracle = staked_oracle or StakedOracle()
 
     def _raw_price(self, tvls: List[int], agg_price: int, *args, **kwargs) -> int:
         """
