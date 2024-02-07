@@ -26,7 +26,14 @@ def from_address(
     Pool snapshot dictionary in the format returned by
     :func:`curvesim.network.subgraph.pool_snapshot`.
     """
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     data = market_snapshot_sync(
         llamma_address,
         end_ts=end_ts,

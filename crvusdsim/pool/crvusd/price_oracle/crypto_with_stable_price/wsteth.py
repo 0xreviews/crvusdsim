@@ -19,6 +19,9 @@ class OracleWSTETH(Oracle):
 
         Convert this price to the staked asset price using staked oracle price.
         (e.g. ETH -> sfrxETH).
+
+        NOTE: don't need to apply chainlink limit here since the staked_oracle
+        price is already the simulated (i.e. market) price.
         """
         crv_p = super()._raw_price(tvls, agg_price, *args, **kwargs)
         crv_p = int(self.staked_oracle.price * crv_p // PRECISION)

@@ -14,6 +14,7 @@ python = "^3.10"
 curvesim = { git = "https://github.com/curveresearch/curvesim.git", branch = "main" }
 pytest = "^7.4.3"
 hypothesis = "^6.90.0"
+black = "^23.12.1"
 
 
 [build-system]

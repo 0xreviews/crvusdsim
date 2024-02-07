@@ -21,15 +21,18 @@ PRECISION = 10**18
 @dataclass
 class StakedOracle:
     """
-    Simple interface for tracking conversions
-    for staked derivatives.
+    Simple object for tracking simulated prices.
+
+    Serves as the Staking/Chainlink Oracle.
     """
 
-    price: int = 10**18
+    def __init__(self, price: int = 1e18, decimals: int = 18) -> None:
+        self.price = price
+        self.decimals = decimals
 
     def update(self, new: int) -> None:
         """Update the price."""
-        self.price = new
+        self.price = int(new)
 
 
 class Oracle(ABC, BlocktimestampMixins):
@@ -48,8 +51,8 @@ class Oracle(ABC, BlocktimestampMixins):
         stableswap: List[SimCurveStableSwapPool],
         stable_aggregator: AggregateStablePrice,
         factory: ControllerFactory,
-        # chainlink_aggregator_eth: ChainlinkAggregator,
-        # bound_size: int,  # 1.5% sounds ok before we turn it off
+        chainlink_aggregator: StakedOracle | None = None,
+        bound_size: int | None = None,
         n_pools=2,
         tvl_ma_time=50000,
         **kwargs,
@@ -89,10 +92,12 @@ class Oracle(ABC, BlocktimestampMixins):
         self.last_timestamp = self._block_timestamp
         self.frozen = False  # SIM INTERFACE
 
-        # self.use_chainlink = False
-        # CHAINLINK_AGGREGATOR_ETH = chainlink_aggregator_eth
-        # CHAINLINK_PRICE_PRECISION_ETH = 10**convert(chainlink_aggregator_eth.decimals(), uint256)
-        # BOUND_SIZE = bound_size
+        self.use_chainlink = True if chainlink_aggregator else False
+        self.chainlink_aggregator = chainlink_aggregator
+        self.chainlink_price_precision = (
+            int(10**chainlink_aggregator.decimals) if chainlink_aggregator else None
+        )
+        self.bound_size = bound_size
 
     @property
     def _price_last(self):
@@ -155,6 +160,13 @@ class Oracle(ABC, BlocktimestampMixins):
             )  # d_usd/d_collat
         crv_p = weighted_price // weights
 
+        if self.use_chainlink:
+            chainlink_lrd = self.chainlink_aggregator.price
+            chainlink_p = chainlink_lrd * 10**18 // self.chainlink_price_precision
+            lower = chainlink_p * (10**18 - self.bound_size) // 10**18
+            upper = chainlink_p * (10**18 + self.bound_size) // 10**18
+            crv_p = int(min(max(crv_p, lower), upper))
+
         self.last_price = crv_p
 
         return crv_p
@@ -193,6 +205,8 @@ class Oracle(ABC, BlocktimestampMixins):
         """Whether to truncate using Chainlink prices."""
         self.use_chainlink = do_it
 
+    # SIM INTERFACE
+
     def freeze(self):
         """
         Freeze the oracle price.
@@ -210,3 +224,14 @@ class Oracle(ABC, BlocktimestampMixins):
     def unfreeze(self):
         """Unfreeze the oracle price."""
         self.frozen = False
+
+    def set_chainlink_price(self, price: int) -> None:
+        """Update the Chainlink price."""
+        self.chainlink_aggregator.update(price)
+
+    def set_chainlink(self, price: int, decimals: int, bound_size: int) -> None:
+        """Configure a chainlink aggregator."""
+        self.chainlink_aggregator = StakedOracle(price, decimals)
+        self.chainlink_price_precision = int(10**decimals)
+        self.bound_size = bound_size
+        self.use_chainlink = True

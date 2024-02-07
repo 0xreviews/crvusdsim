@@ -14,6 +14,7 @@ Each market has its own implementation:
 3. tBTC: Uses just the crvUSD/tBTC/wstETH TriCrypto-ng pool to provide
     prices.
 """
+from typing import List
 from curvesim.pool import get_sim_pool
 from .base import Oracle
 from .weth import OracleWETH
@@ -22,6 +23,7 @@ from .sfrxeth import OracleSFRXETH
 from .wsteth import OracleWSTETH
 from .tbtc import OracleTBTC
 from ...conf import LLAMMA_TBTC, LLAMMA_WETH, LLAMMA_SFRXETH, LLAMMA_WBTC, LLAMMA_WSTETH
+from ....sim_interface import SimCurveStableSwapPool
 
 MAP = {
     LLAMMA_WETH: OracleWETH,
@@ -33,7 +35,11 @@ MAP = {
 
 
 def get_oracle(
-    market: str, factory, aggregator, stableswap_all, end_ts: int | None = None
+    market: str,
+    factory,
+    aggregator,
+    stableswap_all: List[SimCurveStableSwapPool],
+    end_ts: int | None = None,
 ) -> Oracle:
     """Return the appropriate Oracle instance."""
     tricrypto, stableswap = get_pools(market, stableswap_all, end_ts)
@@ -66,7 +72,9 @@ def get_stableswap_addresses(market: str) -> list:
         raise NotImplementedError("Invalid market: %s" % market)
 
 
-def get_pools(market: str, stableswap_all, end_ts: int | None = None) -> tuple:
+def get_pools(
+    market: str, stableswap_all: List[SimCurveStableSwapPool], end_ts: int | None = None
+) -> tuple:
     """Return the pools required to construct the oracle."""
     tricrypto_addresses = get_tricrypto_addresses(market)
     tricrypto = [
