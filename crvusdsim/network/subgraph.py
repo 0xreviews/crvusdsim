@@ -15,7 +15,13 @@ from crvusdsim.pool.crvusd.stablecoin import StableCoin
 from ..pool.crvusd.conf import MONETARY_POLICY_CONF, STABLECOIN_TOKEN_CONF
 
 
-CONVEX_CRVUSD_URL = "https://api.thegraph.com/subgraphs/name/convex-community/crvusd"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.getenv('GRAPH_API_KEY')
+
+CONVEX_CRVUSD_URL = f"https://gateway-arbitrum.network.thegraph.com/api/{api_key}/subgraphs/id/B6jNaCpuWbz1BfEVq5D8EyZHtvX55oBY3viaYnLeFgQ3"
 
 logger = get_logger(__name__)
 
